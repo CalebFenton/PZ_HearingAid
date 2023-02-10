@@ -96,7 +96,7 @@ module hearing_aid
 
 		SkillRequired:Electricity=2,
 		Result:InefficientHearingAid,
-		Time:30.0,
+		Time:60.0,
 		OnTest:Recipe.OnTest.DismantleElectronics,
 		OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
 		Category:Electrical,
@@ -113,7 +113,7 @@ module hearing_aid
 
 		SkillRequired:Electricity=4,
 		Result:EfficientHearingAid,
-		Time:30.0,
+		Time:80.0,
 		OnTest:Recipe.OnTest.DismantleElectronics,
 		OnCreate:HearingAidManager.DismantleHearingAid,
 		OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
@@ -134,7 +134,7 @@ module hearing_aid
 
 		SkillRequired:Electricity=8,
 		Result:BoostedHearingAid,
-		Time:30.0,
+		Time:120.0,
 		OnTest:Recipe.OnTest.DismantleElectronics,
 		OnCreate:HearingAidManager.DismantleHearingAid,
 		OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
