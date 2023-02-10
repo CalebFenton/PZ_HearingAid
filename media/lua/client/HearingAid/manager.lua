@@ -349,3 +349,15 @@ function HearingAidManager:new(item)
 	o.target = o.target or {};
 	return o;
 end
+
+HearingAidManager.DismantleHearingAid = function(items, result, player)
+	for i=1, items:size() do
+		local item = items:get(i-1);
+		if isWorkingHearingAid(item) and item:getModData()[HA_HAS_BATTERY] == true then
+			local battery = InventoryItemFactory.CreateItem("Base.Battery");
+			battery:setUsedDelta(item:getModData()[HA_BATTERY_LEVEL]);
+			player:getInventory():AddItem(battery);
+			break
+		end
+	end
+end
