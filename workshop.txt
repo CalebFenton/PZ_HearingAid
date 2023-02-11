@@ -1,0 +1,16 @@
+version=1
+id=2931424725
+title=Hearing Aid
+description=This adds an upgradable hearing aid.
+description=
+description=Do you constantly take hard of hearing for the stat points and are tired of being deaf all the time? Wish there was a way to progress out of this negative trait? Try the hearing aid.
+description=
+description=There are four variants: broken, normal, efficient, and boosted. The broken hearing aid is the most common and will sometimes spawn in desks or zombies. It's useless but it can be repaired and turned into the normal variant fairly easily.
+description=
+description=The normal variant spawns in the same places but is much more rare. When it's powered and activated it removes hard of hearing trait but it uses a lot of battery.
+description=
+description=The normal hearing aid can be optimized with higher electrical skill and a few other components to the efficient hearing aid which uses much less battery.
+description=
+description=With a very high electrical skill and some other components, you can upgrade the efficient version to boosted which gives keen hearing trait.
+tags=Build 41;Clothing/Armor
+visibility=public
