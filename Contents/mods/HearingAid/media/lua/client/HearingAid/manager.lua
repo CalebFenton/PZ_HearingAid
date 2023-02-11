@@ -12,7 +12,7 @@ HearingAidManager.managers = {};
 HearingAidManager.activeManagers = {};
 
 local HA_WORKING_FULL_TYPES = {"hearing_aid.InefficientHearingAid", "hearing_aid.EfficientHearingAid", "hearing_aid.BoostedHearingAid"}
-local HA_REMOVED_HARD_OF_HEARING = "hearing_aid_removed_hard_of_hearing";
+local HA_CHANGED_TRAITS = "hearing_aid_changed_traits";
 local HA_ACTIVE = "hearing_aid_battery_active";
 local HA_ACTIVE_TIME = "hearing_aid_battery_active_time";
 local HA_INITIALIZED = "hearing_aid_battery_initialized";
@@ -89,24 +89,56 @@ end
 
 local function onActivate(_, player, item, manager)
 	HearingAidManager.activeManagers[buildActiveIndex(player)] = manager;
+	local handleDeafness = SandboxVars.HearingAid.HandleDeafness;
+	local isBoosted = item:getFullType() == "hearing_aid.BoostedHearingAid";
     local traits = player:getTraits();
-    if traits:contains("HardOfHearing") then
-		item:getModData()[HA_REMOVED_HARD_OF_HEARING] = true;
-        traits:remove("HardOfHearing");
-    end
-	if item:getFullType() == "hearing_aid.BoostedHearingAid" then
-		traits:add("KeenHearing")
+	local modData = item:getModData();
+    if traits:contains("Deaf") then
+		if handleDeafness == 2 then
+			traits:remove("Deaf");
+			if isBoosted then
+				modData[HA_CHANGED_TRAITS] = {"Deaf", ""};
+			else
+				modData[HA_CHANGED_TRAITS] = {"Deaf", "HardOfHearing"};
+				traits:add("HardOfHearing");
+			end
+		elseif handleDeafness == 3 then
+			if isBoosted then
+				modData[HA_CHANGED_TRAITS] = {"Deaf", "HardOfHearing"};
+				traits:remove("Deaf");
+				traits:add("HardOfHearing");
+			end
+		end
+	elseif traits:contains("HardOfHearing") then
+		traits:remove("HardOfHearing");
+		if isBoosted then
+			modData[HA_CHANGED_TRAITS] = {"HardOfHearing", "KeenHearing"};
+			traits:add("KeenHearing");
+		else
+			modData[HA_CHANGED_TRAITS] = {"HardOfHearing", ""};
+		end
+	else
+		if isBoosted then
+			modData[HA_CHANGED_TRAITS] = {"", "KeenHearing"};
+			traits:add("KeenHearing");
+		else
+			modData[HA_CHANGED_TRAITS] = {"", ""};
+		end
 	end
 end
 
 local function onDeactivate(_, player, item, manager)
 	HearingAidManager.activeManagers[buildActiveIndex(player)] = nil;
-	if item:getModData()[HA_REMOVED_HARD_OF_HEARING] == true then
-		item:getModData()[HA_REMOVED_HARD_OF_HEARING] = false;
-    	player:getTraits():add("HardOfHearing");
-	end
-	if item:getFullType() == "hearing_aid.BoostedHearingAid" then
-		player:getTraits():remove("KeenHearing")
+	local changedTraits = item:getModData()[HA_CHANGED_TRAITS];
+	if changedTraits ~= nil then
+		local traits = player:getTraits();
+		local removedTrait, addedTrait = changedTraits[1], changedTraits[2];
+		if addedTrait ~= "" then
+			traits:remove(addedTrait);
+		end
+		if removedTrait ~= "" then
+			traits:add(removedTrait);
+		end
 	end
 end
 
@@ -322,12 +354,10 @@ function HearingAidManager:initialize()
 	if not alreadyInitialized or shouldUpgrade then
 		-- May have had battery when upgrading
 		local hadBattery = modData[HA_HAS_BATTERY];
-		-- TODO: move battery spawn chance to config
 		local hasBattery = hadBattery or (alreadyInitialized and ZombRandBetween(0, 10) < 2);
 		modData[HA_BATTERY_MANAGER_VERSION] = versionNumber;
 		modData[HA_ACTIVE] = false;
 		modData[HA_HAS_BATTERY] = hasBattery;
-		-- TODO: make battery power spawn depend on age of the world for realizm! pareto too, because it's more realer.
 		modData[HA_BATTERY_LEVEL] = (hadBattery and 1) or (hasBattery and (ZombRandBetween(0, 10) / 10));
 		modData[HA_BATTERY_POWER_LEVEL] = 1;
 		modData[HA_INITIALIZED] = true;
@@ -360,4 +390,8 @@ HearingAidManager.DismantleHearingAid = function(items, result, player)
 			break
 		end
 	end
+end
+
+HearingAidManager.IsBoostValid = function(item)
+	return SandboxVars.HearingAid.EnableBoosted == true;
 end
