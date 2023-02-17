@@ -12,5 +12,7 @@ description=
 description=The normal hearing aid can be optimized with higher electrical skill and a few other components to the efficient hearing aid which uses much less battery.
 description=
 description=With a very high electrical skill and some other components, you can upgrade the efficient version to boosted which gives keen hearing trait.
+description=
+description=https://github.com/CalebFenton/PZ_HearingAid
 tags=Build 41;Clothing/Armor
 visibility=public

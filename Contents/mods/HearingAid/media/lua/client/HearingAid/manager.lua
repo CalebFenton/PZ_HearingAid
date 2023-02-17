@@ -93,6 +93,7 @@ local function onActivate(_, player, item, manager)
 	local isBoosted = item:getFullType() == "hearing_aid.BoostedHearingAid";
     local traits = player:getTraits();
 	local modData = item:getModData();
+	modData[HA_CHANGED_TRAITS] = nil;
     if traits:contains("Deaf") then
 		if handleDeafness == 2 then
 			traits:remove("Deaf");
@@ -117,6 +118,8 @@ local function onActivate(_, player, item, manager)
 		else
 			modData[HA_CHANGED_TRAITS] = {"HardOfHearing", ""};
 		end
+	elseif traits:contains("KeenHearing") then
+		-- Congrats! You already have great hearing.
 	else
 		if isBoosted then
 			modData[HA_CHANGED_TRAITS] = {"", "KeenHearing"};
@@ -125,7 +128,10 @@ local function onActivate(_, player, item, manager)
 			modData[HA_CHANGED_TRAITS] = {"", ""};
 		end
 	end
-	modData[HA_CHANGED_TRAITS][3] = player;
+
+	if modData[HA_CHANGED_TRAITS] ~= nil then
+		modData[HA_CHANGED_TRAITS][3] = player;
+	end
 end
 
 local function onDeactivate(_, player, item, manager)
@@ -137,7 +143,7 @@ local function onDeactivate(_, player, item, manager)
 			-- I think it's possible for this to happen if a player dies while wearing this
 			error("HearingAid for " .. buildActiveIndex(activePlayer) .. " deactivated on " .. buildActiveIndex(player));
 		end
-		local traits = activePlayerm,                                                                                 mm:getTraits();
+		local traits = activePlayer:getTraits();
 		if addedTrait ~= "" then
 			traits:remove(addedTrait);
 		end

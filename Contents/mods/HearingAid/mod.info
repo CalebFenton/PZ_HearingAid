@@ -2,3 +2,4 @@ name=Hearing Aid
 id=cf_hearing_aid
 description=Adds a wearable hearing aid.
 poster=poster.png
+url=https://github.com/CalebFenton/PZ_HearingAid
