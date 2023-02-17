@@ -125,14 +125,19 @@ local function onActivate(_, player, item, manager)
 			modData[HA_CHANGED_TRAITS] = {"", ""};
 		end
 	end
+	modData[HA_CHANGED_TRAITS][3] = player;
 end
 
 local function onDeactivate(_, player, item, manager)
 	HearingAidManager.activeManagers[buildActiveIndex(player)] = nil;
 	local changedTraits = item:getModData()[HA_CHANGED_TRAITS];
 	if changedTraits ~= nil then
-		local traits = player:getTraits();
-		local removedTrait, addedTrait = changedTraits[1], changedTraits[2];
+		local removedTrait, addedTrait, activePlayer = changedTraits[1], changedTraits[2], changedTraits[3];
+		if player ~= activePlayer then
+			-- I think it's possible for this to happen if a player dies while wearing this
+			error("HearingAid for " .. buildActiveIndex(activePlayer) .. " deactivated on " .. buildActiveIndex(player));
+		end
+		local traits = activePlayerm,                                                                                 mm:getTraits();
 		if addedTrait ~= "" then
 			traits:remove(addedTrait);
 		end

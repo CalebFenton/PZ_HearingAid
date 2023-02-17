@@ -33,12 +33,12 @@ for distributionName, rate in pairs(EffecientHearingAidSpawns) do
     table.insert(distribution.items, rate);
 end
 
-table.insert(Distributions[1].all["inventoryfemale"], "hearing_aid.InefficientHearingAid");
-table.insert(Distributions[1].all["inventoryfemale"], 0.01);
-table.insert(Distributions[1].all["inventorymale"], "hearing_aid.InefficientHearingAid");
-table.insert(Distributions[1].all["inventorymale"], 0.01);
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, "hearing_aid.InefficientHearingAid");
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.03);
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, "hearing_aid.InefficientHearingAid");
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.03);
 
-table.insert(Distributions[1].all["inventoryfemale"], "hearing_aid.BrokenHearingAidSpawns");
-table.insert(Distributions[1].all["inventoryfemale"], 0.1);
-table.insert(Distributions[1].all["inventorymale"], "hearing_aid.BrokenHearingAidSpawns");
-table.insert(Distributions[1].all["inventorymale"], 0.1);
+table.insert(SuburbsDistributions["all"]["inventoryfemale"], "hearing_aid.BrokenHearingAid");
+table.insert(SuburbsDistributions["all"]["inventoryfemale"], 0.1);
+table.insert(SuburbsDistributions["all"]["inventorymale"], "hearing_aid.BrokenHearingAid");
+table.insert(SuburbsDistributions["all"]["inventorymale"], 0.1);
