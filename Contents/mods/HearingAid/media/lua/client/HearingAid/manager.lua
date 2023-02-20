@@ -41,7 +41,7 @@ local function getItemID(item)
 end
 
 local function initializeHearingAid(itemID, player, item)
-	local runTime = 500;
+	local runTime = 400;
 	if item:getFullType() == "hearing_aid.InefficientHearingAid" then
 		runTime = 48;
 	end
