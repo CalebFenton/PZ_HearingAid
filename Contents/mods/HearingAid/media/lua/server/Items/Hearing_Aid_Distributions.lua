@@ -38,7 +38,7 @@ table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.03);
 table.insert(SuburbsDistributions["all"]["inventorymale"].items, "hearing_aid.InefficientHearingAid");
 table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.03);
 
-table.insert(SuburbsDistributions["all"]["inventoryfemale"], "hearing_aid.BrokenHearingAid");
-table.insert(SuburbsDistributions["all"]["inventoryfemale"], 0.1);
-table.insert(SuburbsDistributions["all"]["inventorymale"], "hearing_aid.BrokenHearingAid");
-table.insert(SuburbsDistributions["all"]["inventorymale"], 0.1);
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, "hearing_aid.BrokenHearingAid");
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.1);
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, "hearing_aid.BrokenHearingAid");
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.1);
