@@ -12,13 +12,13 @@ local IneffecientHearingAidSpawns = {
 };
 
 local EffecientHearingAidSpawns = {
-    CrateElectronics = 0.05,
-    ClosetShelfGeneric = 0.05,
-    ClothingStoresEyewear = 0.05,
-    OfficeDeskHome = 0.15,
-    OfficeDesk = 0.1,
+    CrateElectronics = 0.03,
+    ClosetShelfGeneric = 0.03,
+    ClothingStoresEyewear = 0.03,
+    OfficeDeskHome = 0.1,
+    OfficeDesk = 0.05,
     DeskGeneric = 0.05,
-    ElectronicStoreMisc = 0.05,
+    ElectronicStoreMisc = 0.1,
 };
 
 for distributionName, rate in pairs(IneffecientHearingAidSpawns) do
@@ -34,11 +34,11 @@ for distributionName, rate in pairs(EffecientHearingAidSpawns) do
 end
 
 table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, "hearing_aid.InefficientHearingAid");
-table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.03);
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.015);
 table.insert(SuburbsDistributions["all"]["inventorymale"].items, "hearing_aid.InefficientHearingAid");
-table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.03);
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.015);
 
 table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, "hearing_aid.BrokenHearingAid");
-table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.1);
+table.insert(SuburbsDistributions["all"]["inventoryfemale"].items, 0.05);
 table.insert(SuburbsDistributions["all"]["inventorymale"].items, "hearing_aid.BrokenHearingAid");
-table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.1);
+table.insert(SuburbsDistributions["all"]["inventorymale"].items, 0.05);

@@ -1,0 +1,10 @@
+module Base
+{
+
+	model hearingAid
+	{
+		mesh = WorldItems/hearingAid_Ground,
+		texture = clothes/hearingAid,
+	}
+
+}

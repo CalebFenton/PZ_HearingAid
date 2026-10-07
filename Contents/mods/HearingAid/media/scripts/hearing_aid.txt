@@ -15,7 +15,7 @@ module hearing_aid
 	{
 		DisplayName		    =			Broken Hearing Aid,
 		Icon			    =			HearingAid_Broken,
-		WorldStaticModel	=           HearingAid,
+		WorldStaticModel	=           hearingAid,
 		ScaleWorldIcon		=			0.3,
 		Type	    		=			Clothing,
 		DisplayCategory		=			Accessory,
@@ -33,7 +33,7 @@ module hearing_aid
 	{
 		DisplayName		    =			Hearing Aid,
 		Icon			    =			HearingAid,
-		WorldStaticModel	=           HearingAid,
+		WorldStaticModel	=           hearingAid,
 		ScaleWorldIcon		=			0.3,
 		Type	    		=			Clothing,
 		DisplayCategory		=			Accessory,
@@ -50,7 +50,7 @@ module hearing_aid
 	{
 		DisplayName		    =			Efficient Hearing Aid,
 		Icon			    =			HearingAid,
-		WorldStaticModel	=           HearingAid,
+		WorldStaticModel	=           hearingAid,
 		ScaleWorldIcon		=			0.3,
 		Type	    		=			Clothing,
 		DisplayCategory		=			Accessory,
@@ -67,7 +67,7 @@ module hearing_aid
 	{
 		DisplayName		    =			Boosted Hearing Aid,
 		Icon			    =			HearingAid,
-		WorldStaticModel	=           HearingAid,
+		WorldStaticModel	=           hearingAid,
 		ScaleWorldIcon		=			0.3,
 		Type	    		=			Clothing,
 		DisplayCategory		=			Accessory,
