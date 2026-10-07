@@ -18,5 +18,11 @@
     "Sandbox_HearingAid_HandleDeafness_option2": "Hearing aids give hard of hearing, boosted give normal hearing",
     "Sandbox_HearingAid_HandleDeafness_option3": "Only boosted hearing aids help, giving hard of hearing",
     "Sandbox_HearingAid_EnableBoosted": "Enable Boosted Hearing Aids",
-    "Sandbox_HearingAid_EnableBoosted_tooltip": "Whether efficient hearing aids can be upgraded into boosted ones, which give keen hearing."
+    "Sandbox_HearingAid_EnableBoosted_tooltip": "Whether efficient hearing aids can be upgraded into boosted ones, which give keen hearing.",
+    "Sandbox_HearingAid_RepairSkillLevel": "Electrical Level: Repair",
+    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Electrical level needed to repair a broken hearing aid. 0 removes the requirement.",
+    "Sandbox_HearingAid_OptimizeSkillLevel": "Electrical Level: Optimize",
+    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Electrical level needed to optimize a hearing aid into an efficient one. 0 removes the requirement.",
+    "Sandbox_HearingAid_BoostSkillLevel": "Electrical Level: Boost",
+    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Electrical level needed to upgrade an efficient hearing aid into a boosted one. 0 removes the requirement."
 }

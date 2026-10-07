@@ -18,14 +18,16 @@ The tiers differ in how you get them, what they do, and their default battery li
 
 | Item | How you get it | Effect | Battery life |
 |---|---|---|---|
-| Broken Hearing Aid | Common loot | None | None |
-| Hearing Aid | Rare loot, or repair a broken one (Electrical 2) | Hard of Hearing becomes normal hearing; Deaf becomes Hard of Hearing | 48 hours |
-| Efficient Hearing Aid | Very rare loot, or optimize a hearing aid (Electrical 4) | Same as Hearing Aid | 144 hours |
+| Broken Hearing Aid | Most found aids | None | None |
+| Hearing Aid | About 1 in 5 found aids, or repair a broken one (Electrical 2) | Hard of Hearing becomes normal hearing; Deaf becomes Hard of Hearing | 48 hours |
+| Efficient Hearing Aid | About 1 in 20 found aids, or optimize a hearing aid (Electrical 4) | Same as Hearing Aid | 144 hours |
 | Boosted Hearing Aid | Upgrade an efficient aid (Electrical 8) | Keen Hearing; Deaf becomes normal hearing | 96 hours |
 
-Upgrades keep the battery, and dismantling an aid gives it back. Broken aids turn up in homes and hospitals, and working ones mostly in medical offices, pharmacies, optometrists, electronics stores, and on older zombies. Hearing aids count as Medical loot for the loot rarity setting.
+Upgrades keep the battery, and dismantling an aid gives it back.
 
-The **Hearing Aid** sandbox page sets the battery life of each tier, the chance that a found aid still holds a battery, separate loot multipliers for broken and working aids, how aids help Deaf characters (the table shows the default), and whether boosted aids can be crafted.
+People wore their hearing aids, so most turn up on corpses. At default settings about 1 in 65 ordinary zombies carries one, against the 1 in 7 that wear a digital watch, and so do 1 in 10 retirees and 1 in 20 hospital patients. These rates follow a 1994 US survey in which 1 in 60 people used a hearing aid, and 1 in 10 people over 65. Off the ear, aids lie on nightstands and in bathroom cabinets, and less often in dressers, living room side tables, and boxes of old electronics. Hospital bedside tables, waiting room desks, and lost and found boxes hold aids that patients left behind, and doctors' desks hold new ones. Pharmacies, optical stores, and electronics stores didn't sell hearing aids in 1993, so they have none. Hearing aids count as Medical loot for the loot rarity setting.
+
+The **Hearing Aid** sandbox page sets the battery life of each tier, the chance that a found aid still holds a battery, separate loot multipliers for broken and working aids, the Electrical level each recipe needs and how aids help Deaf characters (the table shows the defaults), and whether boosted aids can be crafted.
 
 ## Development
 

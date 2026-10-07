@@ -2,6 +2,7 @@ require "Tests/TimedActionsTests"
 require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"
 require "TimedActions/ISWearClothing"
+require "HearingAid/HearingAidRecipes"
 require "HearingAid/Debug/HearingAidDebug"
 
 -- Tests for the vanilla timed action test runner: Debug menu > Dev > Unit Tests > Timed Actions,
@@ -59,7 +60,8 @@ local function craft(recipeName, selectedItem)
 end
 
 -- Registers a test with the runner. `sandbox` options hold from run() until validate() ends, and
--- `periodicUpdate = false` stops the every-minute HearingAid.update() for that time, so a test can
+-- recipe skill levels follow them at once rather than at the next game minute. With
+-- `periodicUpdate = false` the every-minute HearingAid.update() stops for that time, so a test can
 -- show that an action drains the battery itself. validate(self, expect) reports each unmet
 -- requirement with expect(condition, message).
 local function test(name, spec)
@@ -70,6 +72,7 @@ local function test(name, spec)
                 self.savedSandbox[option] = SandboxVars.HearingAid[option]
                 SandboxVars.HearingAid[option] = value
             end
+            HearingAid.Recipes.applySkillLevels()
             if spec.periodicUpdate == false then
                 Events.EveryOneMinute.Remove(HearingAid.update)
             end
@@ -85,6 +88,7 @@ local function test(name, spec)
             for option, value in pairs(self.savedSandbox) do
                 SandboxVars.HearingAid[option] = value
             end
+            HearingAid.Recipes.applySkillLevels()
             if spec.periodicUpdate == false then
                 Events.EveryOneMinute.Add(HearingAid.update)
             end
@@ -442,6 +446,72 @@ test("hearingaid_craft_boost_disabled", {
         local inventory = player():getInventory()
         expect(inventory:getCountType(BOOSTED) == 0, "boosted aid crafted while disabled")
         expect(inventory:getCountType(EFFICIENT) == 1, "efficient aid consumed")
+    end,
+})
+
+test("hearingaid_craft_skill_level_from_sandbox", {
+    sandbox = { RepairSkillLevel = 5 },
+    run = function(self)
+        addRecipeMaterials()
+        player():setPerkLevelDebug(Perks.Electricity, 4)
+        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+    end,
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        expect(inventory:getCountType(BASIC) == 0, "repaired below the configured Electrical level")
+        expect(inventory:getCountType(BROKEN) == 1, "broken aid consumed")
+    end,
+})
+
+test("hearingaid_craft_without_skill_requirement", {
+    sandbox = { RepairSkillLevel = 0 },
+    run = function(self)
+        addRecipeMaterials()
+        player():setPerkLevelDebug(Perks.Electricity, 0)
+        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+    end,
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        expect(inventory:getCountType(BASIC) == 1, inventory:getCountType(BASIC) .. " repaired hearing aids")
+    end,
+})
+
+-- Loot -----------------------------------------------------------------------------------------
+
+-- Fills a scratch container from corpse loot lists, as the game fills a corpse of that outfit, and
+-- returns the share of fills that held a hearing aid.
+local function shareWithAid(listNames, fills)
+    local container = ItemContainer.new()
+    local withAid = 0
+    for _ = 1, fills do
+        for _, listName in ipairs(listNames) do
+            local list = ItemPickerJava.getItemContainer("all", listName, nil, false)
+            ItemPickerJava.doRollItem(list, container, 0, nil, true, nil)
+        end
+        for _, fullType in ipairs({ BROKEN, BASIC, EFFICIENT }) do
+            if container:getCountType(fullType) > 0 then
+                withAid = withAid + 1
+                break
+            end
+        end
+        container:removeAllItems()
+    end
+    return withAid / fills
+end
+
+-- About 15% of ordinary zombies wear a digital watch. Hearing aids should be a tenth as common on
+-- ordinary corpses and far more common on retirees.
+test("hearingaid_corpse_loot", {
+    run = function(self)
+        self.ordinary = shareWithAid({ "inventorymale" }, 4000)
+        self.retiree = shareWithAid({ "Outfit_Retiree", "inventorymale" }, 1000)
+    end,
+    validate = function(self, expect)
+        print(string.format("HearingAidTest INFO corpses with a hearing aid: %.2f%% ordinary, %.2f%% retiree",
+            self.ordinary * 100, self.retiree * 100))
+        expect(self.ordinary >= 0.15 / 20 and self.ordinary <= 0.15 / 5,
+            "ordinary corpses outside 1/20 to 1/5 of the digital watch rate")
+        expect(self.retiree >= 3 * self.ordinary, "retirees less than three times as likely as ordinary corpses")
     end,
 })
 

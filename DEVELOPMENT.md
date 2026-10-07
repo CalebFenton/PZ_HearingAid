@@ -17,8 +17,8 @@ The harness only automates vanilla debug tools, which you can also use by hand i
 
 These facts about the runner and the client shape the tests and the harness:
 
-- Before each test the runner empties the inventory and calls `clearWornItems()`, which fires no clothing event. Traits, player modData, and sandbox options carry over, so each test calls `HearingAid.setBaseLevel()` and lists the sandbox options it needs; the `test()` helper restores them after `validate()`.
-- `EveryOneMinute` keeps firing during tests. Drain tests call `HearingAid.update(now)` with explicit world ages, and their expected charges hold whether or not a real update runs in between.
+- Before each test the runner empties the inventory and calls `clearWornItems()`, which fires no clothing event. Traits, player modData, and sandbox options carry over, so each test calls `HearingAid.setBaseLevel()` and lists the sandbox options it needs; the `test()` helper restores them after `validate()` and applies the recipe skill levels after each change.
+- `EveryOneMinute` keeps firing during tests. Drain tests call `HearingAid.update(now)` with explicit world ages, so their expected charges hold whether or not a real update runs in between. Tests that show an action drains the battery itself set `periodicUpdate = false`, which removes `HearingAid.update` from `EveryOneMinute` until `validate()` ends.
 - The Unit Tests panel must be open before `TimedActionTests.runOne(name)`, or the runner fails on its result labels. `UnitTestsDebug.OnOpenPanel()` opens it.
 - `ISInventoryPaneContextMenu.OnNewCraft(selectedItem, getScriptManager():getCraftRecipe("Module.Name"), playerNum, false)` crafts through the same path as a right-click.
 - Debug scenarios go in the global `debugScenarios` table. Without a `startLoc`, world creation crashes. `setSandbox` must call `ActiveMods.getById("currentGame"):copyFrom(ActiveMods.getById("default"))`, or the new save doesn't record its mods. `forceLaunch = true` starts a scenario from the main menu only when `<cachedir>/debug-options.ini` contains `DebugScenario.ForceLaunch=true`.
@@ -29,7 +29,7 @@ These facts about the runner and the client shape the tests and the harness:
 - `getCore():TakeFullScreenshot("name.png")` writes to `<cachedir>/Screenshots/` and doesn't need macOS Screen Recording permission.
 - The client turns on debug mode with the `-debug` argument. The server has no such argument and reads only the JVM property `-Ddebug`.
 - Every mod without `media/AnimSets` and `media/actiongroups` folders logs a `NoSuchFileException` for each in debug mode. Vanilla also logs errors about fonts, `FluidContainerScript` names, a mannequin zone, missing tiles, and missing icons. None of these come from this mod.
-- No test covers loot spawning. To see spawn rates, use the vanilla loot simulator: in a debug game, right-click the world and choose **UI**, then **Generate Loot UI** (`ISLootStressTestUI.lua`).
+- `hearingaid_corpse_loot` fills a scratch `ItemContainer` from the corpse loot lists through `ItemPickerJava.doRollItem`, the engine's own roll, and prints the measured rates on a `HearingAidTest INFO` line. To see the rates of other lists, use the vanilla loot simulator: in a debug game, right-click the world and choose **UI**, then **Generate Loot UI** (`ISLootStressTestUI.lua`). The **LootZed** admin power estimates chances with a simpler formula that ignores rounding, the zombie density bonus, and the rolls multiplier (`SpawnRateChecker.lua`).
 
 ## Ground truth
 
@@ -91,6 +91,7 @@ Build 41 `recipe` blocks no longer load.
 - `OnTest` and `OnCreate` accept dotted Lua paths (`LuaManager.getFunctionObject`). `OnAddToMenu(params)` must be a plain global name, because the game reads it with a raw `_G` lookup.
 - `craftRecipeData:getAllConsumedItems()` excludes `mode:keep` inputs, and `getFirstCreatedItem()` returns the output. No flag copies modData to the output, and vanilla adds per-input counter keys to the output's modData after OnCreate.
 - Recipes can't be switched on and off at runtime. To gate one with a sandbox option, use OnTest, which blocks crafting on the server too, and OnAddToMenu, which hides the recipe.
+- `CraftRecipe:clearRequiredSkills()` and `addRequiredSkill(perk, level)` change a recipe's skill requirement in place, and the can-craft check, craft time, and every crafting window read that list. Single player, the server, and each client hold their own recipe objects, rebuilt from the scripts whenever Lua reloads, so apply the change on every side. No event fires when an admin changes sandbox options mid-game (`GameServer.receiveSandboxOptions`).
 - Build 41 `fixing` blocks still parse, but only with `=`: `Require = ...`, `Fixer = ...`.
 
 ### Sandbox options
@@ -144,7 +145,7 @@ The table lists where the events the mod handles fire. Battery drain runs on `Ev
 |---|---|
 | `EveryOneMinute` | Single player, multiplayer client, and server. It fires at most once per tick however much game time passed, so compute elapsed time from `getGameTime():getWorldAgeHours()`. |
 | `OnClothingUpdated` | Vanilla Lua and Java fire it after clothing changes, but not always after the change. `ISWearClothing` fires it from `perform()`, which single player runs before `complete()` puts the item on, and a dedicated server never runs `perform()`. On the server, `ISUnequipAction:complete()`, transfers, and drops fire it; `setWornItem()` calls only the Java `OnClothingUpdated()` method. `HearingAidServer.lua` therefore also wraps `ISWearClothing:complete()`. |
-| `OnInitGlobalModData` | Single player and server, once per loaded game, after the save's sandbox options load. |
+| `OnInitGlobalModData` | Single player, server, and multiplayer client, once per loaded game, after the sandbox options load. A client has received the server's options by then. |
 | `OnServerCommand` | Multiplayer clients, for `sendServerCommand()` from the server. |
 
 ### UI
@@ -157,9 +158,14 @@ The table lists where the events the mod handles fire. Battery drain runs on `Ev
 
 `IsoWorld.init` fires `OnDistributionMerge` and `OnPostDistributionMerge`, then loads the save's sandbox options, then calls `ItemPickerJava.Parse()`, then fires `OnInitGlobalModData`. When a single player game is continued, the merge events therefore see the sandbox options of the default preset. The mod adds its loot in `OnInitGlobalModData` and calls `ItemPickerJava.Parse()` again.
 
-- The chance per roll is (weight × 100 × loot category multiplier + zombie density bonus) / 10,000, and a container rolls `rolls` times. The Lucky and Unlucky traits no longer affect loot.
-- `items` lists are flat name and weight pairs, so always append both. `junk` tables are often shared by reference (`ClutterTables.*`), so don't add to them. Unknown item names are dropped, with a message only in debug logs.
-- A corpse rolls `SuburbsDistributions.all.Outfit_<outfit>` in addition to `inventorymale` or `inventoryfemale`, unless the outfit table sets `defaultInventoryLoot = false`. Vanilla has no `Outfit_Retiree` table, so the mod creates one.
+- The chance per roll is ⌈weight × 100 × loot category multiplier + zombie density bonus⌉ in 10,000, and a container rolls `rolls` times (`ItemPickerJava.getActualSpawnChance`). Every positive chance rounds up to at least 1 in 10,000, so at the default multiplier of 0.6 a weight below 1/60 spawns more often than it says. The density bonus is added, not multiplied, so it's the same for every entry whatever its weight. The Lucky and Unlucky traits no longer affect loot.
+- `items` lists are flat name and weight pairs, so always append both. Unknown item names are dropped, with a message only in debug logs.
+- `junk` lists roll with the loot category multiplier fixed at 1.0 and weights × 1.4, so the loot rarity settings don't scale them. They are often shared by reference (`ClutterTables.*`), so don't add to them.
+- A corpse rolls its loot when it's first opened or its square first loads: `SuburbsDistributions.all.Outfit_<outfit>`, and then `inventorymale` or `inventoryfemale` unless the outfit table sets `defaultInventoryLoot = false`. The comment in vanilla `Distributions.lua` that says outfit tables replace the gendered ones is wrong.
+- A mod outfit in `clothing.xml` with a vanilla name replaces that outfit, and mod outfits can't reference vanilla clothing (`OutfitManager`), so corpse loot tables are the way to give an outfit items.
+- Nothing records a character's age. The `Retiree` outfit is the only sign of it: about 1 in 5 zombies in nursing home, trailer park, rich neighborhood, and golf course zones wear it, and under 1 in 100 elsewhere (`ZombiesZoneDefinition.lua`). Vanilla has no `Outfit_Retiree` table, so the mod creates one.
+- No room is a nursing home, audiologist, or hearing aid shop. `MedicalClinicTools` also fills dentist and vet containers, and `KitchenRandom` fills only about 1 kitchen counter in 27.
+- Randomized houses also put story clutter on bedside tables from `StoryClutter.SidetableClutter`, an unweighted list that no loot setting scales, so the mod doesn't add to it.
 
 ## Release checklist
 

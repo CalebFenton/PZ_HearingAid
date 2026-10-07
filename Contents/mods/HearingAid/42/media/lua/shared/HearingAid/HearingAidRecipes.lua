@@ -34,3 +34,37 @@ end
 function HearingAid_isBoostEnabled()
     return SandboxVars.HearingAid.EnableBoosted
 end
+
+-- Sandbox option with the Electrical level each recipe needs.
+local SKILL_OPTIONS = {
+    ["HearingAid.RepairHearingAid"] = "RepairSkillLevel",
+    ["HearingAid.OptimizeHearingAid"] = "OptimizeSkillLevel",
+    ["HearingAid.BoostHearingAid"] = "BoostSkillLevel",
+}
+
+local function requiredLevel(recipe)
+    if recipe:getRequiredSkillCount() == 0 then
+        return 0
+    end
+    return recipe:getRequiredSkill(0):getLevel()
+end
+
+-- The can-craft check, craft time and crafting windows all read the recipe's skill list. Single
+-- player, the server and every client each hold their own recipes, rebuilt from the scripts when
+-- Lua reloads, so this runs everywhere once options load, and every minute because no event
+-- fires when an admin changes sandbox options.
+function HearingAid.Recipes.applySkillLevels()
+    for recipeName, option in pairs(SKILL_OPTIONS) do
+        local recipe = getScriptManager():getCraftRecipe(recipeName)
+        local level = SandboxVars.HearingAid[option]
+        if requiredLevel(recipe) ~= level then
+            recipe:clearRequiredSkills()
+            if level > 0 then
+                recipe:addRequiredSkill(Perks.Electricity, level)
+            end
+        end
+    end
+end
+
+Events.OnInitGlobalModData.Add(HearingAid.Recipes.applySkillLevels)
+Events.EveryOneMinute.Add(HearingAid.Recipes.applySkillLevels)

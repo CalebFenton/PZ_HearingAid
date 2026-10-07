@@ -7,7 +7,8 @@ module HearingAid
 
     /*
      * Display names come from Translate/<LANG>/Recipes.json, keyed by recipe name.
-     * Callbacks are in lua/shared/HearingAid/HearingAidRecipes.lua.
+     * Callbacks are in lua/shared/HearingAid/HearingAidRecipes.lua, which also replaces each
+     * SkillRequired with the matching *SkillLevel sandbox option; keep these equal to its default.
      */
 
     craftRecipe RepairHearingAid

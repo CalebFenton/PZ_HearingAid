@@ -48,3 +48,21 @@ option HearingAid.EnableBoosted
 	type = boolean, default = true,
 	page = HearingAid, translation = HearingAid_EnableBoosted,
 }
+
+option HearingAid.RepairSkillLevel
+{
+	type = integer, min = 0, max = 10, default = 2,
+	page = HearingAid, translation = HearingAid_RepairSkillLevel,
+}
+
+option HearingAid.OptimizeSkillLevel
+{
+	type = integer, min = 0, max = 10, default = 4,
+	page = HearingAid, translation = HearingAid_OptimizeSkillLevel,
+}
+
+option HearingAid.BoostSkillLevel
+{
+	type = integer, min = 0, max = 10, default = 8,
+	page = HearingAid, translation = HearingAid_BoostSkillLevel,
+}
