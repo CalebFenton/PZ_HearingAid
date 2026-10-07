@@ -1,99 +1,39 @@
 # Hearing Aid
 
-![Hearing Aid Poster](poster.png)
+![Hearing Aid poster](preview.png)
 
-Battery-powered hearing aids for Project Zomboid. Deaf and Hard of Hearing survivors can work their way back to better hearing.
+Battery-powered hearing aids for Project Zomboid. Deaf and Hard of Hearing characters can find one, fix it up, and hear better while it's switched on.
 
-Steam Workshop: [2931424725](https://steamcommunity.com/sharedfiles/filedetails/?id=2931424725). Requires Build 42.21 or newer (`versionMin=42.21`); tested in single player on 42.21.0, the current stable build. Multiplayer is built the B42 way (the server owns battery drain and traits) but hasn't been run on a live server yet. The Build 41 version under `Contents/mods/HearingAid/media` is the published B41 release and is left as is.
+**Status**: Requires Build 42.21 or newer. Tested in single player on 42.21.0. Multiplayer is untested: the server owns battery drain and hearing traits, and the mod loads on a dedicated server, but nobody has played it with clients connected.
 
-## Gameplay
+## Install
 
-| Item | How you get it | Effect while worn, on and charged | Battery life (default) |
+Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/filedetails/?id=2931424725) and enable **Hearing Aid** in the mod list. Build 41 loads the original release, which this repository keeps unchanged in `Contents/mods/HearingAid/media`.
+
+## How it works
+
+Most hearing aids lying around are broken. Repair one with a screwdriver and electronics scrap, or get lucky and find one that still works. A working aid needs a battery and only helps while it's worn, switched on, and charged, which is also the only time it drains. Taking it off, switching it off, or running the battery flat gives the character their own hearing trait back. Right-click an aid to add or remove a battery or to switch it on or off; its tooltip shows the charge.
+
+The tiers differ in how you get them, what they do, and their default battery life:
+
+| Item | How you get it | Effect | Battery life |
 |---|---|---|---|
-| Broken Hearing Aid | Common loot | None | — |
-| Hearing Aid | Rare loot, or repair a broken one | Hard of Hearing → normal; Deaf → Hard of Hearing | 48 h |
-| Efficient Hearing Aid | Very rare loot, or optimize a hearing aid | Same as Hearing Aid | 144 h |
-| Boosted Hearing Aid | Crafted from an efficient one | Hard of Hearing / normal → Keen Hearing; Deaf → normal | 96 h |
+| Broken Hearing Aid | Common loot | None | None |
+| Hearing Aid | Rare loot, or repair a broken one (Electrical 2) | Hard of Hearing becomes normal hearing; Deaf becomes Hard of Hearing | 48 hours |
+| Efficient Hearing Aid | Very rare loot, or optimize a hearing aid (Electrical 4) | Same as Hearing Aid | 144 hours |
+| Boosted Hearing Aid | Upgrade an efficient aid (Electrical 8) | Keen Hearing; Deaf becomes normal hearing | 96 hours |
 
-- Right-click a working hearing aid to **Add Battery** (any charged `Base.Battery`), **Remove Battery**, **Turn on** / **Turn off**.
-- It only drains while worn and switched on. Taking it off, switching it off or a dead battery restores your own hearing trait.
-- The tooltip shows battery charge and whether it is on.
-- Found aids have a chance to still hold a used battery.
-- It goes in its own body slot, so it doesn't replace earrings.
+Upgrades keep the battery, and dismantling an aid gives it back. Broken aids turn up in homes and hospitals, and working ones mostly in medical offices, pharmacies, optometrists, electronics stores, and on older zombies. Hearing aids count as Medical loot for the loot rarity setting.
 
-### Crafting (Electrical)
-
-| Recipe | Needs | Skill |
-|---|---|---|
-| Repair Hearing Aid | Broken aid, 2 electronics scrap, screwdriver | Electrical 2 |
-| Optimize Hearing Aid | Hearing aid, 2 electronics scrap, aluminum, screwdriver | Electrical 4 |
-| Boost Hearing Aid | Efficient aid, 4 electronics scrap, earbuds, amplifier, electric wire, screwdriver, scalpel | Electrical 8 |
-| Dismantle Hearing Aid | Any hearing aid, screwdriver | — |
-
-Upgrades keep the battery and on/off state. Dismantling returns the battery.
-
-### Loot
-
-Bathroom cabinets, nightstands, dressers, living room side tables, kitchen junk drawers, home office desks, electronics crates, bathroom bins (broken only), hospital wardrobes, medical office desks, clinic counters, pharmacy and optometrist displays, electronics stores. Corpses: all zombies (rare), retirees, hospital patients, bathrobes (more likely). Hearing aids count as Medical loot for the sandbox loot rarity settings.
-
-### Sandbox options (page "Hearing Aid")
-
-| Option | Default |
-|---|---|
-| Battery Life: Hearing Aid / Efficient / Boosted (in-game hours on one full battery) | 48 / 144 / 96 |
-| Found With Battery Chance (%) | 50 |
-| Broken Hearing Aid Loot, Working Hearing Aid Loot (multipliers, 0 disables) | 1.0 |
-| Handle Deafness | Hearing aids give hard of hearing, boosted give normal hearing |
-| Enable Boosted Hearing Aids | On |
-
-## Layout
-
-```
-Contents/mods/HearingAid/
-  common/media/          models (FBX), icons, worn/ground textures
-  42/mod.info
-  42/media/registries.lua                     registers body location hearingaid:hearingaid
-  42/media/scripts/                           items, ground models, craftRecipes
-  42/media/clothing/ + fileGuidTable.xml      worn models
-  42/media/sandbox-options.txt
-  42/media/lua/shared/HearingAid/HearingAid.lua            state, trait rules, battery drain
-  42/media/lua/shared/TimedActions/HearingAidAction.lua    battery / on / off action
-  42/media/lua/server/                        periodic drain, loot tables
-  42/media/lua/client/HearingAid/             right-click menu, tooltip, debug scenario + tests
-  42/media/lua/shared/Translate/EN/*.json
-  media/, mod.info                            Build 41 release (untouched)
-dev/                                          test tooling, not uploaded
-```
-
-State lives in item modData (`HearingAid_charge`, `HearingAid_on`). The hearing trait the character had before the aid changed it is kept in player modData. In multiplayer the server owns drain and traits; the timed action's `complete()` runs on the server.
+The **Hearing Aid** sandbox page sets the battery life of each tier, the chance that a found aid still holds a battery, separate loot multipliers for broken and working aids, how aids help Deaf characters (the table shows the default), and whether boosted aids can be crafted.
 
 ## Development
 
-Read [DEVELOPMENT.md](DEVELOPMENT.md) first. It covers the B42 modding rules this mod depends on, how to decompile the game for ground truth, and the testing gotchas.
-
-This folder is a Workshop staging item, so with Steam running the game lists it from `~/Zomboid/Workshop/HearingAid`. Don't also subscribe to the Workshop copy while developing (duplicate mod id).
-
-All testing uses the game's own debug tooling.
-
-**Headless check** (dedicated server, no Steam, throwaway cache dir). Loads registries, scripts, sandbox options, shared and server Lua, and the loot hook, then shuts down:
+Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists Workshop staging folders as local mods. Unsubscribe from the Workshop copy while you develop, because two copies with the same mod id conflict. The scripts assume the macOS Steam install; set `PZ_APP` to the game's `Contents` folder if yours differs.
 
 ```sh
-dev/validate-server.sh
+dev/validate-server.sh           # boots a headless dedicated server; fails if the mod logs an error
+dev/run-debug-client.sh --test   # runs every in-game test; click "Click to start" once
 ```
 
-**Debug client.** Separate cache dir with only this mod enabled; your settings are copied, your saves are not touched:
-
-```sh
-dev/run-debug-client.sh          # main menu → SCENARIOS → "Hearing Aid"
-dev/run-debug-client.sh --auto   # also loads dev/HearingAidDevHarness
-```
-
-- The **Hearing Aid** debug scenario starts a zombie-free world with a Hard of Hearing character, Electrical 8, every tier, batteries and crafting materials. It's in the mod and shows up whenever the game runs with `-debug`.
-- **Unit tests** are registered with the vanilla runner: bug icon (left sidebar) → Dev → Unit Tests → Timed Actions → `hearingaid_*` → Run. They cover battery insert and remove, on/off, every trait/tier/deafness-mode combination, taking the aid off, battery drain and death, and every recipe through the real right-click craft path.
-- `--auto` launches the scenario on its own. After you click "Click to start" once, it runs every `hearingaid_*` test, checks scripts, registries, loot tables, translations and the right-click menu, and saves screenshots to `<cache>/Screenshots`. Results go to `<cache>/console.txt`:
-
-```sh
-grep -E "HearingAid(Test|Check)" "${TMPDIR:-/tmp}/pz-hearingaid-client/console.txt"
-```
-
-You can also launch your normal game with `-debug` in Steam's launch options. The scenario and tests are there too.
+Read [DEVELOPMENT.md](DEVELOPMENT.md) for the testing tools, the Build 42 behavior this mod depends on, and the release checklist.

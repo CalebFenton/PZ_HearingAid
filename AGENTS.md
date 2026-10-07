@@ -1,7 +1,16 @@
-# Agent notes
+# Hearing Aid
 
-- Read `DEVELOPMENT.md` before changing anything. It records the Build 42 facts this mod depends on: layout, scripts, translations, multiplayer authority, loot timing and testing.
-- Ground truth is the installed game: vanilla files under `Project Zomboid.app/Contents/Java/media` and the decompiled `projectzomboid.jar` (commands in `DEVELOPMENT.md`). Don't rely on web docs or memory for B42 APIs.
-- B42 code lives in `Contents/mods/HearingAid/42/` and assets in `common/`. Files directly under `Contents/mods/HearingAid/media` and `mod.info` are the published Build 41 release; leave them alone.
-- Verify every change with `dev/validate-server.sh` (headless, no clicks) and `dev/run-debug-client.sh --auto`. The client needs one human click at "Click to start"; results are the `HearingAidTest`/`HearingAidCheck` lines in `<cache>/console.txt`.
-- New behavior gets a `hearingaid_*` test in `42/media/lua/client/HearingAid/Debug/HearingAidTests.lua`.
+## Commands
+
+- Headless check: `dev/validate-server.sh`. It boots a dedicated server with only this mod and fails if the mod logged a Lua error, a script warning, or a missing loot table.
+- In-game tests: `dev/run-debug-client.sh --test`. It waits for the results, quits the game, and exits nonzero on a failed test or a Lua error. Each run needs one human click on **Click to start**: the loading screen reads the real mouse button, and posting a synthetic click needs macOS Accessibility permission. Start the script in the background and ask the user to click.
+
+## Rules
+
+- Check Build 42 APIs against the installed game, not web docs or memory: the vanilla Lua and scripts in `Project Zomboid.app/Contents/Java/media`, and the decompiled `projectzomboid.jar`. Most published modding docs describe Build 41, and B42 changes many of those APIs.
+- Don't edit `Contents/mods/HearingAid/mod.info` or anything under `Contents/mods/HearingAid/media/`. Those files are the published Build 41 release; the Build 42 mod is `Contents/mods/HearingAid/42/` plus `common/`.
+- Add tests to `42/media/lua/client/HearingAid/Debug/HearingAidTests.lua`, which the game's own test runner executes. Don't add standalone Lua tests with stubbed game APIs: the stubs encode guesses about the game, which is what the tests need to check.
+
+## Read when needed
+
+- Before changing scripts, translations, multiplayer sync, loot tables, or tests, read `DEVELOPMENT.md`. It records Build 42 behavior that fails silently or contradicts Build 41, with the source that proves each fact and the command to decompile the game.
