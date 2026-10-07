@@ -2,7 +2,7 @@
 
 ![Hearing Aid poster](preview.png)
 
-Battery-powered hearing aids for Project Zomboid. While you wear a working aid that's switched on, a Hard of Hearing character hears normally and a Deaf one hears a little. A boosted aid gives anyone Keen Hearing.
+Battery-powered hearing aids for Project Zomboid. Wear a working aid and switch it on, and a Hard of Hearing character hears normally while a Deaf one hears a little. A boosted aid gives Keen Hearing to anyone who isn't Deaf.
 
 **Status**: Requires Build 42.21 or newer. Tested in single player on 42.21.0. Multiplayer is untested: the server owns battery drain and hearing traits, and the mod loads on a dedicated server, but nobody has played it with clients connected.
 
@@ -12,13 +12,13 @@ Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/fi
 
 ## How it works
 
-An aid changes your hearing only while it works, holds a charged battery, sits on your ear, and is switched on:
+To hear better, you need a working aid with a charged battery, on your ear and switched on:
 
 1. Find a working aid, or find a broken one and [repair it](#crafting).
 2. Right-click the aid and choose **Add Battery**. It takes the same Battery as a flashlight, and the menu lists yours by charge.
 3. Wear the aid, right-click it, and choose **Turn On**.
 
-The battery drains only while the aid is worn and switched on, so switch it off when you don't need it. The tooltip shows the charge and whether the aid is on. When you take the aid off, switch it off, or the battery runs flat, you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
+The battery drains only while the aid is worn and switched on, so switch it off when you don't need it. The tooltip shows the charge and whether the aid is on. Take the aid off, switch it off, or let the battery run flat, and you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
 
 | Aid | Hard of Hearing becomes | Deaf becomes | A battery lasts |
 |---|---|---|---|
@@ -26,7 +26,7 @@ The battery drains only while the aid is worn and switched on, so switch it off 
 | Efficient Hearing Aid | Normal hearing | Hard of Hearing | 6 days |
 | Boosted Hearing Aid | Keen Hearing | Normal hearing | 4 days |
 
-Battery life counts in-game time spent worn and switched on. A boosted aid also gives Keen Hearing to a character whose hearing is normal. A Broken Hearing Aid does nothing until you repair it.
+A boosted aid also gives Keen Hearing to a character whose hearing is normal. A Broken Hearing Aid does nothing until you repair it.
 
 ### Finding one
 
@@ -34,21 +34,23 @@ Most hearing aids in Knox County are still in their owners' ears, and the owners
 
 Off the ear, search nightstands and bathroom cabinets first, then dressers, living room side tables, boxes of old electronics, hospital bedside tables, waiting room desks, lost and found boxes, and doctors' desks. Pharmacies, optical stores, and electronics stores didn't sell hearing aids in 1993, so they have none.
 
-Four in five aids you find are broken, and only about 1 in 150 is efficient. A working aid may still hold a partly used battery. Hearing aids count as Medical loot, so the Medical loot rarity setting scales them too.
+Four in five aids you find are broken, and only about 1 in 150 is efficient. Half the working ones still hold a partly used battery. Hearing aids count as Medical loot, so the Medical loot rarity setting scales them too.
 
 ### Crafting
 
-Repairs and upgrades are fine work. They need a table or counter within reach, light, a screwdriver, tweezers, and reading glasses or a magnifier (a Loupe or a Magnifying Glass). You can keep the glasses on, but take the aid off. The new aid keeps the battery and the switch of the one it came from.
+Repairs and upgrades are fiddly work. You need a table or counter within reach, enough light to see by, a screwdriver, tweezers, and reading glasses or a magnifier (a Loupe or a Magnifying Glass). You can wear the glasses while you work, but the aid has to come off your ear. The new aid keeps the old one's battery, and stays switched on if it was on.
 
-| Recipe | Electrical | Turns | Also uses |
+| Recipe | Electrical | Makes | Uses up |
 |---|---|---|---|
-| Repair Hearing Aid | 2 | a Broken Hearing Aid into a Hearing Aid | Earbuds, whose speaker replaces the dead one; 1 use of Alcohol Wipes or a Cotton Ball Doused in Alcohol to clean the battery contacts; 1 use of Glue |
-| Optimize Hearing Aid | 4 | a Hearing Aid into an Efficient Hearing Aid | a digital watch, for its low-power chip; Electrical Wire; 1 use of Glue |
-| Boost Hearing Aid | 8 | an Efficient Hearing Aid into a Boosted Hearing Aid | an Amplifier; a Microphone; 2 Electrical Wire; 1 use of Epoxy; a Scalpel, which it keeps |
+| Repair Hearing Aid | 2 | Hearing Aid from a Broken Hearing Aid | Earbuds, 1 use of Alcohol Wipes or Cotton Balls Doused in Alcohol, 1 use of Glue |
+| Optimize Hearing Aid | 4 | Efficient Hearing Aid from a Hearing Aid | a Digital Watch, Electrical Wire, 1 use of Glue |
+| Boost Hearing Aid | 8 | Boosted Hearing Aid from an Efficient Hearing Aid | Amplifier, Microphone, 2 Electrical Wire, 1 use of Epoxy |
 
-Everything a repair needs can turn up in an ordinary house. The boost is the scavenger hunt: dismantle a Speaker for its Amplifier, and look for microphones in music stores, band practice rooms, and electronics stores.
+Boosting also needs a Scalpel, which you keep.
 
-**Dismantle Hearing Aid** works in your hands with only a screwdriver. It turns any aid into Scrap Electronics and gives its battery back.
+The parts make sense if you squint: the earbuds give up their tiny speaker, the alcohol cleans the corroded battery contacts, and the watch donates its low-power chip. Everything a repair needs turns up in ordinary houses. A boost takes more hunting: dismantle a Speaker for its Amplifier, and look for a Microphone in music stores, band practice rooms, and electronics stores.
+
+**Dismantle Hearing Aid** needs only a screwdriver and no table. It turns any aid into Scrap Electronics and gives its battery back.
 
 ### Sandbox options
 
