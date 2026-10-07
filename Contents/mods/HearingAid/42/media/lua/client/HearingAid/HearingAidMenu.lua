@@ -1,10 +1,16 @@
 require "HearingAid/HearingAid"
 require "TimedActions/HearingAidAction"
 
-HearingAidMenu = {}
+local function queueAction(player, mode, aid, battery)
+    ISInventoryPaneContextMenu.transferIfNeeded(player, aid)
+    if battery then
+        ISInventoryPaneContextMenu.transferIfNeeded(player, battery)
+    end
+    ISTimedActionQueue.add(HearingAidAction:new(player, mode, aid, battery))
+end
 
-local function percent(fraction)
-    return math.floor(math.max(0, math.min(1, fraction)) * 100 + 0.5)
+local function addActionOption(context, player, labelKey, mode, aid, battery)
+    return context:addOption(getText(labelKey), player, queueAction, mode, aid, battery)
 end
 
 local function disable(option, tooltipKey)
@@ -13,54 +19,60 @@ local function disable(option, tooltipKey)
     option.toolTip.description = getText(tooltipKey)
 end
 
-function HearingAidMenu.queue(player, mode, aid, battery)
-    ISInventoryPaneContextMenu.transferIfNeeded(player, aid)
-    if battery then
-        ISInventoryPaneContextMenu.transferIfNeeded(player, battery)
+-- Batteries anywhere in the inventory, bags included, that can go into the aid, fullest first.
+local function insertableBatteries(player, aid)
+    local found = player:getInventory():getAllEvalRecurse(function(item)
+        return HearingAidAction.canPerform(HearingAidAction.INSERT_BATTERY, aid, item)
+    end)
+    local batteries = {}
+    for i = 0, found:size() - 1 do
+        table.insert(batteries, found:get(i))
     end
-    ISTimedActionQueue.add(HearingAidAction:new(player, mode, aid, battery))
+    table.sort(batteries, function(a, b)
+        return a:getCurrentUsesFloat() > b:getCurrentUsesFloat()
+    end)
+    return batteries
 end
 
-function HearingAidMenu.addOptions(player, context, aid)
-    local queue = HearingAidMenu.queue
-    if HearingAid.hasBattery(aid) then
-        if HearingAid.isOn(aid) then
-            context:addOption(getText("ContextMenu_Turn_Off"), player, queue, HearingAidAction.TURN_OFF, aid)
-        else
-            local option = context:addOption(getText("ContextMenu_Turn_On"), player, queue, HearingAidAction.TURN_ON, aid)
-            if HearingAid.getCharge(aid) <= 0 then
-                disable(option, "Tooltip_HearingAid_BatteryDead")
-            end
-        end
-        context:addOption(getText("ContextMenu_Remove_Battery"), player, queue, HearingAidAction.REMOVE_BATTERY, aid)
-        return
-    end
-
+local function addBatteryOptions(context, player, aid)
     local option = context:addOption(getText("ContextMenu_AddBattery"))
-    local batteries = HearingAid.findBatteries(player)
+    local batteries = insertableBatteries(player, aid)
     if #batteries == 0 then
-        disable(option, "Tooltip_HearingAid_NoBattery")
+        disable(option, "Tooltip_HearingAid_NoChargedBatteries")
         return
     end
     local submenu = context:getNew(context)
     context:addSubMenu(option, submenu)
     for _, battery in ipairs(batteries) do
-        local label = battery:getDisplayName() .. " (" .. percent(HearingAid.getBatteryCharge(battery)) .. "%)"
-        submenu:addOption(label, player, queue, HearingAidAction.INSERT_BATTERY, aid, battery)
+        local label = battery:getDisplayName() .. " (" .. round(battery:getCurrentUsesFloat() * 100) .. "%)"
+        submenu:addOption(label, player, queueAction, HearingAidAction.INSERT_BATTERY, aid, battery)
     end
 end
 
-function HearingAidMenu.onFillInventoryObjectContextMenu(playerNum, context, items)
-    local player = getSpecificPlayer(playerNum)
-    if not player then
+local function addOptions(context, player, aid)
+    if not HearingAid.hasBattery(aid) then
+        addBatteryOptions(context, player, aid)
         return
     end
+    if HearingAid.isOn(aid) then
+        addActionOption(context, player, "ContextMenu_Turn_Off", HearingAidAction.TURN_OFF, aid)
+    else
+        local option = addActionOption(context, player, "ContextMenu_Turn_On", HearingAidAction.TURN_ON, aid)
+        if not HearingAidAction.canPerform(HearingAidAction.TURN_ON, aid) then
+            disable(option, "IGUI_HearingAid_BatteryDead")
+        end
+    end
+    addActionOption(context, player, "ContextMenu_Remove_Battery", HearingAidAction.REMOVE_BATTERY, aid)
+end
+
+local function onFillInventoryObjectContextMenu(playerNum, context, items)
+    local player = getSpecificPlayer(playerNum)
     for _, item in ipairs(ISInventoryPane.getActualItems(items)) do
         if HearingAid.isWorking(item) then
-            HearingAidMenu.addOptions(player, context, item)
+            addOptions(context, player, item)
             return
         end
     end
 end
 
-Events.OnFillInventoryObjectContextMenu.Add(HearingAidMenu.onFillInventoryObjectContextMenu)
+Events.OnFillInventoryObjectContextMenu.Add(onFillInventoryObjectContextMenu)

@@ -6,9 +6,8 @@ module HearingAid
     }
 
     /*
-     * Upgrades keep the battery and on/off state of the consumed aid (HearingAid.Recipes.transferState).
-     * Dismantling hands back the inserted battery (HearingAid.Recipes.dismantle).
-     * Names: Translate/<LANG>/Recipes.json, keyed by recipe name.
+     * Display names come from Translate/<LANG>/Recipes.json, keyed by recipe name.
+     * Callbacks are in lua/shared/HearingAid/HearingAidRecipes.lua.
      */
 
     craftRecipe RepairHearingAid
@@ -65,8 +64,8 @@ module HearingAid
         SkillRequired = Electricity:8,
         xpAward = Electricity:25,
         AllowBatchCraft = false,
-        OnTest = HearingAid.Recipes.boostEnabled,
-        OnAddToMenu = HearingAid_BoostInMenu,
+        OnTest = HearingAid_isBoostEnabled,
+        OnAddToMenu = HearingAid_isBoostEnabled,
         OnCreate = HearingAid.Recipes.transferState,
         inputs
         {
@@ -91,7 +90,7 @@ module HearingAid
         Tags = InHandCraft;Electrical,
         category = Electrical,
         xpAward = Electricity:2,
-        OnCreate = HearingAid.Recipes.dismantle,
+        OnCreate = HearingAid.Recipes.returnBattery,
         inputs
         {
             item 1 tags[base:screwdriver] mode:keep flags[NoBrokenItems],

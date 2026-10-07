@@ -1,405 +1,510 @@
 require "Tests/TimedActionsTests"
 require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"
+require "TimedActions/ISWearClothing"
 require "HearingAid/Debug/HearingAidDebug"
 
--- Registered with the vanilla timed action test runner: Debug menu > Dev > Unit Tests >
--- Timed Actions (debug mode). The runner empties the inventory before run(), waits for the
--- action queue to drain, then calls validate(); a falsy result marks the test failed.
--- Each validate() also prints "HearingAidTest PASS|FAIL <name>" to console.txt.
+-- Tests for the vanilla timed action test runner: Debug menu > Dev > Unit Tests > Timed Actions,
+-- in debug mode. Before each test the runner empties the inventory and clears worn items, but it
+-- keeps traits and player modData, so every test sets the hearing it starts from. The runner calls
+-- run(), waits for the action queue to empty, then calls validate(). Each result is also printed
+-- to console.txt as "HearingAidTest PASS <name>" or "HearingAidTest FAIL <name>: <reasons>".
 
 local Level = HearingAid.Level
-local LEVEL_NAMES = { [0] = "deaf", [1] = "hard of hearing", [2] = "normal", [3] = "keen" }
+local Mode = HearingAid.DeafnessMode
+local BASIC, EFFICIENT, BOOSTED, BROKEN = HearingAid.BASIC, HearingAid.EFFICIENT, HearingAid.BOOSTED, HearingAid.BROKEN
+
+local LEVEL_NAMES = {
+    [Level.DEAF] = "deaf",
+    [Level.HARD_OF_HEARING] = "hard of hearing",
+    [Level.NORMAL] = "normal",
+    [Level.KEEN] = "keen",
+}
+
+-- Battery items store whole uses, about 0.007 of a full charge each, and game time passes while
+-- an action runs.
+local CHARGE_TOLERANCE = 0.01
 
 local function player()
     return getSpecificPlayer(0)
 end
 
-local function check(name, failures)
-    if #failures == 0 then
-        print("HearingAidTest PASS " .. name)
-        return true
-    end
-    print("HearingAidTest FAIL " .. name .. ": " .. table.concat(failures, "; "))
-    return false
+local function near(actual, expected, tolerance)
+    return math.abs(actual - expected) <= (tolerance or 0.0001)
 end
 
-local function expectLevel(failures, expected)
-    local actual = HearingAid.getHearingLevel(player())
-    if actual ~= expected then
-        table.insert(failures, "hearing is " .. LEVEL_NAMES[actual] .. ", expected " .. LEVEL_NAMES[expected])
-    end
+local function hoursNow()
+    return getGameTime():getWorldAgeHours()
 end
 
-local function expect(failures, condition, message)
-    if not condition then
-        table.insert(failures, message)
-    end
-end
-
-local function near(a, b)
-    return math.abs(a - b) < 0.011
-end
-
-local function queue(mode, aid, battery)
+local function queueAidAction(mode, aid, battery)
     ISTimedActionQueue.add(HearingAidAction:new(player(), mode, aid, battery))
 end
 
--- Wears a charged aid that is already switched on and applied.
+-- An aid that is worn, switched on and already changing hearing.
 local function wearActiveAid(fullType, charge)
-    local aid = HearingAidDebug.addAid(player(), fullType, charge or 1.0, true)
+    local aid = HearingAidDebug.addAid(player(), fullType, charge or 1, true)
     HearingAidDebug.wear(player(), aid)
     return aid
 end
 
--- The mode must hold until the queued action completes, so run() sets it and validate() restores it.
-local function setDeafnessMode(test, mode)
-    SandboxVars.HearingAid = SandboxVars.HearingAid or {}
-    test.previousDeafnessMode = SandboxVars.HearingAid.HandleDeafness
-    SandboxVars.HearingAid.HandleDeafness = mode
+local function expectHearing(expect, expected)
+    local actual = HearingAid.getHearingLevel(player())
+    expect(actual == expected, "hearing is " .. LEVEL_NAMES[actual] .. ", expected " .. LEVEL_NAMES[expected])
 end
 
-local function restoreDeafnessMode(test)
-    SandboxVars.HearingAid.HandleDeafness = test.previousDeafnessMode
-end
-
-local tests = {}
-
-tests.hearingaid_insert_battery = {
-    run = function(self)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BASIC, nil, false)
-        self.battery = HearingAidDebug.addBattery(player(), 0.5)
-        queue(HearingAidAction.INSERT_BATTERY, self.aid, self.battery)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, HearingAid.hasBattery(self.aid), "aid has no battery")
-        expect(failures, near(HearingAid.getCharge(self.aid), 0.5), "charge is " .. HearingAid.getCharge(self.aid))
-        expect(failures, not player():getInventory():contains(self.battery), "battery still in inventory")
-        expect(failures, not HearingAid.isOn(self.aid), "aid switched itself on")
-        return check("hearingaid_insert_battery", failures)
-    end,
-}
-
-tests.hearingaid_turn_on_hard_of_hearing = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BASIC, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, HearingAid.isOn(self.aid), "aid is off")
-        expectLevel(failures, Level.NORMAL)
-        return check("hearingaid_turn_on_hard_of_hearing", failures)
-    end,
-}
-
-tests.hearingaid_turn_off_restores_trait = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = wearActiveAid(HearingAid.BASIC)
-        self.appliedLevel = HearingAid.getHearingLevel(player())
-        queue(HearingAidAction.TURN_OFF, self.aid)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, self.appliedLevel == Level.NORMAL, "aid was not applied before switching off")
-        expect(failures, not HearingAid.isOn(self.aid), "aid is still on")
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        expect(failures, player():getModData().HearingAid_baseLevel == nil, "player record not cleared")
-        return check("hearingaid_turn_off_restores_trait", failures)
-    end,
-}
-
-tests.hearingaid_remove_battery = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = wearActiveAid(HearingAid.BASIC, 0.3)
-        queue(HearingAidAction.REMOVE_BATTERY, self.aid)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, not HearingAid.hasBattery(self.aid), "aid still has a battery")
-        expect(failures, not HearingAid.isOn(self.aid), "aid is still on")
-        local batteries = player():getInventory():getAllType("Base.Battery")
-        expect(failures, batteries:size() == 1, batteries:size() .. " batteries in inventory")
-        if batteries:size() == 1 then
-            local charge = batteries:get(0):getCurrentUsesFloat()
-            expect(failures, near(charge, 0.3), "returned battery has charge " .. charge)
-        end
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_remove_battery", failures)
-    end,
-}
-
-tests.hearingaid_deaf_basic = {
-    run = function(self)
-        setDeafnessMode(self, HearingAid.DeafnessMode.ALL_AIDS)
-        HearingAidDebug.setHearing(player(), Level.DEAF)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BASIC, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        restoreDeafnessMode(self)
-        local failures = {}
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_deaf_basic", failures)
-    end,
-}
-
-tests.hearingaid_deaf_boosted = {
-    run = function(self)
-        setDeafnessMode(self, HearingAid.DeafnessMode.ALL_AIDS)
-        HearingAidDebug.setHearing(player(), Level.DEAF)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BOOSTED, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        restoreDeafnessMode(self)
-        local failures = {}
-        expectLevel(failures, Level.NORMAL)
-        return check("hearingaid_deaf_boosted", failures)
-    end,
-}
-
-tests.hearingaid_deaf_mode_none = {
-    run = function(self)
-        setDeafnessMode(self, HearingAid.DeafnessMode.NONE)
-        HearingAidDebug.setHearing(player(), Level.DEAF)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BOOSTED, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        restoreDeafnessMode(self)
-        local failures = {}
-        expect(failures, HearingAid.isOn(self.aid), "aid is off")
-        expectLevel(failures, Level.DEAF)
-        return check("hearingaid_deaf_mode_none", failures)
-    end,
-}
-
-tests.hearingaid_deaf_mode_boosted_only = {
-    run = function(self)
-        setDeafnessMode(self, HearingAid.DeafnessMode.BOOSTED_ONLY)
-        HearingAidDebug.setHearing(player(), Level.DEAF)
-        -- A basic aid, already on, is worn first and must not help...
-        local basic = wearActiveAid(HearingAid.BASIC)
-        self.basicLevel = HearingAid.getHearingLevel(player())
-        player():removeWornItem(basic)
-        HearingAid.reconcile(player())
-        -- ...then a boosted one is switched on.
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BOOSTED, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        restoreDeafnessMode(self)
-        local failures = {}
-        expect(failures, self.basicLevel == Level.DEAF, "basic aid helped a deaf character")
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_deaf_mode_boosted_only", failures)
-    end,
-}
-
-tests.hearingaid_boosted_gives_keen = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.NORMAL)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BOOSTED, 1.0, false)
-        HearingAidDebug.wear(player(), self.aid)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        local failures = {}
-        expectLevel(failures, Level.KEEN)
-        return check("hearingaid_boosted_gives_keen", failures)
-    end,
-}
-
-tests.hearingaid_not_worn_does_nothing = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = HearingAidDebug.addAid(player(), HearingAid.BASIC, 1.0, false)
-        queue(HearingAidAction.TURN_ON, self.aid)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, HearingAid.isOn(self.aid), "aid is off")
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_not_worn_does_nothing", failures)
-    end,
-}
-
-tests.hearingaid_unequip_restores_trait = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = wearActiveAid(HearingAid.BASIC)
-        self.appliedLevel = HearingAid.getHearingLevel(player())
-        ISTimedActionQueue.add(ISUnequipAction:new(player(), self.aid, 50))
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, self.appliedLevel == Level.NORMAL, "aid was not applied before taking it off")
-        expect(failures, not self.aid:isWorn(), "aid is still worn")
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_unequip_restores_trait", failures)
-    end,
-}
-
-tests.hearingaid_battery_runs_out = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        -- 1% of a basic aid's battery, then two drain ticks an hour of game time apart.
-        self.aid = wearActiveAid(HearingAid.BASIC, 0.01)
-        local now = getGameTime():getWorldAgeHours()
-        HearingAid.update(now)
-        HearingAid.update(now + 1)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, HearingAid.getCharge(self.aid) == 0, "charge is " .. HearingAid.getCharge(self.aid))
-        expect(failures, HearingAid.hasBattery(self.aid), "dead battery was removed")
-        expect(failures, not HearingAid.isOn(self.aid), "aid is still on")
-        expectLevel(failures, Level.HARD_OF_HEARING)
-        return check("hearingaid_battery_runs_out", failures)
-    end,
-}
-
-tests.hearingaid_battery_drain_rate = {
-    run = function(self)
-        HearingAidDebug.setHearing(player(), Level.HARD_OF_HEARING)
-        self.aid = wearActiveAid(HearingAid.BASIC, 1.0)
-        self.hours = HearingAid.getBatteryHours(self.aid)
-        local now = getGameTime():getWorldAgeHours()
-        HearingAid.update(now)
-        HearingAid.update(now + self.hours / 4)
-    end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, near(HearingAid.getCharge(self.aid), 0.75), "a quarter of the battery life left " .. HearingAid.getCharge(self.aid))
-        expect(failures, HearingAid.isOn(self.aid), "aid switched off")
-        expectLevel(failures, Level.NORMAL)
-        return check("hearingaid_battery_drain_rate", failures)
-    end,
-}
-
--- Crafting goes through the same path as right-clicking an item and picking the recipe.
 local function craft(recipeName, selectedItem)
     local recipe = getScriptManager():getCraftRecipe(recipeName)
     ISInventoryPaneContextMenu.OnNewCraft(selectedItem, recipe, player():getPlayerNum(), false)
 end
 
-local function addCraftingMaterials()
+-- Registers a test with the runner. `sandbox` options hold from run() until validate() ends, and
+-- `periodicUpdate = false` stops the every-minute HearingAid.update() for that time, so a test can
+-- show that an action drains the battery itself. validate(self, expect) reports each unmet
+-- requirement with expect(condition, message).
+local function test(name, spec)
+    TimedActionTests.getTests()[name] = {
+        run = function(self)
+            self.savedSandbox = {}
+            for option, value in pairs(spec.sandbox or {}) do
+                self.savedSandbox[option] = SandboxVars.HearingAid[option]
+                SandboxVars.HearingAid[option] = value
+            end
+            if spec.periodicUpdate == false then
+                Events.EveryOneMinute.Remove(HearingAid.update)
+            end
+            spec.run(self)
+        end,
+        validate = function(self)
+            local failures = {}
+            local ok, err = pcall(spec.validate, self, function(condition, message)
+                if not condition then
+                    table.insert(failures, message)
+                end
+            end)
+            for option, value in pairs(self.savedSandbox) do
+                SandboxVars.HearingAid[option] = value
+            end
+            if spec.periodicUpdate == false then
+                Events.EveryOneMinute.Add(HearingAid.update)
+            end
+            if not ok then
+                table.insert(failures, tostring(err))
+            end
+            if #failures > 0 then
+                print("HearingAidTest FAIL " .. name .. ": " .. table.concat(failures, "; "))
+                return false
+            end
+            print("HearingAidTest PASS " .. name)
+            return true
+        end,
+    }
+end
+
+-- Hearing --------------------------------------------------------------------------------------
+
+-- What each tier (basic, efficient, boosted) gives a character with this own hearing level.
+local HEARING_WITH_AID = {
+    [Level.HARD_OF_HEARING] = { Level.NORMAL, Level.NORMAL, Level.KEEN },
+    [Level.NORMAL] = { Level.NORMAL, Level.NORMAL, Level.KEEN },
+    [Level.KEEN] = { Level.KEEN, Level.KEEN, Level.KEEN },
+}
+-- What each tier gives a deaf character, per HandleDeafness option.
+local DEAF_WITH_AID = {
+    [Mode.NONE] = { Level.DEAF, Level.DEAF, Level.DEAF },
+    [Mode.ALL_AIDS] = { Level.HARD_OF_HEARING, Level.HARD_OF_HEARING, Level.NORMAL },
+    [Mode.BOOSTED_ONLY] = { Level.DEAF, Level.DEAF, Level.HARD_OF_HEARING },
+}
+
+local function expectedLevels(mode)
+    local levels = { [Level.DEAF] = DEAF_WITH_AID[mode] }
+    for base, row in pairs(HEARING_WITH_AID) do
+        levels[base] = row
+    end
+    return levels
+end
+
+test("hearingaid_hearing_levels", {
+    run = function(self) end,
+    validate = function(self, expect)
+        for mode in pairs(DEAF_WITH_AID) do
+            for base, row in pairs(expectedLevels(mode)) do
+                for i, fullType in ipairs({ BASIC, EFFICIENT, BOOSTED }) do
+                    local actual = HearingAid.getTargetLevel(base, fullType, mode)
+                    expect(actual == row[i], "HandleDeafness " .. mode .. ", " .. LEVEL_NAMES[base] .. ", " .. fullType
+                        .. ": got " .. tostring(LEVEL_NAMES[actual]) .. ", expected " .. LEVEL_NAMES[row[i]])
+                end
+            end
+        end
+    end,
+})
+
+test("hearingaid_handle_deafness_option", {
+    sandbox = { HandleDeafness = Mode.NONE },
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.DEAF)
+        self.aid = HearingAidDebug.addAid(player(), BOOSTED, 1, false)
+        HearingAidDebug.wear(player(), self.aid)
+        queueAidAction(HearingAidAction.TURN_ON, self.aid)
+    end,
+    validate = function(self, expect)
+        expect(HearingAid.isOn(self.aid), "aid is off")
+        expectHearing(expect, Level.DEAF)
+    end,
+})
+
+test("hearingaid_turn_on", {
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = HearingAidDebug.addAid(player(), BASIC, 1, false)
+        HearingAidDebug.wear(player(), self.aid)
+        queueAidAction(HearingAidAction.TURN_ON, self.aid)
+    end,
+    validate = function(self, expect)
+        expect(HearingAid.isOn(self.aid), "aid is off")
+        expectHearing(expect, Level.NORMAL)
+    end,
+})
+
+test("hearingaid_turn_off", {
+    sandbox = { BatteryHoursBasic = 10 },
+    periodicUpdate = false,
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = wearActiveAid(BASIC)
+        self.hearingWhileOn = HearingAid.getHearingLevel(player())
+        -- The last drain was two hours ago.
+        HearingAid.update(hoursNow() - 2)
+        queueAidAction(HearingAidAction.TURN_OFF, self.aid)
+    end,
+    validate = function(self, expect)
+        expect(self.hearingWhileOn == Level.NORMAL, "aid didn't help while on")
+        expect(not HearingAid.isOn(self.aid), "aid is still on")
+        expect(near(HearingAid.getCharge(self.aid), 0.8, CHARGE_TOLERANCE),
+            "charge is " .. HearingAid.getCharge(self.aid) .. ", expected 0.8 after two of ten hours")
+        expectHearing(expect, Level.HARD_OF_HEARING)
+    end,
+})
+
+test("hearingaid_wear_switched_on_aid", {
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = HearingAidDebug.addAid(player(), BASIC, 1, true)
+        HearingAid.update()
+        self.hearingBeforeWearing = HearingAid.getHearingLevel(player())
+        ISTimedActionQueue.add(ISWearClothing:new(player(), self.aid))
+    end,
+    validate = function(self, expect)
+        expect(self.hearingBeforeWearing == Level.HARD_OF_HEARING, "aid helped before it was worn")
+        expect(self.aid:isWorn(), "aid is not worn")
+        expectHearing(expect, Level.NORMAL)
+    end,
+})
+
+test("hearingaid_take_off_switched_on_aid", {
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = wearActiveAid(BASIC)
+        self.hearingWhileWorn = HearingAid.getHearingLevel(player())
+        ISTimedActionQueue.add(ISUnequipAction:new(player(), self.aid, 50))
+    end,
+    validate = function(self, expect)
+        expect(self.hearingWhileWorn == Level.NORMAL, "aid didn't help while worn")
+        expect(not self.aid:isWorn(), "aid is still worn")
+        expectHearing(expect, Level.HARD_OF_HEARING)
+    end,
+})
+
+test("hearingaid_wear_broken_aid_over_working_one", {
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.working = wearActiveAid(BASIC)
+        self.broken = HearingAidDebug.addAid(player(), BROKEN, nil, false)
+        ISTimedActionQueue.add(ISWearClothing:new(player(), self.broken))
+    end,
+    validate = function(self, expect)
+        expect(self.broken:isWorn(), "broken aid is not worn")
+        expect(not self.working:isWorn(), "working aid is still worn")
+        expectHearing(expect, Level.HARD_OF_HEARING)
+    end,
+})
+
+test("hearingaid_keeps_outside_trait_changes", {
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = wearActiveAid(BASIC)
+        -- An admin gives the character Keen Hearing while the aid is on.
+        player():getCharacterTraits():add(CharacterTrait.KEEN_HEARING)
+        queueAidAction(HearingAidAction.TURN_OFF, self.aid)
+    end,
+    validate = function(self, expect)
+        expectHearing(expect, Level.KEEN)
+    end,
+})
+
+-- Batteries ------------------------------------------------------------------------------------
+
+test("hearingaid_insert_battery", {
+    run = function(self)
+        self.aid = HearingAidDebug.addAid(player(), BASIC, nil, false)
+        self.battery = HearingAidDebug.addBattery(player(), 0.5)
+        queueAidAction(HearingAidAction.INSERT_BATTERY, self.aid, self.battery)
+    end,
+    validate = function(self, expect)
+        expect(near(HearingAid.getCharge(self.aid), 0.5, CHARGE_TOLERANCE), "charge is " .. HearingAid.getCharge(self.aid))
+        expect(not player():getInventory():contains(self.battery), "battery is still in the inventory")
+        expect(not HearingAid.isOn(self.aid), "aid switched itself on")
+    end,
+})
+
+test("hearingaid_remove_battery", {
+    sandbox = { BatteryHoursBasic = 10 },
+    periodicUpdate = false,
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = wearActiveAid(BASIC, 0.5)
+        -- The last drain was two hours ago.
+        HearingAid.update(hoursNow() - 2)
+        queueAidAction(HearingAidAction.REMOVE_BATTERY, self.aid)
+    end,
+    validate = function(self, expect)
+        expect(not HearingAid.hasBattery(self.aid), "aid still has a battery")
+        expect(not HearingAid.isOn(self.aid), "aid is still on")
+        local batteries = player():getInventory():getAllType("Base.Battery")
+        expect(batteries:size() == 1, batteries:size() .. " batteries in the inventory")
+        if batteries:size() == 1 then
+            local charge = batteries:get(0):getCurrentUsesFloat()
+            expect(near(charge, 0.3, CHARGE_TOLERANCE), "returned battery has charge " .. charge .. ", expected 0.3")
+        end
+        expectHearing(expect, Level.HARD_OF_HEARING)
+    end,
+})
+
+test("hearingaid_found_battery_chance", {
+    sandbox = { SpawnWithBatteryChance = 100 },
+    run = function(self)
+        local always = instanceItem(BASIC)
+        self.alwaysCharge = HearingAid.hasBattery(always) and HearingAid.getCharge(always) or nil
+        SandboxVars.HearingAid.SpawnWithBatteryChance = 0
+        self.neverHasBattery = HearingAid.hasBattery(instanceItem(BASIC))
+    end,
+    validate = function(self, expect)
+        expect(self.alwaysCharge ~= nil, "no battery at a 100% chance")
+        expect(self.alwaysCharge == nil or self.alwaysCharge > 0, "found battery is dead")
+        expect(not self.neverHasBattery, "battery at a 0% chance")
+    end,
+})
+
+test("hearingaid_battery_runs_out", {
+    sandbox = { BatteryHoursBasic = 10 },
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        self.aid = wearActiveAid(BASIC, 0.05)
+        local now = hoursNow()
+        HearingAid.update(now)
+        HearingAid.update(now + 1)
+    end,
+    validate = function(self, expect)
+        expect(HearingAid.getCharge(self.aid) == 0, "charge is " .. HearingAid.getCharge(self.aid))
+        expect(HearingAid.hasBattery(self.aid), "dead battery was removed")
+        expect(not HearingAid.isOn(self.aid), "aid is still on")
+        expectHearing(expect, Level.HARD_OF_HEARING)
+    end,
+})
+
+test("hearingaid_battery_life_per_tier", {
+    sandbox = { BatteryHoursBasic = 8, BatteryHoursEfficient = 16, BatteryHoursBoosted = 4 },
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        local start = hoursNow()
+        self.charges = {}
+        for i, fullType in ipairs({ BASIC, EFFICIENT, BOOSTED }) do
+            local aid = wearActiveAid(fullType)
+            local now = start + 10 * i
+            HearingAid.update(now)
+            HearingAid.update(now + 2)
+            self.charges[fullType] = HearingAid.getCharge(aid)
+        end
+    end,
+    validate = function(self, expect)
+        -- Two hours of use on 8, 16 and 4 hour batteries.
+        for fullType, expected in pairs({ [BASIC] = 0.75, [EFFICIENT] = 0.875, [BOOSTED] = 0.5 }) do
+            local actual = self.charges[fullType]
+            expect(near(actual, expected), fullType .. " charge is " .. actual .. ", expected " .. expected)
+        end
+    end,
+})
+
+test("hearingaid_no_drain_while_inactive", {
+    sandbox = { BatteryHoursBasic = 10 },
+    run = function(self)
+        HearingAid.setBaseLevel(player(), Level.HARD_OF_HEARING)
+        local aid = wearActiveAid(BASIC)
+        local now = hoursNow()
+        HearingAid.update(now)
+        -- Five hours off the ear.
+        player():removeWornItem(aid)
+        HearingAid.update(now + 5)
+        -- Two hours worn but switched off.
+        HearingAidDebug.wear(player(), aid)
+        HearingAid.setOn(aid, false)
+        HearingAid.update(now + 5)
+        HearingAid.update(now + 7)
+        -- One hour of use.
+        HearingAid.setOn(aid, true)
+        HearingAid.update(now + 7)
+        HearingAid.update(now + 8)
+        self.aid = aid
+    end,
+    validate = function(self, expect)
+        expect(near(HearingAid.getCharge(self.aid), 0.9), "charge is " .. HearingAid.getCharge(self.aid) .. ", expected 0.9 after one of ten hours")
+    end,
+})
+
+-- Crafting -------------------------------------------------------------------------------------
+
+local function addRecipeMaterials()
     player():setPerkLevelDebug(Perks.Electricity, 8)
-    HearingAidDebug.addItems(player(), "Base.Screwdriver", 1)
-    HearingAidDebug.addItems(player(), "Base.ElectronicsScrap", 4)
-    HearingAidDebug.addItems(player(), "Base.Aluminum", 1)
+    HearingAidDebug.addRecipeMaterials(player())
 end
 
-local function onlyItem(fullType)
-    local items = player():getInventory():getAllType(fullType)
-    return items:size() == 1 and items:get(0) or nil, items:size()
-end
-
-tests.hearingaid_craft_repair = {
+test("hearingaid_craft_repair", {
+    -- At this chance the output's item OnCreate always rolls a battery, which the recipe must
+    -- discard because the broken aid had none.
+    sandbox = { SpawnWithBatteryChance = 100 },
     run = function(self)
-        addCraftingMaterials()
-        local broken = HearingAidDebug.addAid(player(), HearingAid.BROKEN, nil, false)
-        craft("HearingAid.RepairHearingAid", broken)
+        addRecipeMaterials()
+        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
     end,
-    validate = function(self)
-        local failures = {}
-        local aid, count = onlyItem(HearingAid.BASIC)
-        expect(failures, aid ~= nil, count .. " repaired hearing aids")
-        expect(failures, aid == nil or not HearingAid.hasBattery(aid), "repair created a battery")
-        expect(failures, player():getInventory():getCountType(HearingAid.BROKEN) == 0, "broken aid not consumed")
-        return check("hearingaid_craft_repair", failures)
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        local repaired = inventory:getAllType(BASIC)
+        expect(repaired:size() == 1, repaired:size() .. " repaired hearing aids")
+        expect(repaired:size() == 0 or not HearingAid.hasBattery(repaired:get(0)), "repair created a battery")
+        expect(inventory:getCountType(BROKEN) == 0, "broken aid not consumed")
     end,
-}
+})
 
-tests.hearingaid_craft_optimize_keeps_battery = {
+test("hearingaid_craft_upgrade_keeps_battery", {
+    sandbox = { SpawnWithBatteryChance = 0 },
     run = function(self)
-        addCraftingMaterials()
-        local aid = HearingAidDebug.addAid(player(), HearingAid.BASIC, 0.42, true)
-        craft("HearingAid.OptimizeHearingAid", aid)
+        addRecipeMaterials()
+        craft("HearingAid.OptimizeHearingAid", HearingAidDebug.addAid(player(), BASIC, 0.42, true))
     end,
-    validate = function(self)
-        local failures = {}
-        local aid, count = onlyItem(HearingAid.EFFICIENT)
-        expect(failures, aid ~= nil, count .. " efficient hearing aids")
-        if aid then
-            expect(failures, near(HearingAid.getCharge(aid), 0.42), "charge is " .. HearingAid.getCharge(aid))
-            expect(failures, HearingAid.isOn(aid), "switch state lost")
+    validate = function(self, expect)
+        local upgraded = player():getInventory():getAllType(EFFICIENT)
+        expect(upgraded:size() == 1, upgraded:size() .. " efficient hearing aids")
+        if upgraded:size() == 1 then
+            local aid = upgraded:get(0)
+            expect(near(HearingAid.getCharge(aid), 0.42), "charge is " .. HearingAid.getCharge(aid))
+            expect(HearingAid.isOn(aid), "aid was switched off")
         end
-        return check("hearingaid_craft_optimize_keeps_battery", failures)
     end,
-}
+})
 
-tests.hearingaid_craft_dismantle_returns_battery = {
+test("hearingaid_craft_dismantle_returns_battery", {
     run = function(self)
-        addCraftingMaterials()
-        local aid = HearingAidDebug.addAid(player(), HearingAid.EFFICIENT, 0.6, false)
-        craft("HearingAid.DismantleHearingAid", aid)
+        addRecipeMaterials()
+        craft("HearingAid.DismantleHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, 0.6, false))
     end,
-    validate = function(self)
-        local failures = {}
-        expect(failures, player():getInventory():getCountType(HearingAid.EFFICIENT) == 0, "aid not consumed")
-        expect(failures, player():getInventory():getCountType("Base.ElectronicsScrap") == 5, "no electronics scrap returned")
-        local battery, count = onlyItem("Base.Battery")
-        expect(failures, battery ~= nil, count .. " batteries returned")
-        if battery then
-            expect(failures, near(battery:getCurrentUsesFloat(), 0.6), "battery charge " .. battery:getCurrentUsesFloat())
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        expect(inventory:getCountType(EFFICIENT) == 0, "aid not consumed")
+        local batteries = inventory:getAllType("Base.Battery")
+        expect(batteries:size() == 1, batteries:size() .. " batteries returned")
+        if batteries:size() == 1 then
+            local charge = batteries:get(0):getCurrentUsesFloat()
+            expect(near(charge, 0.6, CHARGE_TOLERANCE), "returned battery has charge " .. charge)
         end
-        return check("hearingaid_craft_dismantle_returns_battery", failures)
     end,
-}
+})
 
-tests.hearingaid_craft_boost_disabled = {
+test("hearingaid_craft_boost", {
+    sandbox = { EnableBoosted = true },
     run = function(self)
-        SandboxVars.HearingAid = SandboxVars.HearingAid or {}
-        self.previous = SandboxVars.HearingAid.EnableBoosted
-        SandboxVars.HearingAid.EnableBoosted = false
-        addCraftingMaterials()
-        HearingAidDebug.addItems(player(), "Base.Scalpel", 1)
-        HearingAidDebug.addItems(player(), "Base.Earbuds", 1)
-        HearingAidDebug.addItems(player(), "Base.Amplifier", 1)
-        HearingAidDebug.addItems(player(), "Base.ElectricWire", 1)
-        local aid = HearingAidDebug.addAid(player(), HearingAid.EFFICIENT, nil, false)
-        craft("HearingAid.BoostHearingAid", aid)
+        addRecipeMaterials()
+        craft("HearingAid.BoostHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, nil, false))
     end,
-    validate = function(self)
-        SandboxVars.HearingAid.EnableBoosted = self.previous
-        local failures = {}
-        expect(failures, player():getInventory():getCountType(HearingAid.BOOSTED) == 0, "boosted aid crafted while disabled")
-        expect(failures, player():getInventory():getCountType(HearingAid.EFFICIENT) == 1, "efficient aid consumed")
-        return check("hearingaid_craft_boost_disabled", failures)
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        expect(inventory:getCountType(BOOSTED) == 1, inventory:getCountType(BOOSTED) .. " boosted hearing aids")
+        expect(inventory:getCountType(EFFICIENT) == 0, "efficient aid not consumed")
     end,
-}
+})
 
-tests.hearingaid_craft_boost = {
+test("hearingaid_craft_boost_disabled", {
+    sandbox = { EnableBoosted = false },
     run = function(self)
-        addCraftingMaterials()
-        HearingAidDebug.addItems(player(), "Base.Scalpel", 1)
-        HearingAidDebug.addItems(player(), "Base.Earbuds", 1)
-        HearingAidDebug.addItems(player(), "Base.Amplifier", 1)
-        HearingAidDebug.addItems(player(), "Base.ElectricWire", 1)
-        local aid = HearingAidDebug.addAid(player(), HearingAid.EFFICIENT, nil, false)
-        craft("HearingAid.BoostHearingAid", aid)
+        addRecipeMaterials()
+        craft("HearingAid.BoostHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, nil, false))
     end,
-    validate = function(self)
-        local failures = {}
-        local aid, count = onlyItem(HearingAid.BOOSTED)
-        expect(failures, aid ~= nil, count .. " boosted hearing aids")
-        expect(failures, player():getInventory():getCountType("Base.Scalpel") == 1, "scalpel consumed")
-        return check("hearingaid_craft_boost", failures)
+    validate = function(self, expect)
+        local inventory = player():getInventory()
+        expect(inventory:getCountType(BOOSTED) == 0, "boosted aid crafted while disabled")
+        expect(inventory:getCountType(EFFICIENT) == 1, "efficient aid consumed")
     end,
+})
+
+-- Context menu ---------------------------------------------------------------------------------
+
+local MENU_OPTIONS = {
+    { name = "AddBattery", textKey = "ContextMenu_AddBattery" },
+    { name = "TurnOn", textKey = "ContextMenu_Turn_On" },
+    { name = "TurnOff", textKey = "ContextMenu_Turn_Off" },
+    { name = "RemoveBattery", textKey = "ContextMenu_Remove_Battery" },
 }
 
-local registry = TimedActionTests.getTests()
-for name, test in pairs(tests) do
-    registry[name] = test
+-- Builds the real inventory context menu for the item and lists its hearing aid options, for
+-- example "TurnOn(disabled), RemoveBattery" or "AddBattery[Battery (75%), Battery (25%)]".
+local function describeMenu(item)
+    local context = ISInventoryPaneContextMenu.createMenu(0, true, { item }, 300, 300)
+    local found = {}
+    for _, entry in ipairs(MENU_OPTIONS) do
+        local option = context:getOptionFromName(getText(entry.textKey))
+        if option then
+            local text = entry.name
+            if option.notAvailable then
+                text = text .. "(disabled)"
+            end
+            if option.subOption then
+                local choices = {}
+                for _, choice in ipairs(context:getSubMenu(option.subOption).options) do
+                    table.insert(choices, choice.name)
+                end
+                text = text .. "[" .. table.concat(choices, ", ") .. "]"
+            end
+            table.insert(found, text)
+        end
+    end
+    context:hideAndChildren()
+    return table.concat(found, ", ")
 end
+
+test("hearingaid_context_menu", {
+    run = function(self)
+        local p = player()
+        self.withoutBattery = HearingAidDebug.addAid(p, BASIC, nil, false)
+        self.off = HearingAidDebug.addAid(p, EFFICIENT, 0.5, false)
+        self.on = HearingAidDebug.addAid(p, BOOSTED, 0.5, true)
+        self.dead = HearingAidDebug.addAid(p, BASIC, 0, false)
+        self.broken = HearingAidDebug.addAid(p, BROKEN, nil, false)
+        self.batteryName = HearingAidDebug.addBattery(p, 0.25):getDisplayName()
+        HearingAidDebug.addBattery(p, 0.75)
+        HearingAidDebug.addBattery(p, 0)
+    end,
+    validate = function(self, expect)
+        local battery = self.batteryName
+        local cases = {
+            { "no battery", self.withoutBattery, "AddBattery[" .. battery .. " (75%), " .. battery .. " (25%)]" },
+            { "switched off", self.off, "TurnOn, RemoveBattery" },
+            { "switched on", self.on, "TurnOff, RemoveBattery" },
+            { "dead battery", self.dead, "TurnOn(disabled), RemoveBattery" },
+            { "broken", self.broken, "" },
+        }
+        for _, case in ipairs(cases) do
+            local label, aid, expected = case[1], case[2], case[3]
+            local actual = describeMenu(aid)
+            expect(actual == expected, label .. ": menu is \"" .. actual .. "\", expected \"" .. expected .. "\"")
+        end
+    end,
+})

@@ -5,11 +5,8 @@ require "HearingAid/HearingAid"
 -- Where hearing aids turn up: bathroom cabinets, nightstands, junk drawers, medical offices,
 -- optometrists, and on older zombies. Broken ones are the common find; working ones are rare.
 --
--- Weights are per roll, before vanilla multipliers (Medical loot rarity, rolls, removal list).
--- For scale: Glasses_Reading has weight 1 in BedroomSidetable.
---
--- Applied in OnInitGlobalModData rather than at file load or distribution merge: that is the
--- first point where SandboxVars hold the save's values when continuing a single player game.
+-- Weights are per roll, before the Medical loot rarity setting scales them. For scale,
+-- Glasses_Reading has weight 1 in BedroomSidetable.
 
 -- { broken, basic, efficient }
 local CONTAINERS = {
@@ -32,13 +29,13 @@ local CONTAINERS = {
     HospitalRoomWardrobe = { 0.5, 0.2, 0.05 },
     MedicalOfficeDesk = { 0.3, 0.3, 0.1 },
     MedicalClinicTools = { 0.2, 0.5, 0.2 },
-    -- Shops: stock is new, so working only
+    -- Shops sell new stock, so only working aids
     PharmacyGlasses = { 0, 0.5, 0.1 },
     OptometristGlasses = { 0, 1, 0.3 },
     ElectronicStoreMisc = { 0, 0.3, 0.05 },
 }
 
--- SuburbsDistributions.all.<key>: corpse inventories and the medicine/side table fallbacks.
+-- SuburbsDistributions.all.<key>: corpse inventories and the medicine and side table fallbacks.
 local ALL = {
     medicine = { 0.2, 0.05, 0.01 },
     sidetable = { 0.2, 0.05, 0.01 },
@@ -50,62 +47,55 @@ local ALL = {
     Outfit_HospitalPatientBathrobe = { 0.3, 0.1, 0.02 },
 }
 
+-- `items` lists are flat name, weight pairs.
 local function addItem(items, fullType, weight)
-    -- Items lists are flat name/weight pairs; only ever append both.
     if weight > 0 then
         table.insert(items, fullType)
         table.insert(items, weight)
     end
 end
 
-local function addAll(distribution, weights, brokenMultiplier, workingMultiplier)
+local function addAids(distribution, weights, brokenMultiplier, workingMultiplier)
     addItem(distribution.items, HearingAid.BROKEN, weights[1] * brokenMultiplier)
     addItem(distribution.items, HearingAid.BASIC, weights[2] * workingMultiplier)
     addItem(distribution.items, HearingAid.EFFICIENT, weights[3] * workingMultiplier)
 end
 
-local applied = false
-
-local function applyDistributions()
-    if applied then
-        return false
-    end
-    applied = true
-
-    local sandbox = HearingAid.sandbox()
-    local brokenMultiplier = tonumber(sandbox.BrokenLootMultiplier) or 1
-    local workingMultiplier = tonumber(sandbox.WorkingLootMultiplier) or 1
+local function addToDistributions()
+    local brokenMultiplier = SandboxVars.HearingAid.BrokenLootMultiplier
+    local workingMultiplier = SandboxVars.HearingAid.WorkingLootMultiplier
 
     for name, weights in pairs(CONTAINERS) do
         local distribution = ProceduralDistributions.list[name]
-        if distribution and distribution.items then
-            addAll(distribution, weights, brokenMultiplier, workingMultiplier)
+        if distribution then
+            addAids(distribution, weights, brokenMultiplier, workingMultiplier)
         else
             print("HearingAid: missing ProceduralDistributions.list." .. name)
         end
     end
 
     local all = SuburbsDistributions.all
-    -- Retiree zombies (nursing homes, trailer parks, country clubs) have no outfit loot table.
+    -- Vanilla has no loot table for retiree zombies (nursing homes, trailer parks, country clubs).
     all.Outfit_Retiree = all.Outfit_Retiree or { rolls = 1, items = {}, junk = { rolls = 1, items = {} } }
     for key, weights in pairs(ALL) do
         local distribution = all[key]
-        if distribution and distribution.items then
-            addAll(distribution, weights, brokenMultiplier, workingMultiplier)
+        if distribution then
+            addAids(distribution, weights, brokenMultiplier, workingMultiplier)
         else
             print("HearingAid: missing SuburbsDistributions.all." .. key)
         end
     end
-    return true
 end
 
+-- The distribution merge events fire before a continued single player game loads its sandbox
+-- options; OnInitGlobalModData is the first event after. The game has already parsed the Lua
+-- tables by then, so they are parsed again. Multiplayer clients don't fill containers.
 local function onInitGlobalModData(isNewGame)
     if isClient() then
-        return -- containers are filled by the server
+        return
     end
-    if applyDistributions() then
-        ItemPickerJava.Parse()
-    end
+    addToDistributions()
+    ItemPickerJava.Parse()
 end
 
 Events.OnInitGlobalModData.Add(onInitGlobalModData)

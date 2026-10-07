@@ -1,19 +1,7 @@
--- Core hearing aid state and rules. Shared so timed actions (which run on the server in MP)
--- and the client UI use the same accessors.
+-- Hearing aid state and rules, used by the timed action, recipes, UI and the periodic update.
 --
--- Authority: battery drain and hearing trait changes happen only where `not isClient()`
--- (single player, or the dedicated server). MP clients only read state for the UI.
---
--- Item state (item modData, synced to the owner with syncItemFields):
---   HearingAid_charge  0..1 while a battery is inserted, nil when empty
---   HearingAid_on      true while switched on
--- A hearing aid is "active" when it is worn, switched on and has charge left.
---
--- Player state (player modData on the authority):
---   HearingAid_baseLevel     hearing level the character had before the aid changed it
---   HearingAid_appliedLevel  hearing level the aid set
--- Both are nil whenever no aid is active, so the mod never touches traits otherwise.
--- On a dedicated server an in-memory copy guards these against client modData transmits.
+-- Only the authority changes state: single player, or the dedicated server in multiplayer
+-- (`not isClient()`). Multiplayer clients read item state for the UI and never touch traits.
 
 HearingAid = HearingAid or {}
 
@@ -21,156 +9,124 @@ HearingAid.BROKEN = "HearingAid.BrokenHearingAid"
 HearingAid.BASIC = "HearingAid.HearingAid"
 HearingAid.EFFICIENT = "HearingAid.EfficientHearingAid"
 HearingAid.BOOSTED = "HearingAid.BoostedHearingAid"
+local BATTERY = "Base.Battery"
 
+-- The hearing traits as an ordered scale.
 HearingAid.Level = { DEAF = 0, HARD_OF_HEARING = 1, NORMAL = 2, KEEN = 3 }
 local Level = HearingAid.Level
 
+-- Values of the HandleDeafness sandbox option.
 HearingAid.DeafnessMode = { NONE = 1, ALL_AIDS = 2, BOOSTED_ONLY = 3 }
+local DeafnessMode = HearingAid.DeafnessMode
 
--- Fraction of charge at which the wearer is warned once.
-HearingAid.LOW_BATTERY = 0.1
-
+-- Working tiers and the sandbox option that holds each one's battery life in hours.
 local TIERS = {
-    [HearingAid.BASIC] = { hoursOption = "BatteryHoursBasic", defaultHours = 48 },
-    [HearingAid.EFFICIENT] = { hoursOption = "BatteryHoursEfficient", defaultHours = 144 },
-    [HearingAid.BOOSTED] = { hoursOption = "BatteryHoursBoosted", defaultHours = 96, boosted = true },
+    [HearingAid.BASIC] = { batteryHoursOption = "BatteryHoursBasic" },
+    [HearingAid.EFFICIENT] = { batteryHoursOption = "BatteryHoursEfficient" },
+    [HearingAid.BOOSTED] = { batteryHoursOption = "BatteryHoursBoosted", boosted = true },
 }
 
+-- The wearer is warned once when the charge drops to this fraction.
+local LOW_CHARGE = 0.1
+
+-- Item modData. CHARGE is 0-1 while a battery is inserted and nil without one.
 local CHARGE = "HearingAid_charge"
 local ON = "HearingAid_on"
--- Always present on spawned working aids. An item saved with empty modData would not overwrite
--- the random OnCreate state a client rolls when it instantiates the item (load() skips empty modData).
+-- Written with every change so that saved modData is never empty: item:load() keeps the random
+-- OnCreate state of an item whose saved modData is empty.
 local VERSION = "HearingAid_v"
+
+-- Player modData, set only while an aid is active: the character's own hearing level and the
+-- level the aid gave them.
 local BASE_LEVEL = "HearingAid_baseLevel"
 local APPLIED_LEVEL = "HearingAid_appliedLevel"
 
-HearingAid.ITEM_KEYS = { CHARGE, ON, VERSION }
-
-function HearingAid.sandbox()
-    return SandboxVars.HearingAid or {}
-end
+local SYNC_TRAITS = 2 -- SyncPlayerFieldsPacket.PF_Traits
 
 -- Items ---------------------------------------------------------------------------------------
 
--- Callers pass whatever a UI holds (tooltips also show fluid containers and resources).
-local function fullTypeOf(item)
-    return item ~= nil and instanceof(item, "InventoryItem") and item:getFullType() or nil
+-- UI code passes non-items too: tooltips also show fluid containers and resources.
+local function fullTypeOf(object)
+    if instanceof(object, "InventoryItem") then
+        return object:getFullType()
+    end
+    return ""
 end
 
 function HearingAid.isHearingAid(item)
     local fullType = fullTypeOf(item)
-    return fullType ~= nil and (fullType == HearingAid.BROKEN or TIERS[fullType] ~= nil)
+    return fullType == HearingAid.BROKEN or TIERS[fullType] ~= nil
 end
 
 function HearingAid.isWorking(item)
-    local fullType = fullTypeOf(item)
-    return fullType ~= nil and TIERS[fullType] ~= nil
+    return TIERS[fullTypeOf(item)] ~= nil
 end
-
-function HearingAid.isBoosted(item)
-    return fullTypeOf(item) == HearingAid.BOOSTED
-end
-
-function HearingAid.hasBattery(item)
-    return item:getModData()[CHARGE] ~= nil
-end
-
-function HearingAid.getCharge(item)
-    return item:getModData()[CHARGE] or 0
-end
-
-function HearingAid.isOn(item)
-    return item:getModData()[ON] == true
-end
-
-function HearingAid.isWorn(item)
-    return item:isWorn()
-end
-
-function HearingAid.isActive(item)
-    return HearingAid.isWorking(item) and HearingAid.isOn(item) and HearingAid.getCharge(item) > 0 and item:isWorn()
-end
-
--- Hours of continuous use one full battery provides for this tier.
-function HearingAid.getBatteryHours(item)
-    local tier = TIERS[item:getFullType()]
-    local hours = tonumber(HearingAid.sandbox()[tier.hoursOption]) or tier.defaultHours
-    return math.max(hours, 0.01)
-end
-
-function HearingAid.setBattery(item, charge)
-    local md = item:getModData()
-    md[VERSION] = 1
-    md[CHARGE] = math.max(0, math.min(1, charge))
-end
-
-function HearingAid.clearBattery(item)
-    local md = item:getModData()
-    md[VERSION] = 1
-    md[CHARGE] = nil
-    md[ON] = nil
-end
-
-function HearingAid.setOn(item, on)
-    local md = item:getModData()
-    md[VERSION] = 1
-    md[ON] = on and true or nil
-end
-
--- Copies battery and switch state between items (recipe upgrades). Clears any state `to` had.
-function HearingAid.copyState(from, to)
-    local src, dst = from:getModData(), to:getModData()
-    for _, key in ipairs(HearingAid.ITEM_KEYS) do
-        dst[key] = src[key]
-    end
-    dst[VERSION] = 1
-end
-
--- Pushes item modData to the owning client. No-op in single player.
-function HearingAid.syncItem(player, item)
-    if isServer() then
-        syncItemFields(player, item)
-    end
-end
-
--- Item script OnCreate for working tiers: a found hearing aid may still hold a used battery.
--- Runs for every instantiation (loot, crafting output, loading); load() and recipe OnCreate
--- overwrite this afterwards where it matters.
-function HearingAid.onCreateWorking(item)
-    local md = item:getModData()
-    md[VERSION] = 1
-    md[ON] = nil
-    md[CHARGE] = nil
-    local chance = tonumber(HearingAid.sandbox().SpawnWithBatteryChance) or 50
-    if ZombRand(100) < chance then
-        md[CHARGE] = ZombRandFloat(0.05, 1.0)
-    end
-end
-
--- Batteries -----------------------------------------------------------------------------------
 
 function HearingAid.isBattery(item)
-    return item ~= nil and item:getFullType() == "Base.Battery"
+    return fullTypeOf(item) == BATTERY
 end
 
-function HearingAid.getBatteryCharge(battery)
-    return math.max(0, math.min(1, battery:getCurrentUsesFloat()))
+function HearingAid.hasBattery(aid)
+    return aid:getModData()[CHARGE] ~= nil
 end
 
--- Charged batteries anywhere in the player's inventory (bags included), fullest first.
-function HearingAid.findBatteries(player)
-    local found = player:getInventory():getAllEvalRecurse(function(item)
-        return HearingAid.isBattery(item) and item:getCurrentUsesFloat() > 0
-    end)
-    local batteries = {}
-    for i = 0, found:size() - 1 do
-        table.insert(batteries, found:get(i))
+-- Charge of the inserted battery from 0 to 1; 0 without a battery.
+function HearingAid.getCharge(aid)
+    return aid:getModData()[CHARGE] or 0
+end
+
+function HearingAid.isOn(aid)
+    return aid:getModData()[ON] == true
+end
+
+-- Only an active aid changes hearing and drains its battery.
+function HearingAid.isActive(item)
+    return HearingAid.isWorking(item) and item:isWorn() and HearingAid.isOn(item) and HearingAid.getCharge(item) > 0
+end
+
+local function writableState(aid)
+    local state = aid:getModData()
+    state[VERSION] = 1
+    return state
+end
+
+-- Sets the charge of the inserted battery, inserting one if the aid has none. nil removes the
+-- battery, which also switches the aid off.
+function HearingAid.setCharge(aid, charge)
+    local state = writableState(aid)
+    if charge == nil then
+        state[CHARGE] = nil
+        state[ON] = nil
+    else
+        state[CHARGE] = math.max(0, math.min(1, charge))
     end
-    table.sort(batteries, function(a, b) return a:getCurrentUsesFloat() > b:getCurrentUsesFloat() end)
-    return batteries
 end
 
--- Hearing traits ------------------------------------------------------------------------------
+function HearingAid.setOn(aid, on)
+    writableState(aid)[ON] = on or nil
+end
+
+function HearingAid.copyState(from, to)
+    HearingAid.setCharge(to, from:getModData()[CHARGE])
+    HearingAid.setOn(to, HearingAid.isOn(from))
+end
+
+function HearingAid.getBatteryHours(aid)
+    return SandboxVars.HearingAid[TIERS[aid:getFullType()].batteryHoursOption]
+end
+
+-- OnCreate of the working tiers' item scripts: a found aid may still hold a used battery. It runs
+-- on every instantiation, including loading a save and crafting; item:load() and the recipe
+-- OnCreate replace this state afterwards.
+function HearingAid.onCreate(aid)
+    local charge = nil
+    if ZombRand(100) < SandboxVars.HearingAid.SpawnWithBatteryChance then
+        charge = ZombRandFloat(0.05, 1.0)
+    end
+    HearingAid.setCharge(aid, charge)
+end
+
+-- Hearing -------------------------------------------------------------------------------------
 
 function HearingAid.getHearingLevel(player)
     if player:hasTrait(CharacterTrait.DEAF) then return Level.DEAF end
@@ -193,14 +149,13 @@ local function setHearingLevel(player, level)
     end
 end
 
--- Hearing level a character with `base` hearing gets from an active aid of this type.
-function HearingAid.getTargetLevel(base, fullType)
+-- The hearing level that an active aid of this type gives a character whose own level is `base`.
+function HearingAid.getTargetLevel(base, fullType, deafnessMode)
     local boosted = TIERS[fullType].boosted
     if base == Level.DEAF then
-        local mode = tonumber(HearingAid.sandbox().HandleDeafness) or HearingAid.DeafnessMode.ALL_AIDS
-        if mode == HearingAid.DeafnessMode.ALL_AIDS then
+        if deafnessMode == DeafnessMode.ALL_AIDS then
             return boosted and Level.NORMAL or Level.HARD_OF_HEARING
-        elseif mode == HearingAid.DeafnessMode.BOOSTED_ONLY and boosted then
+        elseif deafnessMode == DeafnessMode.BOOSTED_ONLY and boosted then
             return Level.HARD_OF_HEARING
         end
         return Level.DEAF
@@ -211,46 +166,44 @@ function HearingAid.getTargetLevel(base, fullType)
     return math.max(base, Level.NORMAL)
 end
 
--- The worn hearing aid that is currently helping, if any.
-function HearingAid.getActiveAid(player)
+local function activeAid(player)
     local worn = player:getWornItems()
     for i = 0, worn:size() - 1 do
         local item = worn:getItemByIndex(i)
-        if item and HearingAid.isActive(item) then
+        if HearingAid.isActive(item) then
             return item
         end
     end
     return nil
 end
 
--- Dedicated server only: the authoritative record of each online player, keyed by username.
--- Clients send their whole player modData back to the server (ISHotbar does it right after
--- clothing changes), which replaces the server's copy and can drop the record just written;
--- this copy puts it back. Entries are tied to the IsoPlayer object, so a reconnect or a new
--- character starts from the saved player modData instead of a stale entry.
+-- Dedicated server only: the base and applied levels of each online player, keyed by username.
+-- A client's player modData transmit replaces the server's copy (ISHotbar sends one after every
+-- clothing change) and can drop the levels just written, so readRecord() puts them back. Entries
+-- remember their IsoPlayer, so a reconnect or a new character starts from the saved modData.
 local serverRecords = {}
 
 local function readRecord(player)
-    local md = player:getModData()
+    local modData = player:getModData()
     if isServer() then
-        local cached = serverRecords[player:getUsername()]
-        if cached and cached.player == player then
-            if md[BASE_LEVEL] ~= cached.base or md[APPLIED_LEVEL] ~= cached.applied then
-                md[BASE_LEVEL] = cached.base
-                md[APPLIED_LEVEL] = cached.applied
+        local record = serverRecords[player:getUsername()]
+        if record and record.player == player then
+            if modData[BASE_LEVEL] ~= record.base or modData[APPLIED_LEVEL] ~= record.applied then
+                modData[BASE_LEVEL] = record.base
+                modData[APPLIED_LEVEL] = record.applied
                 player:transmitModData()
             end
-            return cached.base, cached.applied
+            return record.base, record.applied
         end
     end
-    return md[BASE_LEVEL], md[APPLIED_LEVEL]
+    return modData[BASE_LEVEL], modData[APPLIED_LEVEL]
 end
 
 local function writeRecord(player, base, applied)
-    local md = player:getModData()
-    local changed = md[BASE_LEVEL] ~= base or md[APPLIED_LEVEL] ~= applied
-    md[BASE_LEVEL] = base
-    md[APPLIED_LEVEL] = applied
+    local modData = player:getModData()
+    local changed = modData[BASE_LEVEL] ~= base or modData[APPLIED_LEVEL] ~= applied
+    modData[BASE_LEVEL] = base
+    modData[APPLIED_LEVEL] = applied
     if isServer() then
         serverRecords[player:getUsername()] = { player = player, base = base, applied = applied }
         if changed then
@@ -259,48 +212,59 @@ local function writeRecord(player, base, applied)
     end
 end
 
--- Brings the character's hearing traits in line with the worn aid. Idempotent; call it after
--- anything that can change whether an aid is active. Returns true if traits changed.
+-- Brings the character's hearing traits in line with the worn aids. Call it after anything that
+-- can change whether an aid is active; extra calls change nothing.
 function HearingAid.reconcile(player)
-    if isClient() or not player or player:isDead() then
-        return false
+    if isClient() or player:isDead() then
+        return
     end
     local current = HearingAid.getHearingLevel(player)
     local base, applied = readRecord(player)
     if base == nil or applied ~= current then
-        -- Nothing applied yet, or hearing traits were changed behind our back (admin panel,
-        -- another mod): treat what the character has now as their own hearing.
+        -- Nothing applied yet, or something else changed the traits (admin panel, another mod):
+        -- what the character has now is their own hearing.
         base = current
     end
 
-    local aid = HearingAid.getActiveAid(player)
-    local target = aid and HearingAid.getTargetLevel(base, aid:getFullType()) or base
-    local traitsChanged = target ~= current
-    if traitsChanged then
+    local aid = activeAid(player)
+    local target = base
+    if aid then
+        target = HearingAid.getTargetLevel(base, aid:getFullType(), SandboxVars.HearingAid.HandleDeafness)
+    end
+    if target ~= current then
         setHearingLevel(player, target)
         if isServer() then
-            sendSyncPlayerFields(player, 2) -- SyncPlayerFieldsPacket.PF_Traits
+            sendSyncPlayerFields(player, SYNC_TRAITS)
         end
     end
-    writeRecord(player, aid and base or nil, aid and target or nil)
-    return traitsChanged
-end
-
--- Notifications -------------------------------------------------------------------------------
-
-function HearingAid.notify(player, key)
-    if isServer() then
-        sendServerCommand(player, "HearingAid", "notify", { key = key, onlineID = player:getOnlineID() })
-    elseif not isClient() then
-        HaloTextHelper.addBadText(player, getText(key))
+    if aid then
+        writeRecord(player, base, target)
+    else
+        writeRecord(player, nil, nil)
     end
 end
 
--- Battery drain -------------------------------------------------------------------------------
+-- Gives the character `level` as their own hearing and forgets what an aid applied. Used by
+-- debug tools; call reconcile() afterwards if an aid may be active.
+function HearingAid.setBaseLevel(player, level)
+    setHearingLevel(player, level)
+    writeRecord(player, nil, nil)
+end
 
--- World age (hours) at which each active aid was last drained, keyed by item id. Kept in memory
--- only: an aid that stops being active drops out, and so does everything on load or reconnect,
--- so time spent off the ear, offline or unloaded is never billed.
+-- Shows a warning over the character's head, on the owning client in multiplayer.
+function HearingAid.notify(player, textKey)
+    if isServer() then
+        sendServerCommand(player, "HearingAid", "notify", { key = textKey, onlineID = player:getOnlineID() })
+    elseif not isClient() then
+        HaloTextHelper.addBadText(player, getText(textKey))
+    end
+end
+
+-- Battery drain --------------------------------------------------------------------------------
+
+-- World age in hours at which each active aid was last drained, keyed by item id. Kept in memory
+-- only: an aid drops out when it stops being active, and everything drops out on load or
+-- reconnect, so time off the ear, switched off, offline or unloaded is never billed.
 local lastDrain = {}
 
 local function drain(player, aid, hours)
@@ -309,31 +273,32 @@ local function drain(player, aid, hours)
     end
     local before = HearingAid.getCharge(aid)
     local after = math.max(0, before - hours / HearingAid.getBatteryHours(aid))
-    aid:getModData()[CHARGE] = after
-    if after <= 0 then
+    HearingAid.setCharge(aid, after)
+    if after == 0 then
         HearingAid.setOn(aid, false)
         HearingAid.notify(player, "IGUI_HearingAid_BatteryDead")
-    elseif before > HearingAid.LOW_BATTERY and after <= HearingAid.LOW_BATTERY then
+    elseif before > LOW_CHARGE and after <= LOW_CHARGE then
         HearingAid.notify(player, "IGUI_HearingAid_BatteryLow")
     end
-    if after <= 0 or math.floor(before * 100) ~= math.floor(after * 100) then
-        HearingAid.syncItem(player, aid)
+    -- Sync only when the percentage the tooltip shows changes.
+    if after == 0 or round(before * 100) ~= round(after * 100) then
+        aid:syncItemFields()
     end
 end
 
--- Bills an aid for use up to now and stops tracking it. Call before switching it off or
--- taking its battery out.
-function HearingAid.settle(player, aid, now)
-    now = now or getGameTime():getWorldAgeHours()
-    local last = lastDrain[aid:getID()]
-    lastDrain[aid:getID()] = nil
+-- Bills the aid for use since the last update. Call it before an action ends the aid's use, or
+-- that time is lost.
+function HearingAid.drainUntilNow(player, aid)
+    local id = aid:getID()
+    local last = lastDrain[id]
     if last then
+        local now = getGameTime():getWorldAgeHours()
         drain(player, aid, now - last)
+        lastDrain[id] = now
     end
 end
 
--- Players whose state this Lua instance owns.
-function HearingAid.getAuthoritativePlayers()
+local function authoritativePlayers()
     local players = {}
     if isServer() then
         local online = getOnlinePlayers()
@@ -351,27 +316,46 @@ function HearingAid.getAuthoritativePlayers()
     return players
 end
 
--- Periodic tick on the authority: drains active aids and reconciles hearing.
+-- Drains active aids and reconciles hearing. Runs every in-game minute; `now` (world age in
+-- hours) lets tests move time forward.
 function HearingAid.update(now)
     if isClient() then
         return
     end
     now = now or getGameTime():getWorldAgeHours()
-    local seen = {}
-    for _, player in ipairs(HearingAid.getAuthoritativePlayers()) do
+    local tracked = {}
+    for _, player in ipairs(authoritativePlayers()) do
         if not player:isDead() then
-            local aid = HearingAid.getActiveAid(player)
+            local aid = activeAid(player)
             if aid then
-                local last = lastDrain[aid:getID()]
-                if last then
-                    drain(player, aid, now - last)
+                local id = aid:getID()
+                if lastDrain[id] then
+                    drain(player, aid, now - lastDrain[id])
                 end
                 if HearingAid.isActive(aid) then
-                    seen[aid:getID()] = now
+                    tracked[id] = now
                 end
             end
             HearingAid.reconcile(player)
         end
     end
-    lastDrain = seen
+    lastDrain = tracked
+end
+
+-- Battery items --------------------------------------------------------------------------------
+
+function HearingAid.insertBattery(aid, battery)
+    local container = battery:getContainer()
+    container:Remove(battery)
+    sendRemoveItemFromContainer(container, battery)
+    HearingAid.setCharge(aid, battery:getCurrentUsesFloat())
+end
+
+-- Gives the aid's battery to the character as a battery item.
+function HearingAid.removeBattery(player, aid)
+    HearingAid.drainUntilNow(player, aid)
+    local battery = instanceItem(BATTERY)
+    battery:setCurrentUsesFloat(HearingAid.getCharge(aid))
+    Actions.addOrDropItem(player, battery)
+    HearingAid.setCharge(aid, nil)
 end

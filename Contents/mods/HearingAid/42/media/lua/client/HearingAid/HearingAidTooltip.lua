@@ -1,8 +1,8 @@
 require "ISUI/ISToolTipInv"
 require "HearingAid/HearingAid"
 
--- Appends battery and power rows under the vanilla item tooltip of working hearing aids.
--- Wraps ISToolTipInv.render (the vanilla tooltip is drawn by Java, so it can't take extra rows).
+-- Draws battery and switch rows under the tooltip of working hearing aids. Java draws the vanilla
+-- item tooltip, so the rows go in a strip drawn after ISToolTipInv.render.
 
 local BAR_WIDTH = 80
 local BAR_HEIGHT = 4
@@ -27,11 +27,12 @@ local function statusText(aid)
     return getText("IGUI_HearingAid_On"), 0.4, 1.0, 0.4
 end
 
-local originalRender = ISToolTipInv.render
+local vanillaRender = ISToolTipInv.render
 
 function ISToolTipInv:render()
-    originalRender(self)
+    vanillaRender(self)
     local aid = self.item
+    -- Vanilla skips the tooltip while a context menu is open.
     if not HearingAid.isWorking(aid) or (ISContextMenu.instance and ISContextMenu.instance.visibleCheck) then
         return
     end
@@ -56,7 +57,7 @@ function ISToolTipInv:render()
     if HearingAid.hasBattery(aid) then
         local charge = HearingAid.getCharge(aid)
         drawBar(self, barX, y + (lineHeight - BAR_HEIGHT) / 2, charge)
-        self:drawText(math.floor(charge * 100 + 0.5) .. "%", barX + BAR_WIDTH + PAD, y, 1.0, 1.0, 1.0, 1.0, font)
+        self:drawText(round(charge * 100) .. "%", barX + BAR_WIDTH + PAD, y, 1.0, 1.0, 1.0, 1.0, font)
     else
         self:drawText(getText("IGUI_HearingAid_NoBattery"), barX, y, 0.7, 0.7, 0.7, 1.0, font)
     end

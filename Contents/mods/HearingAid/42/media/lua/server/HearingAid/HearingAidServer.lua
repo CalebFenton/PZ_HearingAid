@@ -1,31 +1,32 @@
 require "HearingAid/HearingAid"
+require "TimedActions/ISWearClothing"
 
--- Authority side (single player, or the dedicated server). Server Lua also loads on MP clients;
--- every handler bails out there.
-
-local function onEveryOneMinute()
-    HearingAid.update()
-end
+-- Event handlers for the authority. Server Lua also loads on multiplayer clients, where
+-- HearingAid.update() and HearingAid.reconcile() return without doing anything.
 
 local function onClothingUpdated(character)
-    if not isClient() and instanceof(character, "IsoPlayer") then
+    if instanceof(character, "IsoPlayer") then
         HearingAid.reconcile(character)
     end
 end
 
 local function onCreatePlayer(playerNum, player)
-    if not isClient() then
-        HearingAid.reconcile(player)
-    end
+    HearingAid.reconcile(player)
 end
 
-local function onClientCommand(module, command, player, args)
-    if module == "HearingAid" and command == "reconcile" then
-        HearingAid.reconcile(player)
+-- ISWearClothing fires OnClothingUpdated from perform(), which runs before complete() puts the
+-- item on, and a dedicated server runs only complete(). Wearing a broken aid also matters: it
+-- takes the slot from a working one.
+local vanillaWearComplete = ISWearClothing.complete
+
+function ISWearClothing:complete()
+    local worn = vanillaWearComplete(self)
+    if worn and HearingAid.isHearingAid(self.item) then
+        HearingAid.reconcile(self.character)
     end
+    return worn
 end
 
-Events.EveryOneMinute.Add(onEveryOneMinute)
+Events.EveryOneMinute.Add(HearingAid.update)
 Events.OnClothingUpdated.Add(onClothingUpdated)
 Events.OnCreatePlayer.Add(onCreatePlayer)
-Events.OnClientCommand.Add(onClientCommand)

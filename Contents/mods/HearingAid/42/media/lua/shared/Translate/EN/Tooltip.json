@@ -1,5 +1,4 @@
 {
     "Tooltip_HearingAid_Broken": "Doesn't work. Can be repaired with a screwdriver and electronics scrap.",
-    "Tooltip_HearingAid_NoBattery": "You have no charged batteries.",
-    "Tooltip_HearingAid_BatteryDead": "The battery is dead."
+    "Tooltip_HearingAid_NoChargedBatteries": "You have no charged batteries."
 }

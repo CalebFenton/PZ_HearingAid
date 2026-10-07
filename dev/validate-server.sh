@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Boots a throwaway dedicated server (no Steam, isolated cache dir) with only this mod enabled,
-# waits for it to finish loading, stops it, and reports mod-related errors from its log.
-# This exercises everything a server loads: registries, scripts, sandbox options, shared and
-# server Lua, and the loot distribution hook.
+# waits for it to finish loading, stops it, and fails if the mod logged a problem. The server
+# loads registries, scripts, sandbox options, shared and server Lua, and the loot tables.
 #
 # Usage: dev/validate-server.sh [cache dir]
 set -euo pipefail
@@ -54,9 +53,14 @@ exec 3>&-
 rm -f "$FIFO"
 
 echo "log: $LOG"
-# -Ddebug makes the animation loader log a NoSuchFileException for every mod without
-# AnimSets/actiongroups folders; that is noise, not a mod problem.
-grep -n "cf_hearing_aid\|HearingAid" "$LOG" | grep -v "AnimSets\|actiongroups" | head -40 || true
-echo "--- errors/warnings mentioning the mod or Lua ---"
-grep -n -i -E "error|exception|warn" "$LOG" | grep -i -E "hearing|lua|script|registr|sandbox" | head -40 || true
-if [ "$started" = 1 ]; then echo "RESULT: server started"; else echo "RESULT: server did NOT start"; exit 1; fi
+if [ "$started" != 1 ]; then
+    echo "FAIL: server did not start"
+    exit 1
+fi
+# Lua errors carry "(MOD:Hearing Aid)" in their stack trace, script warnings name the item or
+# recipe, and HearingAidDistributions.lua prints "HearingAid: missing" for unknown loot tables.
+if grep -n -E '\(MOD:Hearing Aid\)|HearingAid: missing|^(WARN|ERROR).*[Hh]earing ?[Aa]id' "$LOG"; then
+    echo "FAIL: the mod logged problems"
+    exit 1
+fi
+echo "PASS: server started and the mod logged no problems"

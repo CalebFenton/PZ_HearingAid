@@ -1,7 +1,7 @@
 require "HearingAid/HearingAid"
 
--- craftRecipe callbacks (media/scripts/HearingAid_recipes.txt). OnCreate runs once: locally in
--- single player, on the server in MP, after the outputs were already sent to the client.
+-- Callbacks of the craftRecipes in media/scripts/HearingAid_recipes.txt. OnCreate runs once, on
+-- the authority, after the outputs were already sent to a multiplayer client.
 HearingAid.Recipes = HearingAid.Recipes or {}
 
 local function consumedAid(craftRecipeData)
@@ -15,35 +15,22 @@ local function consumedAid(craftRecipeData)
     return nil
 end
 
--- Upgrades and repairs carry the battery and switch over. The output's item OnCreate may have
--- rolled a random battery; this overwrites it so crafting never creates batteries.
+-- The repaired or upgraded aid keeps the battery and switch of the one it was made from, which
+-- also discards the battery its item OnCreate may have rolled.
 function HearingAid.Recipes.transferState(craftRecipeData, character)
-    local source = consumedAid(craftRecipeData)
     local result = craftRecipeData:getFirstCreatedItem()
-    if not source or not result then
-        return
-    end
-    HearingAid.copyState(source, result)
+    HearingAid.copyState(consumedAid(craftRecipeData), result)
     result:syncItemFields()
 end
 
--- Gives back the battery that was inside the dismantled aid.
-function HearingAid.Recipes.dismantle(craftRecipeData, character)
-    local source = consumedAid(craftRecipeData)
-    if not source or not HearingAid.isWorking(source) or not HearingAid.hasBattery(source) then
-        return
+function HearingAid.Recipes.returnBattery(craftRecipeData, character)
+    local aid = consumedAid(craftRecipeData)
+    if HearingAid.hasBattery(aid) then
+        HearingAid.removeBattery(character, aid)
     end
-    local battery = instanceItem("Base.Battery")
-    battery:setCurrentUsesFloat(HearingAid.getCharge(source))
-    Actions.addOrDropItem(character, battery)
 end
 
--- OnTest is called for every candidate input item; the sandbox switch gates the whole recipe.
-function HearingAid.Recipes.boostEnabled(item, character)
-    return HearingAid.sandbox().EnableBoosted ~= false
-end
-
--- OnAddToMenu is looked up with a raw global read, so it cannot live in a table.
-function HearingAid_BoostInMenu(params)
-    return HearingAid.sandbox().EnableBoosted ~= false
+-- OnTest and OnAddToMenu of BoostHearingAid. The game reads OnAddToMenu as a plain global name.
+function HearingAid_isBoostEnabled()
+    return SandboxVars.HearingAid.EnableBoosted
 end

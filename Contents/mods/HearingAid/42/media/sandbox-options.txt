@@ -40,7 +40,7 @@ option HearingAid.HandleDeafness
 {
 	type = enum, numValues = 3, default = 2,
 	page = HearingAid, translation = HearingAid_HandleDeafness,
-	valueTranslation = HearingAid_DeafnessHandling,
+	valueTranslation = HearingAid_HandleDeafness,
 }
 
 option HearingAid.EnableBoosted

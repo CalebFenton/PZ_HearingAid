@@ -1,42 +1,14 @@
 require "HearingAid/HearingAid"
 
--- Helpers for the debug scenario and unit tests (debug mode only; nothing here runs on its own).
+-- Setup helpers for the debug scenario and tests. Debug mode only.
 HearingAidDebug = {}
 
-local Level = HearingAid.Level
-
--- Sets the character's hearing traits and forgets anything the mod applied.
-function HearingAidDebug.setHearing(player, level)
-    local traits = player:getCharacterTraits()
-    traits:remove(CharacterTrait.DEAF)
-    traits:remove(CharacterTrait.HARD_OF_HEARING)
-    traits:remove(CharacterTrait.KEEN_HEARING)
-    if level == Level.DEAF then
-        traits:add(CharacterTrait.DEAF)
-    elseif level == Level.HARD_OF_HEARING then
-        traits:add(CharacterTrait.HARD_OF_HEARING)
-    elseif level == Level.KEEN then
-        traits:add(CharacterTrait.KEEN_HEARING)
-    end
-    local md = player:getModData()
-    md.HearingAid_baseLevel = nil
-    md.HearingAid_appliedLevel = nil
-end
-
--- Adds a hearing aid with an exact battery state (charge nil = no battery).
+-- Adds an aid with an exact battery state; nil charge means no battery.
 function HearingAidDebug.addAid(player, fullType, charge, on)
     local aid = player:getInventory():AddItem(fullType)
-    HearingAid.clearBattery(aid)
-    if charge then
-        HearingAid.setBattery(aid, charge)
-        HearingAid.setOn(aid, on)
-    end
+    HearingAid.setCharge(aid, charge)
+    HearingAid.setOn(aid, on)
     return aid
-end
-
-function HearingAidDebug.wear(player, item)
-    player:setWornItem(item:getBodyLocation(), item)
-    HearingAid.reconcile(player)
 end
 
 function HearingAidDebug.addBattery(player, charge)
@@ -45,15 +17,27 @@ function HearingAidDebug.addBattery(player, charge)
     return battery
 end
 
-function HearingAidDebug.addItems(player, fullType, count)
-    for _ = 1, count do
-        player:getInventory():AddItem(fullType)
-    end
+-- Puts the item on at once, without the wear action.
+function HearingAidDebug.wear(player, item)
+    player:setWornItem(item:getBodyLocation(), item)
+    HearingAid.reconcile(player)
 end
 
--- Everything needed to try every feature by hand.
+-- Inputs of every hearing aid recipe, including tools.
+function HearingAidDebug.addRecipeMaterials(player)
+    local inventory = player:getInventory()
+    inventory:AddItems("Base.Screwdriver", 1)
+    inventory:AddItems("Base.Scalpel", 1)
+    inventory:AddItems("Base.ElectronicsScrap", 4)
+    inventory:AddItems("Base.Aluminum", 1)
+    inventory:AddItems("Base.Earbuds", 1)
+    inventory:AddItems("Base.Amplifier", 1)
+    inventory:AddItems("Base.ElectricWire", 1)
+end
+
+-- A hard of hearing character with Electrical 8, every tier, batteries and recipe materials.
 function HearingAidDebug.setupPlayer(player)
-    HearingAidDebug.setHearing(player, Level.HARD_OF_HEARING)
+    HearingAid.setBaseLevel(player, HearingAid.Level.HARD_OF_HEARING)
     player:setPerkLevelDebug(Perks.Electricity, 8)
     HearingAidDebug.addAid(player, HearingAid.BROKEN, nil, false)
     HearingAidDebug.addAid(player, HearingAid.BASIC, nil, false)
@@ -61,11 +45,6 @@ function HearingAidDebug.setupPlayer(player)
     HearingAidDebug.addAid(player, HearingAid.BOOSTED, 1.0, false)
     HearingAidDebug.addBattery(player, 1.0)
     HearingAidDebug.addBattery(player, 0.25)
-    HearingAidDebug.addItems(player, "Base.Screwdriver", 1)
-    HearingAidDebug.addItems(player, "Base.Scalpel", 1)
-    HearingAidDebug.addItems(player, "Base.ElectronicsScrap", 10)
-    HearingAidDebug.addItems(player, "Base.Aluminum", 2)
-    HearingAidDebug.addItems(player, "Base.Earbuds", 1)
-    HearingAidDebug.addItems(player, "Base.Amplifier", 1)
-    HearingAidDebug.addItems(player, "Base.ElectricWire", 1)
+    HearingAidDebug.addRecipeMaterials(player)
+    player:getInventory():AddItems("Base.ElectronicsScrap", 6)
 end

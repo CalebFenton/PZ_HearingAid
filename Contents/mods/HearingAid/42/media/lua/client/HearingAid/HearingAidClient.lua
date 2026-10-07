@@ -1,13 +1,4 @@
-require "HearingAid/HearingAid"
-
--- MP client side: the server owns hearing traits, so tell it when clothing changes and show
--- the battery warnings it sends back. Single player handles both in HearingAidServer.lua.
-
-local function onClothingUpdated(character)
-    if isClient() and instanceof(character, "IsoPlayer") and character:isLocalPlayer() then
-        sendClientCommand(character, "HearingAid", "reconcile", {})
-    end
-end
+-- Shows the battery warnings that a multiplayer server sends with HearingAid.notify().
 
 local function onServerCommand(module, command, args)
     if module ~= "HearingAid" or command ~= "notify" then
@@ -21,5 +12,4 @@ local function onServerCommand(module, command, args)
     end
 end
 
-Events.OnClothingUpdated.Add(onClothingUpdated)
 Events.OnServerCommand.Add(onServerCommand)

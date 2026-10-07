@@ -34,10 +34,9 @@ module HearingAid
     }
 
     /*
-     * Names come from Translate/<LANG>/ItemName.json.
-     * Medical = true puts the aids under the Medical loot multiplier.
-     * base:ignorezombiedensity keeps zombie density from swamping their small spawn weights.
-     * State (battery, on/off) lives in item modData; see lua/shared/HearingAid/HearingAid.lua.
+     * Display names come from Translate/<LANG>/ItemName.json.
+     * Medical = true puts the aids under the Medical loot rarity setting.
+     * base:ignorezombiedensity keeps the zombie density bonus from swamping their small loot weights.
      */
 
     item BrokenHearingAid
@@ -68,7 +67,7 @@ module HearingAid
         Cosmetic = true,
         CanHaveHoles = false,
         Medical = true,
-        OnCreate = HearingAid.onCreateWorking,
+        OnCreate = HearingAid.onCreate,
         Tags = base:hasmetal;base:ignorezombiedensity,
     }
 
@@ -84,7 +83,7 @@ module HearingAid
         Cosmetic = true,
         CanHaveHoles = false,
         Medical = true,
-        OnCreate = HearingAid.onCreateWorking,
+        OnCreate = HearingAid.onCreate,
         Tags = base:hasmetal;base:ignorezombiedensity,
     }
 
@@ -100,7 +99,7 @@ module HearingAid
         Cosmetic = true,
         CanHaveHoles = false,
         Medical = true,
-        OnCreate = HearingAid.onCreateWorking,
+        OnCreate = HearingAid.onCreate,
         Tags = base:hasmetal;base:ignorezombiedensity,
     }
 }

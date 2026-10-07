@@ -1,9 +1,9 @@
 require "TimedActions/ISBaseTimedAction"
 require "HearingAid/HearingAid"
 
--- One action for every hearing aid interaction. In MP the client runs start/update/perform and
--- the server rebuilds the action from new()'s parameters and runs complete(), which owns all
--- state changes. In single player perform() and complete() both run locally.
+-- Inserts or removes a hearing aid's battery, or switches the aid on or off. In multiplayer the
+-- client runs start() and perform(), and the server rebuilds the action from new()'s parameters
+-- and runs complete(), which makes every state change. Single player runs both.
 HearingAidAction = ISBaseTimedAction:derive("HearingAidAction")
 
 HearingAidAction.INSERT_BATTERY = "InsertBattery"
@@ -18,7 +18,7 @@ local DURATIONS = {
     [HearingAidAction.TURN_OFF] = 20,
 }
 
--- Rules shared by the client menu, isValid and the server-side complete().
+-- Whether the action applies to the aid's current state. `battery` is only used to insert one.
 function HearingAidAction.canPerform(mode, aid, battery)
     if not HearingAid.isWorking(aid) then
         return false
@@ -37,22 +37,19 @@ end
 
 function HearingAidAction:isValid()
     local inventory = self.character:getInventory()
-    if not self.aid or not inventory:containsID(self.aid:getID()) then
+    if not inventory:containsID(self.aid:getID()) then
         return false
     end
-    if self.mode == HearingAidAction.INSERT_BATTERY and (not self.battery or not inventory:containsID(self.battery:getID())) then
+    if self.battery and not inventory:containsID(self.battery:getID()) then
         return false
     end
-    if isClient() then
-        -- The server re-checks in complete(); client modData can lag behind it.
-        return true
-    end
-    return HearingAidAction.canPerform(self.mode, self.aid, self.battery)
+    -- A multiplayer client's item state can lag behind the server, which checks in complete().
+    return isClient() or HearingAidAction.canPerform(self.mode, self.aid, self.battery)
 end
 
 function HearingAidAction:start()
     if isClient() then
-        -- Item objects can be replaced by server syncs while the action waits in the queue.
+        -- Server syncs can replace the item objects while the action waits in the queue.
         local inventory = self.character:getInventory()
         self.aid = inventory:getItemById(self.aid:getID())
         if self.battery then
@@ -77,34 +74,24 @@ function HearingAidAction:perform()
     ISBaseTimedAction.perform(self)
 end
 
+-- The server never calls isValid(), so this checks the action again.
 function HearingAidAction:complete()
-    local aid, player = self.aid, self.character
-    if not aid or not HearingAidAction.canPerform(self.mode, aid, self.battery) then
+    local aid, character = self.aid, self.character
+    if not HearingAidAction.canPerform(self.mode, aid, self.battery) then
         return false
     end
-
     if self.mode == HearingAidAction.INSERT_BATTERY then
-        local battery = self.battery
-        local charge = HearingAid.getBatteryCharge(battery)
-        local container = battery:getContainer()
-        container:Remove(battery)
-        sendRemoveItemFromContainer(container, battery)
-        HearingAid.setBattery(aid, charge)
+        HearingAid.insertBattery(aid, self.battery)
     elseif self.mode == HearingAidAction.REMOVE_BATTERY then
-        HearingAid.settle(player, aid)
-        local battery = instanceItem("Base.Battery")
-        battery:setCurrentUsesFloat(HearingAid.getCharge(aid))
-        Actions.addOrDropItem(player, battery)
-        HearingAid.clearBattery(aid)
+        HearingAid.removeBattery(character, aid)
     elseif self.mode == HearingAidAction.TURN_ON then
         HearingAid.setOn(aid, true)
-    elseif self.mode == HearingAidAction.TURN_OFF then
-        HearingAid.settle(player, aid)
+    else
+        HearingAid.drainUntilNow(character, aid)
         HearingAid.setOn(aid, false)
     end
-
-    HearingAid.syncItem(player, aid)
-    HearingAid.reconcile(player)
+    aid:syncItemFields()
+    HearingAid.reconcile(character)
     return true
 end
 
@@ -112,11 +99,11 @@ function HearingAidAction:getDuration()
     if self.character:isTimedActionInstant() then
         return 1
     end
-    return DURATIONS[self.mode] or 30
+    return DURATIONS[self.mode]
 end
 
--- Parameter names must match the fields set on `o`: the MP server rebuilds the action by
--- reading those fields in parameter order (NetTimedAction).
+-- Parameter names must match the fields set on `o`: the multiplayer server rebuilds the action by
+-- passing those fields to new() in parameter order (NetTimedAction).
 function HearingAidAction:new(character, mode, aid, battery)
     local o = ISBaseTimedAction.new(self, character)
     o.mode = mode
