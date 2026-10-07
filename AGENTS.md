@@ -3,7 +3,7 @@
 ## Commands
 
 - Headless check: `dev/validate-server.sh`. It boots a dedicated server with only this mod and fails if the mod logged a Lua error, a script warning, or a missing loot table.
-- In-game tests: `dev/run-debug-client.sh --test`. It waits for the results, quits the game, and exits nonzero on a failed test or a Lua error. Each run needs one human click on **Click to start**: the loading screen reads the real mouse button, and posting a synthetic click needs macOS Accessibility permission. Start the script in the background and ask the user to click.
+- In-game tests: `dev/run-debug-client.sh --test`. It runs unattended in about 2 minutes: it presses **Click to start** itself, wakes the display, waits for the results, quits the game, and exits nonzero on a failed test or a Lua error. It needs a JDK's `javac` on `PATH` (or `JAVAC` set) to build `dev/ClickToStart.java`.
 
 ## Rules
 

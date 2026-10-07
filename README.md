@@ -58,11 +58,11 @@ The **Hearing Aid** page of the sandbox options sets the battery life of each ti
 
 ## Development
 
-Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists Workshop staging folders as local mods. Unsubscribe from the Workshop copy while you develop, because two copies with the same mod id conflict. The scripts assume the macOS Steam install; set `PZ_APP` to the game's `Contents` folder if yours differs.
+Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists Workshop staging folders as local mods. Unsubscribe from the Workshop copy while you develop, because two copies with the same mod id conflict. The scripts assume the macOS Steam install; set `PZ_APP` to the game's `Contents` folder if yours differs. The in-game tests also need a JDK (any version from 8 on) for `javac`.
 
 ```sh
 dev/validate-server.sh           # boots a headless dedicated server; fails if the mod logs an error
-dev/run-debug-client.sh --test   # runs every in-game test; click "Click to start" once
+dev/run-debug-client.sh --test   # runs every in-game test unattended in about 2 minutes
 ```
 
 Read [DEVELOPMENT.md](DEVELOPMENT.md) for the testing tools, the Build 42 behavior this mod depends on, and the release checklist.

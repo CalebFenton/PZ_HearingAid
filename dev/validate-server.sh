@@ -27,7 +27,7 @@ rm -f "$FIFO"
 mkfifo "$FIFO"
 
 cd "$PZ/Java"
-"$JAVA" "${JVM_COMMON[@]}" -Ddebug -Xmx4g zombie.network.GameServer \
+"$JAVA" "${JVM_COMMON[@]}" -cp "$GAME_CLASSPATH" -Ddebug -Xmx4g zombie.network.GameServer \
     -cachedir="$CACHE" -servername "$NAME" -adminpassword admin -nosteam -debuglog=Mod,Lua \
     < "$FIFO" > "$CACHE/stdout.txt" 2>&1 &
 SERVER=$!
