@@ -38,16 +38,17 @@ Four in five aids you find are broken, and only about 1 in 150 is efficient. A w
 
 ### Crafting
 
-Every recipe needs a screwdriver, light, and an aid you aren't wearing. Repaired and upgraded aids keep the battery and the switch of the aid they came from, and dismantling an aid gives its battery back.
+Repairs and upgrades are fine work. They need a table or counter within reach, light, a screwdriver, tweezers, and reading glasses or a magnifier (a Loupe or a Magnifying Glass). You can keep the glasses on, but take the aid off. The new aid keeps the battery and the switch of the one it came from.
 
 | Recipe | Electrical | Turns | Also uses |
 |---|---|---|---|
-| Repair Hearing Aid | 2 | a Broken Hearing Aid into a Hearing Aid | 2 Scrap Electronics |
-| Optimize Hearing Aid | 4 | a Hearing Aid into an Efficient Hearing Aid | 2 Scrap Electronics, Aluminum Foil or Aluminum Fragments |
-| Boost Hearing Aid | 8 | an Efficient Hearing Aid into a Boosted Hearing Aid | 4 Scrap Electronics, Earbuds, an Amplifier, Electrical Wire, and a Scalpel, which it keeps |
-| Dismantle Hearing Aid | None | any hearing aid into Scrap Electronics | Nothing else |
+| Repair Hearing Aid | 2 | a Broken Hearing Aid into a Hearing Aid | Earbuds, whose speaker replaces the dead one; 1 use of Alcohol Wipes or a Cotton Ball Doused in Alcohol to clean the battery contacts; 1 use of Glue |
+| Optimize Hearing Aid | 4 | a Hearing Aid into an Efficient Hearing Aid | a digital watch, for its low-power chip; Electrical Wire; 1 use of Glue |
+| Boost Hearing Aid | 8 | an Efficient Hearing Aid into a Boosted Hearing Aid | an Amplifier; a Microphone; 2 Electrical Wire; 1 use of Epoxy; a Scalpel, which it keeps |
 
-Dismantling a Speaker gives an Amplifier.
+Everything a repair needs can turn up in an ordinary house. The boost is the scavenger hunt: dismantle a Speaker for its Amplifier, and look for microphones in music stores, band practice rooms, and electronics stores.
+
+**Dismantle Hearing Aid** works in your hands with only a screwdriver. It turns any aid into Scrap Electronics and gives its battery back.
 
 ### Sandbox options
 

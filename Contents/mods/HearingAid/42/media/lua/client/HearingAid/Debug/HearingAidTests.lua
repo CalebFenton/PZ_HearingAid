@@ -54,9 +54,43 @@ local function expectHearing(expect, expected)
     expect(actual == expected, "hearing is " .. LEVEL_NAMES[actual] .. ", expected " .. LEVEL_NAMES[expected])
 end
 
+-- Why the right-click menu would refuse to start this craft, or nil if it would start it.
+local function craftRefusal(recipe, selectedItem)
+    local p = player()
+    local logic = HandcraftLogic.new(p, nil, nil)
+    logic:setIsoObject(logic:findCraftSurface(p, 2))
+    logic:setContainers(ISInventoryPaneContextMenu.getContainers(p))
+    logic:setRecipeFromContextClick(recipe, selectedItem)
+    if logic:canPerformCurrentRecipe() then
+        return nil
+    elseif not recipe:characterHasRequiredSkills(p) then
+        return "Electrical too low"
+    elseif recipe:isAnySurfaceCraft() and not logic:isCharacterInRangeOfWorkbench() then
+        return "no table in reach"
+    elseif p:tooDarkToRead() then
+        return "too dark"
+    end
+    local missing = {}
+    local inputs = recipe:getInputs()
+    for i = 0, inputs:size() - 1 do
+        if not logic:getRecipeData():getDataForInputScript(inputs:get(i)):isInputItemsSatisfied() then
+            table.insert(missing, inputs:get(i):getOriginalLine())
+        end
+    end
+    return "missing " .. table.concat(missing, "; ")
+end
+
+-- Crafts through the same path as the right-click menu. Returns why the game refused, if it did.
 local function craft(recipeName, selectedItem)
     local recipe = getScriptManager():getCraftRecipe(recipeName)
+    local refusal = craftRefusal(recipe, selectedItem)
     ISInventoryPaneContextMenu.OnNewCraft(selectedItem, recipe, player():getPlayerNum(), false)
+    return refusal
+end
+
+-- Appends the reason a craft was refused to a failure message.
+local function refused(self)
+    return self.refusal and " (refused: " .. self.refusal .. ")" or ""
 end
 
 -- Registers a test with the runner. `sandbox` options hold from run() until validate() ends, and
@@ -367,9 +401,10 @@ test("hearingaid_no_drain_while_inactive", {
 
 -- Crafting -------------------------------------------------------------------------------------
 
-local function addRecipeMaterials()
+local function prepareToCraft()
     player():setPerkLevelDebug(Perks.Electricity, 8)
     HearingAidDebug.addRecipeMaterials(player())
+    HearingAidDebug.placeWorkTable(player())
 end
 
 test("hearingaid_craft_repair", {
@@ -377,27 +412,41 @@ test("hearingaid_craft_repair", {
     -- discard because the broken aid had none.
     sandbox = { SpawnWithBatteryChance = 100 },
     run = function(self)
-        addRecipeMaterials()
-        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+        prepareToCraft()
+        self.refusal = craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
     end,
     validate = function(self, expect)
         local inventory = player():getInventory()
         local repaired = inventory:getAllType(BASIC)
-        expect(repaired:size() == 1, repaired:size() .. " repaired hearing aids")
+        expect(repaired:size() == 1, repaired:size() .. " repaired hearing aids" .. refused(self))
         expect(repaired:size() == 0 or not HearingAid.hasBattery(repaired:get(0)), "repair created a battery")
         expect(inventory:getCountType(BROKEN) == 0, "broken aid not consumed")
+    end,
+})
+
+-- People wear their reading glasses for close work, and a worn pair must serve as the magnifier.
+test("hearingaid_craft_with_worn_reading_glasses", {
+    run = function(self)
+        prepareToCraft()
+        self.glasses = player():getInventory():getFirstType("Base.Glasses_Reading")
+        player():setWornItem(self.glasses:getBodyLocation(), self.glasses)
+        self.refusal = craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+    end,
+    validate = function(self, expect)
+        expect(player():getInventory():getCountType(BASIC) == 1, "not repaired with worn reading glasses" .. refused(self))
+        expect(self.glasses:isWorn(), "reading glasses taken off")
     end,
 })
 
 test("hearingaid_craft_upgrade_keeps_battery", {
     sandbox = { SpawnWithBatteryChance = 0 },
     run = function(self)
-        addRecipeMaterials()
-        craft("HearingAid.OptimizeHearingAid", HearingAidDebug.addAid(player(), BASIC, 0.42, true))
+        prepareToCraft()
+        self.refusal = craft("HearingAid.OptimizeHearingAid", HearingAidDebug.addAid(player(), BASIC, 0.42, true))
     end,
     validate = function(self, expect)
         local upgraded = player():getInventory():getAllType(EFFICIENT)
-        expect(upgraded:size() == 1, upgraded:size() .. " efficient hearing aids")
+        expect(upgraded:size() == 1, upgraded:size() .. " efficient hearing aids" .. refused(self))
         if upgraded:size() == 1 then
             local aid = upgraded:get(0)
             expect(near(HearingAid.getCharge(aid), 0.42), "charge is " .. HearingAid.getCharge(aid))
@@ -408,12 +457,12 @@ test("hearingaid_craft_upgrade_keeps_battery", {
 
 test("hearingaid_craft_dismantle_returns_battery", {
     run = function(self)
-        addRecipeMaterials()
-        craft("HearingAid.DismantleHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, 0.6, false))
+        prepareToCraft()
+        self.refusal = craft("HearingAid.DismantleHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, 0.6, false))
     end,
     validate = function(self, expect)
         local inventory = player():getInventory()
-        expect(inventory:getCountType(EFFICIENT) == 0, "aid not consumed")
+        expect(inventory:getCountType(EFFICIENT) == 0, "aid not consumed" .. refused(self))
         local batteries = inventory:getAllType("Base.Battery")
         expect(batteries:size() == 1, batteries:size() .. " batteries returned")
         if batteries:size() == 1 then
@@ -426,12 +475,12 @@ test("hearingaid_craft_dismantle_returns_battery", {
 test("hearingaid_craft_boost", {
     sandbox = { EnableBoosted = true },
     run = function(self)
-        addRecipeMaterials()
-        craft("HearingAid.BoostHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, nil, false))
+        prepareToCraft()
+        self.refusal = craft("HearingAid.BoostHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, nil, false))
     end,
     validate = function(self, expect)
         local inventory = player():getInventory()
-        expect(inventory:getCountType(BOOSTED) == 1, inventory:getCountType(BOOSTED) .. " boosted hearing aids")
+        expect(inventory:getCountType(BOOSTED) == 1, inventory:getCountType(BOOSTED) .. " boosted hearing aids" .. refused(self))
         expect(inventory:getCountType(EFFICIENT) == 0, "efficient aid not consumed")
     end,
 })
@@ -439,7 +488,7 @@ test("hearingaid_craft_boost", {
 test("hearingaid_craft_boost_disabled", {
     sandbox = { EnableBoosted = false },
     run = function(self)
-        addRecipeMaterials()
+        prepareToCraft()
         craft("HearingAid.BoostHearingAid", HearingAidDebug.addAid(player(), EFFICIENT, nil, false))
     end,
     validate = function(self, expect)
@@ -452,12 +501,13 @@ test("hearingaid_craft_boost_disabled", {
 test("hearingaid_craft_skill_level_from_sandbox", {
     sandbox = { RepairSkillLevel = 5 },
     run = function(self)
-        addRecipeMaterials()
+        prepareToCraft()
         player():setPerkLevelDebug(Perks.Electricity, 4)
-        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+        self.refusal = craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
     end,
     validate = function(self, expect)
         local inventory = player():getInventory()
+        expect(self.refusal == "Electrical too low", "refusal was " .. tostring(self.refusal))
         expect(inventory:getCountType(BASIC) == 0, "repaired below the configured Electrical level")
         expect(inventory:getCountType(BROKEN) == 1, "broken aid consumed")
     end,
@@ -466,13 +516,13 @@ test("hearingaid_craft_skill_level_from_sandbox", {
 test("hearingaid_craft_without_skill_requirement", {
     sandbox = { RepairSkillLevel = 0 },
     run = function(self)
-        addRecipeMaterials()
+        prepareToCraft()
         player():setPerkLevelDebug(Perks.Electricity, 0)
-        craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
+        self.refusal = craft("HearingAid.RepairHearingAid", HearingAidDebug.addAid(player(), BROKEN, nil, false))
     end,
     validate = function(self, expect)
         local inventory = player():getInventory()
-        expect(inventory:getCountType(BASIC) == 1, inventory:getCountType(BASIC) .. " repaired hearing aids")
+        expect(inventory:getCountType(BASIC) == 1, inventory:getCountType(BASIC) .. " repaired hearing aids" .. refused(self))
     end,
 })
 

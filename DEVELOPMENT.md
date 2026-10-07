@@ -12,7 +12,7 @@ Both scripts use the game from the macOS Steam install (set `PZ_APP` to another 
 
 The harness only automates vanilla debug tools, which you can also use by hand in any game started with `-debug` (add it to the Steam launch options for your normal game):
 
-- The **Hearing Aid** debug scenario (`HearingAidDebugScenario.lua`) is listed under **Scenarios** on the main menu. It starts a zombie-free world with a Hard of Hearing character, Electrical 8, every tier, batteries, and recipe materials.
+- The **Hearing Aid** debug scenario (`HearingAidDebugScenario.lua`) is listed under **Scenarios** on the main menu. It starts a zombie-free world with a Hard of Hearing character, Electrical 8, every tier, batteries, recipe materials, and a table to craft at.
 - The tests (`HearingAidTests.lua`) register with the vanilla timed action test runner. Open the debug menu with the bug icon, choose **Dev**, then **Unit Tests**, then **Timed Actions**, and run any `hearingaid_*` test.
 
 These facts about the runner and the client shape the tests and the harness:
@@ -20,7 +20,8 @@ These facts about the runner and the client shape the tests and the harness:
 - Before each test the runner empties the inventory and calls `clearWornItems()`, which fires no clothing event. Traits, player modData, and sandbox options carry over, so each test calls `HearingAid.setBaseLevel()` and lists the sandbox options it needs; the `test()` helper restores them after `validate()` and applies the recipe skill levels after each change.
 - `EveryOneMinute` keeps firing during tests. Drain tests call `HearingAid.update(now)` with explicit world ages, so their expected charges hold whether or not a real update runs in between. Tests that show an action drains the battery itself set `periodicUpdate = false`, which removes `HearingAid.update` from `EveryOneMinute` until `validate()` ends.
 - The Unit Tests panel must be open before `TimedActionTests.runOne(name)`, or the runner fails on its result labels. `UnitTestsDebug.OnOpenPanel()` opens it.
-- `ISInventoryPaneContextMenu.OnNewCraft(selectedItem, getScriptManager():getCraftRecipe("Module.Name"), playerNum, false)` crafts through the same path as a right-click.
+- `ISInventoryPaneContextMenu.OnNewCraft(selectedItem, getScriptManager():getCraftRecipe("Module.Name"), playerNum, false)` crafts through the same path as a right-click. When the game refuses, it queues nothing and says nothing, so the tests' `craft()` helper asks `HandcraftLogic` for the reason: Electrical too low, no table in reach, too dark, or which input line no item matched.
+- A table for `AnySurfaceCraft` recipes must come from `IsoObject.new(square, spriteName, name)`, which uses the tile's own sprite and its properties. `IsoObject.new(square, spriteName)` builds a new sprite from the texture alone, so the object looks like a table but has no `Surface` and no sprite name. `findCraftSurface` also skips squares the character can't reach, such as the far side of a wall.
 - Debug scenarios go in the global `debugScenarios` table. Without a `startLoc`, world creation crashes. `setSandbox` must call `ActiveMods.getById("currentGame"):copyFrom(ActiveMods.getById("default"))`, or the new save doesn't record its mods. `forceLaunch = true` starts a scenario from the main menu only when `<cachedir>/debug-options.ini` contains `DebugScenario.ForceLaunch=true`.
 - **Click to start** waits for a real left click or a joypad A press (`GameLoadingState.update` reads `Mouse.isButtonDown(0)`), and Lua can't set either, so every client run needs one click. Posting a synthetic click needs macOS Accessibility permission. A fresh cache directory also stops at the terms of service unless `options.ini` has `termsOfServiceVersion=1`.
 - Single player pauses when the window loses focus if the `focusloss` option is on, which is the default (`IngameState.onDisplayFocusLost`), and a paused game doesn't fire `OnTick`. The harness calls `getCore():setOptionPauseOnFocusloss(false)` so the tests keep running in the background.
@@ -83,8 +84,12 @@ Item and recipe scripts are in `media/scripts/*.txt`. Only `/* */` comments work
 Build 41 `recipe` blocks no longer load.
 
 - Lines without `=`, such as the Build 41 `Time:30`, are skipped without an error. Unknown keys log an error, and throw in debug mode.
-- Input flags in `flags[...]` are case-sensitive enum names, and `[...]` lists must not contain spaces.
-- Use `tags[base:screwdriver]` for tool tags and `mode:keep` for tools.
+- Input flags in `flags[...]` are case-sensitive enum names, and `[...]` lists must not contain spaces. `NoBrokenItems` has no effect; broken items are always refused unless an input sets `AllowDestroyedItem`.
+- Use `tags[base:screwdriver]` for tool tags and `mode:keep` for tools. An input line can list items and tags together, `[Base.Glasses_Reading] tags[base:magnifier]`, and accepts any of them (`InputScript.OnPostWorldDictionaryInit`).
+- An input of a drainable item counts uses: `item 1 [Base.Glue]` takes one of the tube's five uses. `flags[ItemCount]` takes whole items instead.
+- Worn items count as inputs, and a worn `mode:keep` tool stays worn. `flags[IsNotWorn]` refuses worn and equipped items.
+- `Tags = AnySurfaceCraft` needs a table or counter within 3 tiles (`HandcraftLogic`), and the craft walks the character to it. A tag other than `InHandCraft`, `AnySurfaceCraft`, `EntityRecipe`, and `Outdoors`, on a recipe without one of them, makes it need a crafting bench entity (`CraftRecipe.requiresSpecificWorkstation`). The `Electrical` tag does nothing else; `category = Electrical` sets the crafting window category.
+- Every recipe needs light unless it has the `CanBeDoneInDark` tag (`CraftRecipeData`, `IsoPlayer.tooDarkToRead`).
 - `xpAward = Electricity:10` and `SkillRequired = Electricity:2` replace Build 41 `OnGiveXP` and `SkillRequired:`.
 - `OnCreate(craftRecipeData, character)` runs once, locally in single player and on the server in multiplayer, after the outputs were sent to the client. Call `result:syncItemFields()` after changing an output.
 - `OnTest(item, character)` runs for every candidate input item, tools included.
