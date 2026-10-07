@@ -12,22 +12,22 @@
 # Someone must click "Click to start" once after the world loads; the game has no way to skip it.
 # CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client).
 set -euo pipefail
+. "$(dirname "$0")/lib.sh"
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PZ="${PZ_APP:-$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents}"
-JAVA="$PZ/PlugIns/jre-$(uname -m | sed 's/arm64/aarch64/')/Contents/Home/bin/java"
 CACHE="${CACHE:-${TMPDIR:-/tmp}/pz-hearingaid-client}"
-TEST=0
-[ "${1:-}" = "--test" ] && TEST=1
+case "${1:-}" in
+    "") TEST=0 ;;
+    --test) TEST=1 ;;
+    *) echo "usage: $0 [--test]" >&2; exit 2 ;;
+esac
 TIMEOUT=${TIMEOUT:-1200}
 
-mkdir -p "$CACHE/mods"
+link_mod
 # Reuse your game settings (resolution, language, accepted terms of service) so a fresh cache
 # dir doesn't stop at first-run screens.
 if [ ! -f "$CACHE/options.ini" ] && [ -f "$HOME/Zomboid/options.ini" ]; then
     cp "$HOME/Zomboid/options.ini" "$CACHE/options.ini"
 fi
-ln -sfn "$REPO/Contents/mods/HearingAid" "$CACHE/mods/HearingAid"
 MODS="    mod = cf_hearing_aid,"
 if [ "$TEST" = 1 ]; then
     ln -sfn "$REPO/dev/HearingAidDevHarness" "$CACHE/mods/HearingAidDevHarness"
@@ -51,11 +51,8 @@ EOF
 # The harness scenario sets forceLaunch; this debug option lets it start from the main menu.
 printf 'Version=1\nDebugScenario.ForceLaunch=%s\n' "$([ "$TEST" = 1 ] && echo true || echo false)" > "$CACHE/debug-options.ini"
 
-GAME=("$JAVA" -Djava.awt.headless=true --enable-native-access=ALL-UNNAMED
-    --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED -XstartOnFirstThread
-    -Dzomboid.steam=0 -Dzomboid.znetlog=1 -Xmx3072m -XX:+UseZGC -XX:-OmitStackTraceInFastThrow
-    -Djava.library.path=. -cp .:projectzomboid.jar zombie.gameStates.MainScreenState
-    -debug -nosteam -cachedir="$CACHE")
+GAME=("$JAVA" "${JVM_COMMON[@]}" -XstartOnFirstThread -Xmx3072m -XX:+UseZGC
+    zombie.gameStates.MainScreenState -debug -nosteam -cachedir="$CACHE")
 cd "$PZ/Java"
 if [ "$TEST" = 0 ]; then
     exec "${GAME[@]}"

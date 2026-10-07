@@ -77,7 +77,7 @@ end
 
 local function addToDistributions()
     local all = SuburbsDistributions.all
-    all.Outfit_Retiree = all.Outfit_Retiree or { rolls = 1, items = {}, junk = { rolls = 1, items = {} } }
+    all.Outfit_Retiree = all.Outfit_Retiree or { rolls = 1, items = {} }
     addToLists(ProceduralDistributions.list, "ProceduralDistributions.list", PROCEDURAL)
     addToLists(all, "SuburbsDistributions.all", ALL)
 end

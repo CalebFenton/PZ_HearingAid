@@ -12,7 +12,7 @@ function HearingAidDebug.addAid(player, fullType, charge, on)
 end
 
 function HearingAidDebug.addBattery(player, charge)
-    local battery = player:getInventory():AddItem("Base.Battery")
+    local battery = player:getInventory():AddItem(HearingAid.BATTERY)
     battery:setCurrentUsesFloat(charge)
     return battery
 end
@@ -63,6 +63,7 @@ function HearingAidDebug.placeWorkTable(player)
             free = square
         end
     end
+    assert(free, "HearingAidDebug: no free square next to the character for a table")
     free:AddTileObject(IsoObject.new(free, WORK_TABLE_SPRITE, "Table"))
 end
 

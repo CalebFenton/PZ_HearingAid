@@ -9,7 +9,7 @@ HearingAid.BROKEN = "HearingAid.BrokenHearingAid"
 HearingAid.BASIC = "HearingAid.HearingAid"
 HearingAid.EFFICIENT = "HearingAid.EfficientHearingAid"
 HearingAid.BOOSTED = "HearingAid.BoostedHearingAid"
-local BATTERY = "Base.Battery"
+HearingAid.BATTERY = "Base.Battery"
 
 -- The hearing traits as an ordered scale.
 HearingAid.Level = { DEAF = 0, HARD_OF_HEARING = 1, NORMAL = 2, KEEN = 3 }
@@ -63,7 +63,7 @@ function HearingAid.isWorking(item)
 end
 
 function HearingAid.isBattery(item)
-    return fullTypeOf(item) == BATTERY
+    return fullTypeOf(item) == HearingAid.BATTERY
 end
 
 function HearingAid.hasBattery(aid)
@@ -354,7 +354,7 @@ end
 -- Gives the aid's battery to the character as a battery item.
 function HearingAid.removeBattery(player, aid)
     HearingAid.drainUntilNow(player, aid)
-    local battery = instanceItem(BATTERY)
+    local battery = instanceItem(HearingAid.BATTERY)
     battery:setCurrentUsesFloat(HearingAid.getCharge(aid))
     Actions.addOrDropItem(player, battery)
     HearingAid.setCharge(aid, nil)
