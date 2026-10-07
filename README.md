@@ -2,7 +2,7 @@
 
 ![Hearing Aid poster](preview.png)
 
-Battery-powered hearing aids for Project Zomboid. Deaf and Hard of Hearing characters can find one, fix it up, and hear better while it's switched on.
+Battery-powered hearing aids for Project Zomboid. While you wear a working aid that's switched on, a Hard of Hearing character hears normally and a Deaf one hears a little. A boosted aid gives anyone Keen Hearing.
 
 **Status**: Requires Build 42.21 or newer. Tested in single player on 42.21.0. Multiplayer is untested: the server owns battery drain and hearing traits, and the mod loads on a dedicated server, but nobody has played it with clients connected.
 
@@ -12,22 +12,46 @@ Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/fi
 
 ## How it works
 
-Most hearing aids lying around are broken. Repair one with a screwdriver and electronics scrap, or get lucky and find one that still works. A working aid needs a battery and only helps while it's worn, switched on, and charged, which is also the only time it drains. Taking it off, switching it off, or running the battery flat gives the character their own hearing trait back. Right-click an aid to add or remove a battery or to switch it on or off; its tooltip shows the charge.
+An aid changes your hearing only while it works, holds a charged battery, sits on your ear, and is switched on:
 
-The tiers differ in how you get them, what they do, and their default battery life:
+1. Find a working aid, or find a broken one and [repair it](#crafting).
+2. Right-click the aid and choose **Add Battery**. It takes the same Battery as a flashlight, and the menu lists yours by charge.
+3. Wear the aid, right-click it, and choose **Turn On**.
 
-| Item | How you get it | Effect | Battery life |
+The battery drains only while the aid is worn and switched on, so switch it off when you don't need it. The tooltip shows the charge and whether the aid is on. When you take the aid off, switch it off, or the battery runs flat, you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
+
+| Aid | Hard of Hearing becomes | Deaf becomes | A battery lasts |
 |---|---|---|---|
-| Broken Hearing Aid | Most found aids | None | None |
-| Hearing Aid | About 1 in 5 found aids, or repair a broken one (Electrical 2) | Hard of Hearing becomes normal hearing; Deaf becomes Hard of Hearing | 48 hours |
-| Efficient Hearing Aid | About 1 in 20 found aids, or optimize a hearing aid (Electrical 4) | Same as Hearing Aid | 144 hours |
-| Boosted Hearing Aid | Upgrade an efficient aid (Electrical 8) | Keen Hearing; Deaf becomes normal hearing | 96 hours |
+| Hearing Aid | Normal hearing | Hard of Hearing | 2 days |
+| Efficient Hearing Aid | Normal hearing | Hard of Hearing | 6 days |
+| Boosted Hearing Aid | Keen Hearing | Normal hearing | 4 days |
 
-Upgrades keep the battery, and dismantling an aid gives it back.
+Battery life counts in-game time spent worn and switched on. A boosted aid also gives Keen Hearing to a character whose hearing is normal. A Broken Hearing Aid does nothing until you repair it.
 
-People wore their hearing aids, so most turn up on corpses. At default settings about 1 in 65 ordinary zombies carries one, against the 1 in 7 that wear a digital watch, and so do 1 in 10 retirees and 1 in 20 hospital patients. These rates follow a 1994 US survey in which 1 in 60 people used a hearing aid, and 1 in 10 people over 65. Off the ear, aids lie on nightstands and in bathroom cabinets, and less often in dressers, living room side tables, and boxes of old electronics. Hospital bedside tables, waiting room desks, and lost and found boxes hold aids that patients left behind, and doctors' desks hold new ones. Pharmacies, optical stores, and electronics stores didn't sell hearing aids in 1993, so they have none. Hearing aids count as Medical loot for the loot rarity setting.
+### Finding one
 
-The **Hearing Aid** sandbox page sets the battery life of each tier, the chance that a found aid still holds a battery, separate loot multipliers for broken and working aids, the Electrical level each recipe needs and how aids help Deaf characters (the table shows the defaults), and whether boosted aids can be crafted.
+Most hearing aids in Knox County are still in their owners' ears, and the owners won't mind if you take them. About 1 in 65 zombies carries one. So do 1 in 10 zombies dressed as retirees, who crowd nursing homes, trailer parks, golf courses, and rich neighborhoods, and 1 in 20 hospital patients. These rates follow a [1994 US survey](https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/DVD/DVD_1/Advance_Data/ad292.pdf) in which 1 in 60 Americans used a hearing aid, and 1 in 10 of those over 65.
+
+Off the ear, search nightstands and bathroom cabinets first, then dressers, living room side tables, boxes of old electronics, hospital bedside tables, waiting room desks, lost and found boxes, and doctors' desks. Pharmacies, optical stores, and electronics stores didn't sell hearing aids in 1993, so they have none.
+
+Four in five aids you find are broken, and only about 1 in 150 is efficient. A working aid may still hold a partly used battery. Hearing aids count as Medical loot, so the Medical loot rarity setting scales them too.
+
+### Crafting
+
+Every recipe needs a screwdriver, light, and an aid you aren't wearing. Repaired and upgraded aids keep the battery and the switch of the aid they came from, and dismantling an aid gives its battery back.
+
+| Recipe | Electrical | Turns | Also uses |
+|---|---|---|---|
+| Repair Hearing Aid | 2 | a Broken Hearing Aid into a Hearing Aid | 2 Scrap Electronics |
+| Optimize Hearing Aid | 4 | a Hearing Aid into an Efficient Hearing Aid | 2 Scrap Electronics, Aluminum Foil or Aluminum Fragments |
+| Boost Hearing Aid | 8 | an Efficient Hearing Aid into a Boosted Hearing Aid | 4 Scrap Electronics, Earbuds, an Amplifier, Electrical Wire, and a Scalpel, which it keeps |
+| Dismantle Hearing Aid | None | any hearing aid into Scrap Electronics | Nothing else |
+
+Dismantling a Speaker gives an Amplifier.
+
+### Sandbox options
+
+The **Hearing Aid** page of the sandbox options sets the battery life of each tier, the Electrical level each recipe needs, separate loot multipliers for broken and working aids, the chance that a found aid holds a battery, how aids help Deaf characters, and whether boosted aids can be crafted. Everything above describes the defaults.
 
 ## Development
 

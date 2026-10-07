@@ -8,48 +8,46 @@ require "HearingAid/HearingAid"
 -- digital watch, which about 15% of ordinary zombies wear and which home side tables and dressers
 -- list with a total weight of 0.3. Ordinary corpses carry an aid a tenth as often as a digital watch.
 
--- Shares of { broken, basic, efficient } aids.
-local USED = { 0.75, 0.2, 0.05 }
--- Physicians' offices sold about 15% of new hearing aids (MarkeTrak II, 1990).
-local NEW = { 0, 0.8, 0.2 }
-local BROKEN = { 1, 0, 0 }
-
--- { total weight, shares } per ProceduralDistributions list.
+-- Weights are { broken, basic, efficient }. Four in five aids that people left behind are broken.
+-- Efficient aids are a lucky find: only corpses, hospital bedsides and doctors' desks hold them,
+-- mostly with a weight of 0.01, which the game rounds up to its smallest chance, 1 in 10,000 per
+-- roll. Physicians' offices sold about 15% of new hearing aids (MarkeTrak II, 1990), so doctors'
+-- desks hold only working ones.
 local PROCEDURAL = {
     -- Aids come out every night.
-    BedroomSidetable = { 0.1, USED },
-    BedroomSidetableClassy = { 0.1, USED },
-    BedroomSidetableRedneck = { 0.1, USED },
-    BathroomCabinet = { 0.05, USED },
-    BathroomCounter = { 0.05, USED },
+    BedroomSidetable = { 0.08, 0.02, 0 },
+    BedroomSidetableClassy = { 0.08, 0.02, 0 },
+    BedroomSidetableRedneck = { 0.08, 0.02, 0 },
+    BathroomCabinet = { 0.04, 0.01, 0 },
+    BathroomCounter = { 0.04, 0.01, 0 },
     -- Spares and replaced aids.
-    BedroomDresser = { 0.03, USED },
-    BedroomDresserClassy = { 0.03, USED },
-    BedroomDresserRedneck = { 0.03, USED },
-    LivingRoomSideTable = { 0.03, USED },
-    LivingRoomSideTableClassy = { 0.03, USED },
-    LivingRoomSideTableRedneck = { 0.03, USED },
-    CrateElectronics = { 0.05, BROKEN },
+    BedroomDresser = { 0.025, 0.005, 0 },
+    BedroomDresserClassy = { 0.025, 0.005, 0 },
+    BedroomDresserRedneck = { 0.025, 0.005, 0 },
+    LivingRoomSideTable = { 0.025, 0.005, 0 },
+    LivingRoomSideTableClassy = { 0.025, 0.005, 0 },
+    LivingRoomSideTableRedneck = { 0.025, 0.005, 0 },
+    CrateElectronics = { 0.05, 0, 0 },
     -- Patients' bedside belongings.
-    HospitalRoomWardrobe = { 1, USED },
-    WaitingRoomDesk = { 0.1, USED },
-    LostAndFoundItems = { 0.1, USED },
-    MedicalOfficeDesk = { 0.1, NEW },
+    HospitalRoomWardrobe = { 0.8, 0.2, 0.01 },
+    WaitingRoomDesk = { 0.08, 0.02, 0 },
+    LostAndFoundItems = { 0.08, 0.02, 0 },
+    MedicalOfficeDesk = { 0, 0.1, 0.01 },
 }
 
--- { total weight, shares } per SuburbsDistributions.all list. A corpse rolls the list of its outfit,
--- if there is one, and then inventorymale or inventoryfemale, unless the outfit list sets
--- defaultInventoryLoot = false, as the bathrobe and hospital patient lists do.
+-- A corpse rolls the SuburbsDistributions.all list of its outfit, if there is one, and then
+-- inventorymale or inventoryfemale, unless the outfit list sets defaultInventoryLoot = false, as the
+-- bathrobe and hospital patient lists do.
 local ALL = {
-    inventorymale = { 2.5, USED },
-    inventoryfemale = { 2.5, USED },
-    Outfit_Retiree = { 15, USED },
-    Outfit_HospitalPatient = { 7.5, USED },
-    Outfit_HospitalPatientBathrobe = { 7.5, USED },
-    Outfit_Bathrobe = { 2.5, USED },
+    inventorymale = { 2, 0.5, 0.01 },
+    inventoryfemale = { 2, 0.5, 0.01 },
+    Outfit_Retiree = { 12, 3, 0.1 },
+    Outfit_HospitalPatient = { 6, 1.5, 0.01 },
+    Outfit_HospitalPatientBathrobe = { 6, 1.5, 0.01 },
+    Outfit_Bathrobe = { 2, 0.5, 0.01 },
     -- Fallbacks for rooms without lists of their own.
-    sidetable = { 0.05, USED },
-    medicine = { 0.05, USED },
+    sidetable = { 0.04, 0.01, 0 },
+    medicine = { 0.04, 0.01, 0 },
 }
 
 -- `items` lists are flat name, weight pairs.
@@ -60,18 +58,17 @@ local function addItem(items, fullType, weight)
     end
 end
 
-local function addAids(items, total, shares)
-    local broken = total * shares[1] * SandboxVars.HearingAid.BrokenLootMultiplier
-    local working = total * SandboxVars.HearingAid.WorkingLootMultiplier
-    addItem(items, HearingAid.BROKEN, broken)
-    addItem(items, HearingAid.BASIC, working * shares[2])
-    addItem(items, HearingAid.EFFICIENT, working * shares[3])
+local function addAids(items, weights)
+    local working = SandboxVars.HearingAid.WorkingLootMultiplier
+    addItem(items, HearingAid.BROKEN, weights[1] * SandboxVars.HearingAid.BrokenLootMultiplier)
+    addItem(items, HearingAid.BASIC, weights[2] * working)
+    addItem(items, HearingAid.EFFICIENT, weights[3] * working)
 end
 
 local function addToLists(lists, listsName, entries)
     for name, entry in pairs(entries) do
         if lists[name] then
-            addAids(lists[name].items, entry[1], entry[2])
+            addAids(lists[name].items, entry)
         else
             print("HearingAid: missing " .. listsName .. "." .. name)
         end
