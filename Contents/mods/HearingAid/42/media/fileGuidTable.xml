@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fileGuidTable>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Broken.xml</path>
+		<guid>9330d25e-00d1-41a0-b10f-54c2dcd0598f</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Basic.xml</path>
+		<guid>96e197e6-1cda-4943-98ea-163b4237ef6b</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Efficient.xml</path>
+		<guid>b14f483d-eca6-4721-81e1-cc16ca9ed94f</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Boosted.xml</path>
+		<guid>24301da7-b82a-4ad4-be2c-670e6421c62c</guid>
+	</files>
+</fileGuidTable>

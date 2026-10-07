@@ -1,0 +1,22 @@
+{
+    "Sandbox_HearingAid": "Hearing Aid",
+    "Sandbox_HearingAid_BatteryHoursBasic": "Battery Life: Hearing Aid",
+    "Sandbox_HearingAid_BatteryHoursBasic_tooltip": "In-game hours a full battery powers a regular hearing aid while it is switched on and worn.",
+    "Sandbox_HearingAid_BatteryHoursEfficient": "Battery Life: Efficient Hearing Aid",
+    "Sandbox_HearingAid_BatteryHoursEfficient_tooltip": "In-game hours a full battery powers an efficient hearing aid while it is switched on and worn.",
+    "Sandbox_HearingAid_BatteryHoursBoosted": "Battery Life: Boosted Hearing Aid",
+    "Sandbox_HearingAid_BatteryHoursBoosted_tooltip": "In-game hours a full battery powers a boosted hearing aid while it is switched on and worn.",
+    "Sandbox_HearingAid_SpawnWithBatteryChance": "Found With Battery Chance",
+    "Sandbox_HearingAid_SpawnWithBatteryChance_tooltip": "Percent chance that a working hearing aid found in the world still holds a partly used battery.",
+    "Sandbox_HearingAid_BrokenLootMultiplier": "Broken Hearing Aid Loot",
+    "Sandbox_HearingAid_BrokenLootMultiplier_tooltip": "Multiplies how often broken hearing aids spawn. 0 disables them. Takes effect when the world loads.",
+    "Sandbox_HearingAid_WorkingLootMultiplier": "Working Hearing Aid Loot",
+    "Sandbox_HearingAid_WorkingLootMultiplier_tooltip": "Multiplies how often working hearing aids spawn. 0 disables them. Takes effect when the world loads.",
+    "Sandbox_HearingAid_HandleDeafness": "Handle Deafness",
+    "Sandbox_HearingAid_HandleDeafness_tooltip": "How hearing aids help characters with the Deaf trait.",
+    "Sandbox_HearingAid_DeafnessHandling_option1": "Hearing aids don't help",
+    "Sandbox_HearingAid_DeafnessHandling_option2": "Hearing aids give hard of hearing, boosted give normal hearing",
+    "Sandbox_HearingAid_DeafnessHandling_option3": "Only boosted hearing aids help, giving hard of hearing",
+    "Sandbox_HearingAid_EnableBoosted": "Enable Boosted Hearing Aids",
+    "Sandbox_HearingAid_EnableBoosted_tooltip": "Whether efficient hearing aids can be upgraded into boosted ones, which give keen hearing."
+}

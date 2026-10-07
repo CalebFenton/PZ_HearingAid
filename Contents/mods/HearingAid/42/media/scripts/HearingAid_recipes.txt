@@ -1,0 +1,105 @@
+module HearingAid
+{
+    imports
+    {
+        Base
+    }
+
+    /*
+     * Upgrades keep the battery and on/off state of the consumed aid (HearingAid.Recipes.transferState).
+     * Dismantling hands back the inserted battery (HearingAid.Recipes.dismantle).
+     * Names: Translate/<LANG>/Recipes.json, keyed by recipe name.
+     */
+
+    craftRecipe RepairHearingAid
+    {
+        timedAction = DismantleElectrical,
+        time = 60,
+        Tags = InHandCraft;Electrical,
+        category = Electrical,
+        SkillRequired = Electricity:2,
+        xpAward = Electricity:10,
+        AllowBatchCraft = false,
+        OnCreate = HearingAid.Recipes.transferState,
+        inputs
+        {
+            item 1 tags[base:screwdriver] mode:keep flags[Prop1;MayDegradeLight;NoBrokenItems],
+            item 1 [HearingAid.BrokenHearingAid] mode:destroy flags[IsNotWorn],
+            item 2 [Base.ElectronicsScrap],
+        }
+        outputs
+        {
+            item 1 HearingAid.HearingAid,
+        }
+    }
+
+    craftRecipe OptimizeHearingAid
+    {
+        timedAction = DismantleElectrical,
+        time = 80,
+        Tags = InHandCraft;Electrical,
+        category = Electrical,
+        SkillRequired = Electricity:4,
+        xpAward = Electricity:15,
+        AllowBatchCraft = false,
+        OnCreate = HearingAid.Recipes.transferState,
+        inputs
+        {
+            item 1 tags[base:screwdriver] mode:keep flags[Prop1;MayDegradeLight;NoBrokenItems],
+            item 1 [HearingAid.HearingAid] mode:destroy flags[IsNotWorn],
+            item 2 [Base.ElectronicsScrap],
+            item 1 tags[base:aluminum],
+        }
+        outputs
+        {
+            item 1 HearingAid.EfficientHearingAid,
+        }
+    }
+
+    craftRecipe BoostHearingAid
+    {
+        timedAction = DismantleElectrical,
+        time = 120,
+        Tags = InHandCraft;Electrical,
+        category = Electrical,
+        SkillRequired = Electricity:8,
+        xpAward = Electricity:25,
+        AllowBatchCraft = false,
+        OnTest = HearingAid.Recipes.boostEnabled,
+        OnAddToMenu = HearingAid_BoostInMenu,
+        OnCreate = HearingAid.Recipes.transferState,
+        inputs
+        {
+            item 1 tags[base:screwdriver] mode:keep flags[Prop1;MayDegradeLight;NoBrokenItems],
+            item 1 [Base.Scalpel] mode:keep flags[MayDegradeVeryLight],
+            item 1 [HearingAid.EfficientHearingAid] mode:destroy flags[IsNotWorn],
+            item 4 [Base.ElectronicsScrap],
+            item 1 [Base.Earbuds] flags[IsNotWorn],
+            item 1 [Base.Amplifier],
+            item 1 [Base.ElectricWire],
+        }
+        outputs
+        {
+            item 1 HearingAid.BoostedHearingAid,
+        }
+    }
+
+    craftRecipe DismantleHearingAid
+    {
+        timedAction = DismantleElectrical,
+        time = 30,
+        Tags = InHandCraft;Electrical,
+        category = Electrical,
+        xpAward = Electricity:2,
+        OnCreate = HearingAid.Recipes.dismantle,
+        inputs
+        {
+            item 1 tags[base:screwdriver] mode:keep flags[NoBrokenItems],
+            item 1 [HearingAid.BrokenHearingAid;HearingAid.HearingAid;HearingAid.EfficientHearingAid;HearingAid.BoostedHearingAid] mode:destroy flags[IsNotWorn;ItemCount],
+        }
+        outputs
+        {
+            item 1 Base.ElectronicsScrap,
+        }
+    }
+}

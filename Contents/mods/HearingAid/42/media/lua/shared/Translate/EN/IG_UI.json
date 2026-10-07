@@ -1,0 +1,9 @@
+{
+    "IGUI_HearingAid_Battery": "Battery",
+    "IGUI_HearingAid_NoBattery": "None",
+    "IGUI_HearingAid_On": "Switched on",
+    "IGUI_HearingAid_OnNotWorn": "Switched on (not worn)",
+    "IGUI_HearingAid_Off": "Switched off",
+    "IGUI_HearingAid_BatteryLow": "Hearing aid battery is low",
+    "IGUI_HearingAid_BatteryDead": "Hearing aid battery is dead"
+}

@@ -1,0 +1,106 @@
+module Base
+{
+    /* Bare WorldStaticModel names resolve in module Base (ScriptBucketCollection.getScript). */
+    model HearingAid_Ground_Broken
+    {
+        mesh = WorldItems/HearingAid_Ground,
+        texture = clothes/HearingAid_Broken,
+    }
+
+    model HearingAid_Ground_Basic
+    {
+        mesh = WorldItems/HearingAid_Ground,
+        texture = clothes/HearingAid_Basic,
+    }
+
+    model HearingAid_Ground_Efficient
+    {
+        mesh = WorldItems/HearingAid_Ground,
+        texture = clothes/HearingAid_Efficient,
+    }
+
+    model HearingAid_Ground_Boosted
+    {
+        mesh = WorldItems/HearingAid_Ground,
+        texture = clothes/HearingAid_Boosted,
+    }
+}
+
+module HearingAid
+{
+    imports
+    {
+        Base
+    }
+
+    /*
+     * Names come from Translate/<LANG>/ItemName.json.
+     * Medical = true puts the aids under the Medical loot multiplier.
+     * base:ignorezombiedensity keeps zombie density from swamping their small spawn weights.
+     * State (battery, on/off) lives in item modData; see lua/shared/HearingAid/HearingAid.lua.
+     */
+
+    item BrokenHearingAid
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Broken,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingItem = HearingAid_Broken,
+        WorldStaticModel = HearingAid_Ground_Broken,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        Tooltip = Tooltip_HearingAid_Broken,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item HearingAid
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingItem = HearingAid_Basic,
+        WorldStaticModel = HearingAid_Ground_Basic,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreateWorking,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item EfficientHearingAid
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Efficient,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingItem = HearingAid_Efficient,
+        WorldStaticModel = HearingAid_Ground_Efficient,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreateWorking,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item BoostedHearingAid
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Boosted,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingItem = HearingAid_Boosted,
+        WorldStaticModel = HearingAid_Ground_Boosted,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreateWorking,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+}
