@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <clothingItem>
-	<m_MaleModel>media\models_X\Static\Clothes\M_HearingAid_Right.fbx</m_MaleModel>
-	<m_FemaleModel>media\models_X\Static\Clothes\F_HearingAid_Right.fbx</m_FemaleModel>
-	<m_GUID>24301da7-b82a-4ad4-be2c-670e6421c62c</m_GUID>
+	<m_MaleModel>media\models_X\Static\Clothes\M_HearingAid_Left.fbx</m_MaleModel>
+	<m_FemaleModel>media\models_X\Static\Clothes\F_HearingAid_Left.fbx</m_FemaleModel>
+	<m_GUID>107e240d-7ab2-40e2-844c-b27803c4b9bb</m_GUID>
 	<m_Static>true</m_Static>
 	<m_AllowRandomHue>false</m_AllowRandomHue>
 	<m_AllowRandomTint>false</m_AllowRandomTint>

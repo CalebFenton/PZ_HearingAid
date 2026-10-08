@@ -45,6 +45,21 @@ local SYNC_TRAITS = 2 -- SyncPlayerFieldsPacket.PF_Traits
 
 -- Items ---------------------------------------------------------------------------------------
 
+-- Each aid type above is worn on the right ear and has a left-ear twin, its type plus this suffix.
+-- The twins are the same tier; the Wear menu swaps an aid for its twin.
+local LEFT_EAR_SUFFIX = "_Left"
+
+function HearingAid.leftEarType(fullType)
+    return fullType .. LEFT_EAR_SUFFIX
+end
+
+-- Either ear's item type to the right-ear type, which stands for the tier.
+local TIER_TYPES = {}
+for _, fullType in ipairs({ HearingAid.BROKEN, HearingAid.BASIC, HearingAid.EFFICIENT, HearingAid.BOOSTED }) do
+    TIER_TYPES[fullType] = fullType
+    TIER_TYPES[HearingAid.leftEarType(fullType)] = fullType
+end
+
 -- UI code passes non-items too: tooltips also show fluid containers and resources.
 local function fullTypeOf(object)
     if instanceof(object, "InventoryItem") then
@@ -53,13 +68,17 @@ local function fullTypeOf(object)
     return ""
 end
 
+-- The right-ear type of an aid of either ear, or "" for anything else.
+local function tierOf(object)
+    return TIER_TYPES[fullTypeOf(object)] or ""
+end
+
 function HearingAid.isHearingAid(item)
-    local fullType = fullTypeOf(item)
-    return fullType == HearingAid.BROKEN or TIERS[fullType] ~= nil
+    return tierOf(item) ~= ""
 end
 
 function HearingAid.isWorking(item)
-    return TIERS[fullTypeOf(item)] ~= nil
+    return TIERS[tierOf(item)] ~= nil
 end
 
 function HearingAid.isBattery(item)
@@ -112,7 +131,7 @@ function HearingAid.copyState(from, to)
 end
 
 function HearingAid.getBatteryHours(aid)
-    return SandboxVars.HearingAid[TIERS[aid:getFullType()].batteryHoursOption]
+    return SandboxVars.HearingAid[TIERS[tierOf(aid)].batteryHoursOption]
 end
 
 -- OnCreate of the working tiers' item scripts: a found aid may still hold a used battery. It runs
@@ -149,9 +168,10 @@ local function setHearingLevel(player, level)
     end
 end
 
--- The hearing level that an active aid of this type gives a character whose own level is `base`.
+-- The hearing level that an active aid of this type, of either ear, gives a character whose own
+-- level is `base`.
 function HearingAid.getTargetLevel(base, fullType, deafnessMode)
-    local boosted = TIERS[fullType].boosted
+    local boosted = TIERS[TIER_TYPES[fullType]].boosted
     if base == Level.DEAF then
         if deafnessMode == DeafnessMode.ALL_AIDS then
             return boosted and Level.NORMAL or Level.HARD_OF_HEARING

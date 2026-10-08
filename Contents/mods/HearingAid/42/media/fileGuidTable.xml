@@ -16,4 +16,20 @@
 		<path>media/clothing/clothingItems/HearingAid_Boosted.xml</path>
 		<guid>24301da7-b82a-4ad4-be2c-670e6421c62c</guid>
 	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Broken_Left.xml</path>
+		<guid>485159fe-6979-4a7b-9ebd-1de3dad4a1ac</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Basic_Left.xml</path>
+		<guid>a00c7c63-cc48-412b-9252-9244060aefa1</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Efficient_Left.xml</path>
+		<guid>2eb2ff6b-15c2-4d30-980e-7916cb750a2b</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/HearingAid_Boosted_Left.xml</path>
+		<guid>107e240d-7ab2-40e2-844c-b27803c4b9bb</guid>
+	</files>
 </fileGuidTable>

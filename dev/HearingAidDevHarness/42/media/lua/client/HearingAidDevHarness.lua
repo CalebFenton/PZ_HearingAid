@@ -1,12 +1,14 @@
--- Development only, not published; dev/run-debug-client.sh --test loads it. It drives the vanilla
--- debug tools the way you would by hand: the Hearing Aid debug scenario starts from the main menu
--- (with -debug and DebugScenario.ForceLaunch=true in debug-options.ini), every hearingaid_* test
--- runs from Debug menu > Dev > Unit Tests > Timed Actions, and two screenshots go to
--- <cachedir>/Screenshots. Then it prints "HearingAidTest DONE passed=<n> failed=<n>" to
--- console.txt and quits the game.
+-- Development only, not published; dev/run-debug-client.sh --test and --art load it. It drives the
+-- vanilla debug tools the way you would by hand: the Hearing Aid debug scenario starts from the
+-- main menu (with -debug and DebugScenario.ForceLaunch=true in debug-options.ini). With --test,
+-- every hearingaid_* test runs from Debug menu > Dev > Unit Tests > Timed Actions, two screenshots
+-- go to <cachedir>/Screenshots, and "HearingAidTest DONE passed=<n> failed=<n>" goes to
+-- console.txt. With --art, HearingAidDevArt saves close-ups instead and prints "HearingAidArt
+-- DONE". Then the game quits.
 require "HearingAid/Debug/HearingAidDebugScenario"
 require "HearingAid/Debug/HearingAidTests"
 require "DebugUIs/DebugMenu/UnitTests/UnitTestsDebug"
+require "HearingAidDevArt"
 
 local SETTLE_TICKS = 180
 
@@ -114,8 +116,31 @@ local function startTests()
     Events.OnTick.Add(reportWhenDone)
 end
 
+-- run-debug-client.sh writes the mode to <cachedir>/Lua/HearingAidDevHarness.txt.
+local function readMode()
+    local reader = getFileReader("HearingAidDevHarness.txt", false)
+    if not reader then
+        return "test"
+    end
+    local mode = reader:readLine()
+    reader:close()
+    return mode
+end
+
+local function captureArt()
+    ticks = ticks + 1
+    if ticks < SETTLE_TICKS then
+        return
+    end
+    Events.OnTick.Remove(captureArt)
+    HearingAidDevArt.capture(function()
+        print("HearingAidArt DONE")
+        getCore():quitToDesktop()
+    end)
+end
+
 local originalOnStart = scenario.onStart
 scenario.onStart = function()
     originalOnStart()
-    Events.OnTick.Add(startTests)
+    Events.OnTick.Add(readMode() == "art" and captureArt or startTests)
 end

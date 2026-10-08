@@ -37,6 +37,8 @@ module HearingAid
      * Display names come from Translate/<LANG>/ItemName.json.
      * Medical = true puts the aids under the Medical loot rarity setting.
      * base:ignorezombiedensity keeps the zombie density bonus from swamping their small loot weights.
+     * Each aid is a right-ear item with a left-ear twin named <type>_Left. Wear offers both ears
+     * and swaps the item for its twin (ClothingItemExtra); loot and recipes make right-ear items.
      */
 
     item BrokenHearingAid
@@ -46,7 +48,29 @@ module HearingAid
         Weight = 0.05,
         Icon = HearingAid_Broken,
         BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarRight,
         ClothingItem = HearingAid_Broken,
+        ClothingItemExtra = HearingAid.BrokenHearingAid_Left,
+        ClothingItemExtraOption = HearingAid_EarLeft,
+        WorldStaticModel = HearingAid_Ground_Broken,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        Tooltip = Tooltip_HearingAid_Broken,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item BrokenHearingAid_Left
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Broken,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarLeft,
+        ClothingItem = HearingAid_Broken_Left,
+        ClothingItemExtra = HearingAid.BrokenHearingAid,
+        ClothingItemExtraOption = HearingAid_EarRight,
         WorldStaticModel = HearingAid_Ground_Broken,
         Cosmetic = true,
         CanHaveHoles = false,
@@ -62,7 +86,29 @@ module HearingAid
         Weight = 0.05,
         Icon = HearingAid,
         BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarRight,
         ClothingItem = HearingAid_Basic,
+        ClothingItemExtra = HearingAid.HearingAid_Left,
+        ClothingItemExtraOption = HearingAid_EarLeft,
+        WorldStaticModel = HearingAid_Ground_Basic,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreate,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item HearingAid_Left
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarLeft,
+        ClothingItem = HearingAid_Basic_Left,
+        ClothingItemExtra = HearingAid.HearingAid,
+        ClothingItemExtraOption = HearingAid_EarRight,
         WorldStaticModel = HearingAid_Ground_Basic,
         Cosmetic = true,
         CanHaveHoles = false,
@@ -78,7 +124,29 @@ module HearingAid
         Weight = 0.05,
         Icon = HearingAid_Efficient,
         BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarRight,
         ClothingItem = HearingAid_Efficient,
+        ClothingItemExtra = HearingAid.EfficientHearingAid_Left,
+        ClothingItemExtraOption = HearingAid_EarLeft,
+        WorldStaticModel = HearingAid_Ground_Efficient,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreate,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item EfficientHearingAid_Left
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Efficient,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarLeft,
+        ClothingItem = HearingAid_Efficient_Left,
+        ClothingItemExtra = HearingAid.EfficientHearingAid,
+        ClothingItemExtraOption = HearingAid_EarRight,
         WorldStaticModel = HearingAid_Ground_Efficient,
         Cosmetic = true,
         CanHaveHoles = false,
@@ -94,7 +162,29 @@ module HearingAid
         Weight = 0.05,
         Icon = HearingAid_Boosted,
         BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarRight,
         ClothingItem = HearingAid_Boosted,
+        ClothingItemExtra = HearingAid.BoostedHearingAid_Left,
+        ClothingItemExtraOption = HearingAid_EarLeft,
+        WorldStaticModel = HearingAid_Ground_Boosted,
+        Cosmetic = true,
+        CanHaveHoles = false,
+        Medical = true,
+        OnCreate = HearingAid.onCreate,
+        Tags = base:hasmetal;base:ignorezombiedensity,
+    }
+
+    item BoostedHearingAid_Left
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:clothing,
+        Weight = 0.05,
+        Icon = HearingAid_Boosted,
+        BodyLocation = hearingaid:hearingaid,
+        ClothingExtraSubmenu = HearingAid_EarLeft,
+        ClothingItem = HearingAid_Boosted_Left,
+        ClothingItemExtra = HearingAid.BoostedHearingAid,
+        ClothingItemExtraOption = HearingAid_EarRight,
         WorldStaticModel = HearingAid_Ground_Boosted,
         Cosmetic = true,
         CanHaveHoles = false,

@@ -1,6 +1,10 @@
 {
     "HearingAid.BrokenHearingAid": "Broken Hearing Aid",
+    "HearingAid.BrokenHearingAid_Left": "Broken Hearing Aid",
     "HearingAid.HearingAid": "Hearing Aid",
+    "HearingAid.HearingAid_Left": "Hearing Aid",
     "HearingAid.EfficientHearingAid": "Efficient Hearing Aid",
-    "HearingAid.BoostedHearingAid": "Boosted Hearing Aid"
+    "HearingAid.EfficientHearingAid_Left": "Efficient Hearing Aid",
+    "HearingAid.BoostedHearingAid": "Boosted Hearing Aid",
+    "HearingAid.BoostedHearingAid_Left": "Boosted Hearing Aid"
 }

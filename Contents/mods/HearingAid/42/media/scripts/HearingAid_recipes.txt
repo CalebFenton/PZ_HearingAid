@@ -29,7 +29,7 @@ module HearingAid
             item 1 tags[base:screwdriver] mode:keep flags[Prop1;MayDegradeLight],
             item 1 tags[base:tweezers] mode:keep,
             item 1 [Base.Glasses_Reading] tags[base:magnifier] mode:keep,
-            item 1 [HearingAid.BrokenHearingAid] mode:destroy flags[IsNotWorn],
+            item 1 [HearingAid.BrokenHearingAid;HearingAid.BrokenHearingAid_Left] mode:destroy flags[IsNotWorn],
             item 1 [Base.Earbuds],
             item 1 [Base.AlcoholWipes;Base.AlcoholedCottonBalls],
             item 1 [Base.Glue],
@@ -55,7 +55,7 @@ module HearingAid
             item 1 tags[base:screwdriver] mode:keep flags[Prop1;MayDegradeLight],
             item 1 tags[base:tweezers] mode:keep,
             item 1 [Base.Glasses_Reading] tags[base:magnifier] mode:keep,
-            item 1 [HearingAid.HearingAid] mode:destroy flags[IsNotWorn],
+            item 1 [HearingAid.HearingAid;HearingAid.HearingAid_Left] mode:destroy flags[IsNotWorn],
             item 1 [Base.WristWatch_Left_DigitalBlack;Base.WristWatch_Right_DigitalBlack;Base.WristWatch_Left_DigitalRed;Base.WristWatch_Right_DigitalRed;Base.WristWatch_Left_DigitalDress;Base.WristWatch_Right_DigitalDress] flags[IsNotWorn],
             item 1 [Base.ElectricWire],
             item 1 [Base.Glue],
@@ -84,7 +84,7 @@ module HearingAid
             item 1 tags[base:tweezers] mode:keep,
             item 1 [Base.Glasses_Reading] tags[base:magnifier] mode:keep,
             item 1 [Base.Scalpel] mode:keep flags[MayDegradeVeryLight],
-            item 1 [HearingAid.EfficientHearingAid] mode:destroy flags[IsNotWorn],
+            item 1 [HearingAid.EfficientHearingAid;HearingAid.EfficientHearingAid_Left] mode:destroy flags[IsNotWorn],
             item 1 [Base.Amplifier],
             item 1 [Base.Microphone],
             item 2 [Base.ElectricWire],
@@ -107,7 +107,7 @@ module HearingAid
         inputs
         {
             item 1 tags[base:screwdriver] mode:keep,
-            item 1 [HearingAid.BrokenHearingAid;HearingAid.HearingAid;HearingAid.EfficientHearingAid;HearingAid.BoostedHearingAid] mode:destroy flags[IsNotWorn;ItemCount],
+            item 1 [HearingAid.BrokenHearingAid;HearingAid.BrokenHearingAid_Left;HearingAid.HearingAid;HearingAid.HearingAid_Left;HearingAid.EfficientHearingAid;HearingAid.EfficientHearingAid_Left;HearingAid.BoostedHearingAid;HearingAid.BoostedHearingAid_Left] mode:destroy flags[IsNotWorn;ItemCount],
         }
         outputs
         {

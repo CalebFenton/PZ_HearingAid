@@ -16,6 +16,7 @@ local Mode = HearingAid.DeafnessMode
 local BASIC, EFFICIENT, BOOSTED, BROKEN = HearingAid.BASIC, HearingAid.EFFICIENT, HearingAid.BOOSTED, HearingAid.BROKEN
 local WORKING = { BASIC, EFFICIENT, BOOSTED }
 local BATTERY = HearingAid.BATTERY
+local leftEar = HearingAid.leftEarType
 
 local LEVEL_NAMES = {
     [Level.DEAF] = "deaf",
@@ -158,10 +159,12 @@ test("hearingaid_hearing_levels", {
         for mode, deafRow in pairs(DEAF_WITH_AID) do
             for base = Level.DEAF, Level.KEEN do
                 local row = base == Level.DEAF and deafRow or HEARING_WITH_AID[base]
-                for i, fullType in ipairs(WORKING) do
-                    local actual = HearingAid.getTargetLevel(base, fullType, mode)
-                    expect(actual == row[i], "HandleDeafness " .. mode .. ", " .. LEVEL_NAMES[base] .. ", " .. fullType
-                        .. ": got " .. tostring(LEVEL_NAMES[actual]) .. ", expected " .. LEVEL_NAMES[row[i]])
+                for i, rightEar in ipairs(WORKING) do
+                    for _, fullType in ipairs({ rightEar, leftEar(rightEar) }) do
+                        local actual = HearingAid.getTargetLevel(base, fullType, mode)
+                        expect(actual == row[i], "HandleDeafness " .. mode .. ", " .. LEVEL_NAMES[base] .. ", " .. fullType
+                            .. ": got " .. tostring(LEVEL_NAMES[actual]) .. ", expected " .. LEVEL_NAMES[row[i]])
+                    end
                 end
             end
         end
@@ -480,6 +483,22 @@ craftTest("hearingaid_craft_upgrade_keeps_battery", {
     end,
 })
 
+craftTest("hearingaid_craft_upgrade_left_ear_aid", {
+    sandbox = { SpawnWithBatteryChance = 0 },
+    recipe = OPTIMIZE,
+    aid = leftEar(BASIC),
+    charge = 0.42,
+    on = true,
+    counts = { [EFFICIENT] = 1, [leftEar(BASIC)] = 0, [leftEar(EFFICIENT)] = 0 },
+    validate = function(self)
+        local upgraded = player():getInventory():getFirstType(EFFICIENT)
+        if upgraded then
+            expectCharge(upgraded, 0.42)
+            expect(HearingAid.isOn(upgraded), "aid was switched off")
+        end
+    end,
+})
+
 craftTest("hearingaid_craft_dismantle_returns_battery", {
     recipe = DISMANTLE,
     aid = EFFICIENT,
@@ -622,5 +641,106 @@ test("hearingaid_context_menu", {
             local actual = describeMenu(aid)
             expect(actual == expected, label .. ": menu is \"" .. actual .. "\", expected \"" .. expected .. "\"")
         end
+    end,
+})
+
+-- Ears -----------------------------------------------------------------------------------------
+
+local ON_RIGHT_EAR = "ContextMenu_HearingAid_EarRight"
+local ON_LEFT_EAR = "ContextMenu_HearingAid_EarLeft"
+
+-- Builds the real inventory context menu for the item. Returns it, to hide once done, and the
+-- options of its Wear submenu.
+local function openWearMenu(item)
+    local context = ISInventoryPaneContextMenu.createMenu(0, true, { item }, 300, 300)
+    local wear = context:getOptionFromName(getText("ContextMenu_Wear"))
+    local options = wear and wear.subOption and context:getSubMenu(wear.subOption).options or {}
+    return context, options
+end
+
+-- The Wear submenu of the item, for example "on Right Ear, on Left Ear".
+local function describeWearMenu(item)
+    local context, options = openWearMenu(item)
+    local names = {}
+    for _, option in ipairs(options) do
+        table.insert(names, option.name)
+    end
+    context:hideAndChildren()
+    return table.concat(names, ", ")
+end
+
+-- Picks the Wear submenu option with this text key, as a player would. Returns whether it was
+-- there.
+local function pickWearOption(item, textKey)
+    local context, options = openWearMenu(item)
+    local picked = false
+    for _, option in ipairs(options) do
+        if option.name == getText(textKey) then
+            option.onSelect(option.target, option.param1, option.param2, option.param3)
+            picked = true
+        end
+    end
+    context:hideAndChildren()
+    return picked
+end
+
+-- Expects the aid of type `swapped` to have become a worn, switched-on `fullType` with this charge.
+local function expectSwappedTo(fullType, swapped, charge)
+    expectCount(fullType, 1)
+    expectCount(swapped, 0)
+    local aid = player():getInventory():getFirstType(fullType)
+    if aid then
+        expect(aid:isWorn(), fullType .. " is not worn")
+        expectCharge(aid, charge, CHARGE_TOLERANCE)
+        expect(HearingAid.isOn(aid), fullType .. " is off")
+    end
+end
+
+test("hearingaid_wear_menu_ears", {
+    run = function(self)
+        self.unworn = addAid(EFFICIENT)
+        self.wornLeft = wearAid(leftEar(BROKEN))
+    end,
+    validate = function(self)
+        local right, left = getText(ON_RIGHT_EAR), getText(ON_LEFT_EAR)
+        expect(right ~= ON_RIGHT_EAR, ON_RIGHT_EAR .. " has no text")
+        expect(left ~= ON_LEFT_EAR, ON_LEFT_EAR .. " has no text")
+        local cases = {
+            { "unworn", self.unworn, right .. ", " .. left },
+            { "worn on the left ear", self.wornLeft, right },
+        }
+        for _, case in ipairs(cases) do
+            local label, aid, expected = case[1], case[2], case[3]
+            local actual = describeWearMenu(aid)
+            expect(actual == expected, label .. ": Wear menu is \"" .. actual .. "\", expected \"" .. expected .. "\"")
+        end
+    end,
+})
+
+test("hearingaid_wear_switched_on_aid_on_left_ear", {
+    run = function(self)
+        local aid = addAid(BASIC, 0.5, true)
+        self.picked = pickWearOption(aid, ON_LEFT_EAR)
+    end,
+    validate = function(self)
+        expect(self.picked, "no Wear > on Left Ear option")
+        expectSwappedTo(leftEar(BASIC), BASIC, 0.5)
+        expectHearing(Level.NORMAL)
+    end,
+})
+
+test("hearingaid_switch_ears_while_worn", {
+    sandbox = { BatteryHoursBoosted = 10 },
+    periodicUpdate = false,
+    run = function(self)
+        local aid = wearAid(leftEar(BOOSTED), 1, true)
+        -- The last drain was two hours ago, so the switch bills two of the battery's ten hours.
+        HearingAid.update(hoursNow() - 2)
+        self.picked = pickWearOption(aid, ON_RIGHT_EAR)
+    end,
+    validate = function(self)
+        expect(self.picked, "no Wear > on Right Ear option")
+        expectSwappedTo(BOOSTED, leftEar(BOOSTED), 0.8)
+        expectHearing(Level.KEEN)
     end,
 })

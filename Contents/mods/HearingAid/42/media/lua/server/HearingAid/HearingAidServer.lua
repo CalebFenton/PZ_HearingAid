@@ -1,5 +1,6 @@
 require "HearingAid/HearingAid"
 require "TimedActions/ISWearClothing"
+require "TimedActions/ISClothingExtraAction"
 
 -- Event handlers for the authority. Server Lua also loads on multiplayer clients, where
 -- HearingAid.update() and HearingAid.reconcile() return without doing anything.
@@ -25,6 +26,18 @@ function ISWearClothing:complete()
         HearingAid.reconcile(self.character)
     end
     return worn
+end
+
+-- Wear > on Right Ear / on Left Ear replaces the aid with a new item of the chosen ear's type,
+-- which takes over its modData and is billed from the next update, so the old item's use is billed
+-- first. Vanilla fires OnClothingUpdated once the new item is on, which reconciles hearing.
+local vanillaExtraComplete = ISClothingExtraAction.complete
+
+function ISClothingExtraAction:complete()
+    if HearingAid.isHearingAid(self.item) then
+        HearingAid.drainUntilNow(self.character, self.item)
+    end
+    return vanillaExtraComplete(self)
 end
 
 Events.EveryOneMinute.Add(HearingAid.update)

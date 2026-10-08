@@ -16,7 +16,7 @@ To hear better, you need a working aid with a charged battery, on your ear and s
 
 1. Find a working aid, or find a broken one and [repair it](#crafting).
 2. Right-click the aid and choose **Add Battery**. It takes the same Battery as a flashlight, and the menu lists yours by charge.
-3. Wear the aid, right-click it, and choose **Turn On**.
+3. Right-click the aid, choose **Wear**, and pick **on Right Ear** or **on Left Ear**. Then right-click it again and choose **Turn On**. The same menu moves a worn aid to your other ear.
 
 The battery drains only while the aid is worn and switched on, so switch it off when you don't need it. The tooltip shows the charge and whether the aid is on. Take the aid off, switch it off, or let the battery run flat, and you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
 
@@ -60,9 +60,13 @@ The **Hearing Aid** page of the sandbox options sets the battery life of each ti
 
 Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists Workshop staging folders as local mods. Unsubscribe from the Workshop copy while you develop, because two copies with the same mod id conflict. The scripts assume the macOS Steam install; set `PZ_APP` to the game's `Contents` folder if yours differs. The in-game tests also need a JDK (any version from 8 on) for `javac`.
 
+The source art lives in `art/`: GIMP drawings for the icons and the poster in `art/drawings`, and in `art/models` the Blender file and the Python scripts that build the 3D models and their textures. Rebuilding the models needs [Blender](https://www.blender.org/).
+
 ```sh
 dev/validate-server.sh           # boots a headless dedicated server; fails if the mod logs an error
 dev/run-debug-client.sh --test   # runs every in-game test unattended in about 2 minutes
+dev/run-debug-client.sh --art    # saves in-game close-ups of the worn and dropped aids
+art/models/make.sh               # rebuilds the models and textures with Blender
 ```
 
 Read [DEVELOPMENT.md](DEVELOPMENT.md) for the testing tools, the Build 42 behavior this mod depends on, and the release checklist.
