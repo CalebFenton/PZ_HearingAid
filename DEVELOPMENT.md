@@ -59,7 +59,7 @@ Start from these files:
 
 ## Mod layout and loading
 
-Build 42 lists a mod folder only if it has `common/mod.info` or `<version folder>/mod.info`. Build 42 ignores the files at the mod root, which hold the Build 41 release here, and Build 41 ignores `common/` and `42/`.
+Build 42 lists a mod folder only if it has `common/mod.info` or `<version folder>/mod.info`, and ignores files at the mod root.
 
 - The game uses the child folder with the highest numeric name that is at least 42.0 and at most the game version, comparing major × 1000 + minor and ignoring the patch number. A folder named `42` works for every 42.x release.
 - `common/media` loads first, and the version folder overrides files at the same relative path. A mod Lua file at the same relative path as a vanilla file replaces the vanilla file, so give every Lua file a `HearingAid` prefix in its folder or name.

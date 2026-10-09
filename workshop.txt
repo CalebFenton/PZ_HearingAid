@@ -47,4 +47,4 @@ description=Requires Build 42.21 or newer. Tested in single player on 42.21.0; m
 description=
 description=https://github.com/CalebFenton/PZ_HearingAid
 tags=Build 42;Clothing/Armor;Items;Traits
-visibility=private
+visibility=public
