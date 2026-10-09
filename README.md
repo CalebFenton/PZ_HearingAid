@@ -33,13 +33,13 @@ To hear better, you need a working hearing aid with a charged battery, on your e
 
 <p align="center"><img src="art/promo/images/interface.png" alt="Tooltips of a switched-off Hearing Aid with 40% battery, a switched-on Boosted Hearing Aid with 73%, and a Broken Hearing Aid" width="100%"></p>
 
-The battery drains only while the hearing aid is worn and switched on. The tooltip shows the charge and whether it's on. Take it off, switch it off, or let the battery run flat, and you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
+The battery drains only while the hearing aid is worn and switched on, so switch it off when you don't need to hear. The tooltip shows the charge and whether it's on. Take it off, switch it off, or let the battery run flat, and you hear as you did before. **Remove Battery** gives the battery back with whatever charge it has left.
 
 ## Finding one
 
 <p align="center"><img src="art/promo/images/corpse.png" alt="A grey-haired survivor next to a corpse whose loot window lists a Hearing Aid" width="100%"></p>
 
-Most hearing aids are still in their owners' ears, and the owners won't mind if you take them, so search the dead first. Zombies dressed as retirees carry them most often, and they gather in nursing homes, trailer parks, golf courses, country clubs, and rich neighborhoods. Hospital patients come next. Other zombies carry them less often.
+Most hearing aids in Knox County are still in their owners' ears, and the owners won't mind if you take them, so search the dead first. Zombies dressed as retirees carry them far more often than anyone else, and they gather in nursing homes, trailer parks, golf courses, country clubs, and rich neighborhoods. Hospital patients come next, in their gowns and bathrobes. Any other zombie might have one too.
 
 Off the ear, hospitals hold the most: the wardrobes beside patients' beds, doctors' desks, which hold only working ones, and waiting room desks. Lost and found boxes hold some too. In houses, look in bedside tables, dressers, living room side tables, bathroom cabinets and counters, and boxes of old electronics. Pharmacies, optical stores, and electronics stores didn't sell hearing aids in 1993, so they have none.
 
@@ -78,18 +78,4 @@ Everything above describes the defaults.
 
 ## Development
 
-Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists Workshop staging folders as local mods. Unsubscribe from the Workshop copy while you develop, because two copies with the same mod id conflict. The scripts assume the macOS Steam install; set `PZ_APP` to the game's `Contents` folder if yours differs. The in-game tests also need a JDK (any version from 8 on) for `javac`.
-
-The source art lives in `art/`: GIMP drawings for the icons and the poster in `art/drawings`, and in `art/models` the Blender file and the Python scripts that build the 3D models and their textures. Rebuilding the models needs [Blender](https://www.blender.org/). `art/promo` holds the art for this README and the Workshop page: raw captures from the game in `captures`, and the images that `compose.py` lays out from them in `images`. Its scripts run with [uv](https://docs.astral.sh/uv/).
-
-```sh
-dev/validate-server.sh            # boots a headless dedicated server; fails if the mod logs an error
-dev/run-debug-client.sh --test    # runs every in-game test unattended in about 2 minutes
-dev/run-debug-client.sh --art     # saves in-game close-ups of the worn and dropped hearing aids
-dev/run-debug-client.sh --promo   # captures the art for this README from the game
-dev/run-debug-client.sh --loot    # measures how often corpses and containers hold hearing aids
-art/promo/compose.py              # lays out the images from the captures
-art/models/make.sh                # rebuilds the models and textures with Blender
-```
-
-Read [DEVELOPMENT.md](DEVELOPMENT.md) for the testing tools, the Build 42 behavior this mod depends on, and the release checklist.
+Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists it as a local mod. Read [DEVELOPMENT.md](DEVELOPMENT.md) for the commands that test the mod and rebuild its art, and for the Build 42 behavior it depends on. Rebuilding the art needs [Blender](https://www.blender.org/) and [uv](https://docs.astral.sh/uv/).

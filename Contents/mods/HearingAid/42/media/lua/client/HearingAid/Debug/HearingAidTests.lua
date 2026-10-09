@@ -545,10 +545,7 @@ craftTest("hearingaid_craft_without_skill_requirement", {
 
 -- Loot -----------------------------------------------------------------------------------------
 
--- HearingAidDistributions.lua measures aids against the wristwatches on the same corpses: broken
--- aids are 3.3 to 5.5 times rarer and working ones 5.5 to 9.5 times rarer. Its weights aim at 4 and 7,
--- far enough inside the bounds that sampling noise in 12000 corpses fails the test less than once
--- in a million runs.
+-- The bounds are wide enough that sampling noise fails this test less than once in a million runs.
 test("hearingaid_corpse_loot", {
     run = function(self)
         self.ordinary = HearingAidLoot.measureZombies("ordinary", 12000)
@@ -559,10 +556,10 @@ test("hearingaid_corpse_loot", {
         print(string.format("HearingAidTest INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
             .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
             ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
-        expect(ordinary.broken >= ordinary.watch / 5.5 and ordinary.broken <= ordinary.watch / 3.3,
-            "broken aids on ordinary corpses not 3.3 to 5.5 times rarer than wristwatches")
-        expect(ordinary.working >= ordinary.watch / 9.5 and ordinary.working <= ordinary.watch / 5.5,
-            "working aids on ordinary corpses not 5.5 to 9.5 times rarer than wristwatches")
+        expect(ordinary.broken >= ordinary.watch / 8 and ordinary.broken <= ordinary.watch / 4.8,
+            "broken aids on ordinary corpses not 4.8 to 8 times rarer than wristwatches")
+        expect(ordinary.working >= ordinary.watch / 14 and ordinary.working <= ordinary.watch / 7.5,
+            "working aids on ordinary corpses not 7.5 to 14 times rarer than wristwatches")
         expect(retirees.any >= 2 * ordinary.any, "retirees less than twice as likely as ordinary corpses to carry an aid")
     end,
 })

@@ -113,6 +113,7 @@ local function startTests()
         return
     end
     Events.OnTick.Remove(startTests)
+    -- runOne fails on the panel's result labels unless the panel is open.
     UnitTestsDebug.OnOpenPanel()
     names = testNames()
     print("HearingAidTest START " .. #names)

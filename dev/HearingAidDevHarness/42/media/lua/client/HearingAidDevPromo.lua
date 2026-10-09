@@ -278,6 +278,7 @@ local function newModelPanel(x, y, size, player, view)
     panel:setIsometric(false)
     panel:setZoom(view.close and CLOSE_ZOOM or HEAD_ZOOM)
     panel:setYOffset(view.close and CLOSE_Y_OFFSET or HearingAidDevArt.Y_OFFSET)
+    -- Without a character before the first draw, AnimatedModel.updateInternal throws every frame.
     panel:setCharacter(player)
     return panel
 end
@@ -441,6 +442,7 @@ local function addWearMenu()
         context = ISInventoryPaneContextMenu.createMenu(0, true, { aid }, x, 300)
         context:removeOptionByName("Debug")
         local wear = context:getOptionFromName(getText("ContextMenu_Wear"))
+        -- ISContextMenu:render shows the submenu of the option at mouseOver while forceVisible is set.
         for i, option in ipairs(context.options) do
             if option == wear then
                 context.mouseOver = i
