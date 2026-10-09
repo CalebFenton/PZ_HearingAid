@@ -9,11 +9,12 @@ HearingAidDevArt = {}
 
 -- The preview panel shows (25 - zoom) / sqrt(2048) model units above and below its centre, and
 -- the y offset moves the character down, so these frame the head.
-local ZOOM = 19
-local Y_OFFSET = -0.88
+HearingAidDevArt.ZOOM = 19
+HearingAidDevArt.Y_OFFSET = -0.88
 local DIRECTIONS = { IsoDirections.E, IsoDirections.S, IsoDirections.W, IsoDirections.N }
 -- Both ears' items share a ground model, so the ground shows each tier once.
-local TIERS = { HearingAid.BROKEN, HearingAid.BASIC, HearingAid.EFFICIENT, HearingAid.BOOSTED }
+HearingAidDevArt.TIERS = { HearingAid.BROKEN, HearingAid.BASIC, HearingAid.EFFICIENT, HearingAid.BOOSTED }
+local TIERS = HearingAidDevArt.TIERS
 local AIDS = {}
 for _, fullType in ipairs(TIERS) do
     table.insert(AIDS, fullType)
@@ -31,7 +32,7 @@ local function setLook(player, female)
     player:resetModel()
 end
 
-local function takeOffAids(player)
+function HearingAidDevArt.takeOffAids(player)
     local worn = player:getWornItems()
     for i = worn:size() - 1, 0, -1 do
         local item = worn:get(i):getItem()
@@ -43,7 +44,7 @@ end
 
 -- A free square next to the character that nothing stands between, south and east first: those
 -- are in front of the character on screen.
-local function groundSquare(player)
+function HearingAidDevArt.groundSquare(player)
     local here = player:getCurrentSquare()
     for _, direction in ipairs({ IsoDirections.S, IsoDirections.E, IsoDirections.W, IsoDirections.N }) do
         local square = here:getAdjacentSquare(direction)
@@ -69,8 +70,8 @@ local function createPanels(player)
         panel:setState("idle")
         panel:setIsometric(false)
         panel:setDirection(direction)
-        panel:setZoom(ZOOM)
-        panel:setYOffset(Y_OFFSET)
+        panel:setZoom(HearingAidDevArt.ZOOM)
+        panel:setYOffset(HearingAidDevArt.Y_OFFSET)
         panel:setCharacter(player)
         table.insert(panels, panel)
     end
@@ -78,7 +79,7 @@ local function createPanels(player)
 end
 
 -- Runs each step on its own tick, then waits as many ticks as the step returns.
-local function runSteps(steps, onDone)
+function HearingAidDevArt.runSteps(steps, onDone)
     local index, wait = 1, 0
     local function onTick()
         if wait > 0 then
@@ -117,7 +118,7 @@ function HearingAidDevArt.capture(onDone)
         end)
         for _, fullType in ipairs(AIDS) do
             add(function()
-                takeOffAids(player)
+                HearingAidDevArt.takeOffAids(player)
                 HearingAidDebug.wear(player, player:getInventory():AddItem(fullType))
                 for _, panel in ipairs(panels) do
                     panel:setCharacter(player)
@@ -134,8 +135,8 @@ function HearingAidDevArt.capture(onDone)
     end
     add(function()
         backdrop:removeFromUIManager()
-        takeOffAids(player)
-        local square = groundSquare(player)
+        HearingAidDevArt.takeOffAids(player)
+        local square = HearingAidDevArt.groundSquare(player)
         for i, fullType in ipairs(TIERS) do
             square:AddWorldInventoryItem(instanceItem(fullType), 0.4, 0.15 + 0.22 * (i - 1), 0)
         end
@@ -149,5 +150,5 @@ function HearingAidDevArt.capture(onDone)
         print("HearingAidArt saved art_ground.png")
         return 10
     end)
-    runSteps(steps, onDone)
+    HearingAidDevArt.runSteps(steps, onDone)
 end

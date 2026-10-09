@@ -11,6 +11,9 @@
 #                                    exits 1 if a test failed or the mod logged a Lua error.
 #   dev/run-debug-client.sh --art    the same, but instead of the tests the harness saves close-ups
 #                                    of the worn and dropped aids (art_*.png) to <cache>/Screenshots
+#   dev/run-debug-client.sh --promo  the same, but the harness captures the art for the README and
+#                                    the Workshop page, and art/promo/extract.py crops it into
+#                                    art/promo/captures (needs uv, https://docs.astral.sh/uv/)
 #
 # CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client), and JAVAC the compiler
 # for ClickToStart.java (default: javac from PATH; any JDK from 8 on works).
@@ -22,7 +25,8 @@ case "${1:-}" in
     "") MODE= ;;
     --test) MODE=test ;;
     --art) MODE=art ;;
-    *) echo "usage: $0 [--test | --art]" >&2; exit 2 ;;
+    --promo) MODE=promo ;;
+    *) echo "usage: $0 [--test | --art | --promo]" >&2; exit 2 ;;
 esac
 TIMEOUT=${TIMEOUT:-1200}
 
@@ -83,7 +87,7 @@ for _ in $(seq 10); do
 done
 
 LOG="$CACHE/console.txt"
-rm -f "$LOG"
+rm -f "$LOG" "$CACHE"/Screenshots/promo_*.png
 cd "$PZ/Java"
 "${GAME[@]}" -cp "$LAUNCHER:$GAME_CLASSPATH" ClickToStart "${GAME_ARGS[@]}" > "$CACHE/stdout.txt" 2>&1 &
 PID=$!
@@ -100,7 +104,11 @@ if kill -0 "$PID" 2>/dev/null; then
 fi
 
 echo "log: $LOG"
-MARK=$([ "$MODE" = art ] && echo HearingAidArt || echo HearingAidTest)
+case "$MODE" in
+    art) MARK=HearingAidArt ;;
+    promo) MARK=HearingAidPromo ;;
+    *) MARK=HearingAidTest ;;
+esac
 if ! grep -q "$MARK" "$LOG" 2>/dev/null; then
     echo "FAIL: the game stopped before the harness ran; the end of $CACHE/stdout.txt:"
     tail -n 20 "$CACHE/stdout.txt"
@@ -111,12 +119,15 @@ if grep -n -E '\(MOD:Hearing Aid' "$LOG"; then
     echo "FAIL: the mod logged Lua errors"
     exit 1
 fi
-if [ "$MODE" = art ]; then
-    if ! grep -q "HearingAidArt DONE" "$LOG"; then
-        echo "FAIL: the close-ups didn't finish"
+if [ "$MODE" = art ] || [ "$MODE" = promo ]; then
+    if ! grep -q "$MARK DONE" "$LOG"; then
+        echo "FAIL: the captures didn't finish"
         exit 1
     fi
-    echo "PASS: close-ups are in $CACHE/Screenshots"
+    if [ "$MODE" = promo ]; then
+        "$REPO/art/promo/extract.py" "$CACHE"
+    fi
+    echo "PASS: captures are in $CACHE/Screenshots"
     exit 0
 fi
 if ! grep -q -E "HearingAidTest DONE passed=[1-9][0-9]* failed=0$" "$LOG"; then

@@ -2,52 +2,54 @@ require "Items/Distributions"
 require "Items/ProceduralDistributions"
 require "HearingAid/HearingAid"
 
--- Hearing aids spawn where their owners kept them in 1993. People wear them, so most turn up on the
--- dead, and retirees carry them far more often than anyone else: in 1994, 1 in 60 Americans used a
--- hearing aid, and 1 in 10 of those over 65 (NCHS Advance Data 292). The yardstick is the vanilla
--- digital watch, which about 15% of ordinary zombies wear and which home side tables and dressers
--- list with a total weight of 0.3. Ordinary corpses carry an aid a tenth as often as a digital watch.
+-- Hearing aids spawn where their owners kept them in 1993, and most turn up on the dead. The
+-- yardstick is the wristwatch on the same corpse or in the same container, as
+-- HearingAidLoot.report() measures both: a broken aid is 2 to 3 times rarer than a wristwatch, and
+-- the weights aim at 2.5; a working aid is 3 to 5 times rarer, and they aim at 4. About 29% of
+-- ordinary zombies wear a wristwatch, so 12% carry a broken aid and 7% a working one. Retirees
+-- carry an aid three times as often, hospital patients twice as often, with the same split.
 
--- Weights are { broken, basic, efficient }. Four in five aids that people left behind are broken.
--- Efficient aids are a lucky find: only corpses, hospital bedsides and doctors' desks hold them,
--- mostly with a weight of 0.01, which the game rounds up to its smallest chance, 1 in 10,000 per
--- roll. Physicians' offices sold about 15% of new hearing aids (MarkeTrak II, 1990), so doctors'
--- desks hold only working ones.
+-- Weights are { broken, basic, efficient }. Each plain house list is tuned against its own
+-- wristwatches, and its classy and redneck variants get the same weights. Lists without
+-- wristwatches are weighted relative to the bedside table. Efficient aids are a lucky find: about
+-- 1 in 50 working aids on corpses, and the game's smallest chance, 1 in 10,000 per roll, in
+-- hospital wardrobes and doctors' desks. Physicians' offices sold about 15% of new hearing aids
+-- (MarkeTrak II, 1990), so doctors' desks hold only working ones.
 local PROCEDURAL = {
     -- Aids come out every night.
-    BedroomSidetable = { 0.08, 0.02, 0 },
-    BedroomSidetableClassy = { 0.08, 0.02, 0 },
-    BedroomSidetableRedneck = { 0.08, 0.02, 0 },
-    BathroomCabinet = { 0.04, 0.01, 0 },
-    BathroomCounter = { 0.04, 0.01, 0 },
+    BedroomSidetable = { 0.29, 0.2, 0 },
+    BedroomSidetableClassy = { 0.29, 0.2, 0 },
+    BedroomSidetableRedneck = { 0.29, 0.2, 0 },
+    BathroomCabinet = { 0.145, 0.1, 0 },
+    BathroomCounter = { 0.145, 0.1, 0 },
     -- Spares and replaced aids.
-    BedroomDresser = { 0.025, 0.005, 0 },
-    BedroomDresserClassy = { 0.025, 0.005, 0 },
-    BedroomDresserRedneck = { 0.025, 0.005, 0 },
-    LivingRoomSideTable = { 0.025, 0.005, 0 },
-    LivingRoomSideTableClassy = { 0.025, 0.005, 0 },
-    LivingRoomSideTableRedneck = { 0.025, 0.005, 0 },
-    CrateElectronics = { 0.05, 0, 0 },
+    BedroomDresser = { 0.29, 0.18, 0 },
+    BedroomDresserClassy = { 0.29, 0.18, 0 },
+    BedroomDresserRedneck = { 0.29, 0.18, 0 },
+    LivingRoomSideTable = { 0.28, 0.16, 0 },
+    LivingRoomSideTableClassy = { 0.28, 0.16, 0 },
+    LivingRoomSideTableRedneck = { 0.28, 0.16, 0 },
+    CrateElectronics = { 0.18, 0, 0 },
     -- Patients' bedside belongings.
-    HospitalRoomWardrobe = { 0.8, 0.2, 0.01 },
-    WaitingRoomDesk = { 0.08, 0.02, 0 },
-    LostAndFoundItems = { 0.08, 0.02, 0 },
-    MedicalOfficeDesk = { 0, 0.1, 0.01 },
+    HospitalRoomWardrobe = { 2.9, 2, 0.01 },
+    WaitingRoomDesk = { 0.29, 0.2, 0 },
+    LostAndFoundItems = { 0.29, 0.2, 0 },
+    MedicalOfficeDesk = { 0, 1, 0.01 },
 }
 
 -- A corpse rolls the SuburbsDistributions.all list of its outfit, if there is one, and then
 -- inventorymale or inventoryfemale, unless the outfit list sets defaultInventoryLoot = false, as the
 -- bathrobe and hospital patient lists do.
 local ALL = {
-    inventorymale = { 2, 0.5, 0.01 },
-    inventoryfemale = { 2, 0.5, 0.01 },
-    Outfit_Retiree = { 12, 3, 0.1 },
-    Outfit_HospitalPatient = { 6, 1.5, 0.01 },
-    Outfit_HospitalPatientBathrobe = { 6, 1.5, 0.01 },
-    Outfit_Bathrobe = { 2, 0.5, 0.01 },
+    inventorymale = { 19.5, 12, 0.25 },
+    inventoryfemale = { 19.5, 12, 0.25 },
+    Outfit_Retiree = { 53, 31, 0.55 },
+    Outfit_HospitalPatient = { 41, 25, 0.5 },
+    Outfit_HospitalPatientBathrobe = { 41, 25, 0.5 },
+    Outfit_Bathrobe = { 19.5, 12, 0.25 },
     -- Fallbacks for rooms without lists of their own.
-    sidetable = { 0.04, 0.01, 0 },
-    medicine = { 0.04, 0.01, 0 },
+    sidetable = { 0.145, 0.1, 0 },
+    medicine = { 0.145, 0.1, 0 },
 }
 
 -- `items` lists are flat name, weight pairs.

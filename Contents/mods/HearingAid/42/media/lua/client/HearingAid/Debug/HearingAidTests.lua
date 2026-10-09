@@ -4,6 +4,7 @@ require "TimedActions/ISUnequipAction"
 require "TimedActions/ISWearClothing"
 require "HearingAid/HearingAidRecipes"
 require "HearingAid/Debug/HearingAidDebug"
+require "HearingAid/Debug/HearingAidLoot"
 
 -- Tests for the vanilla timed action test runner: Debug menu > Dev > Unit Tests > Timed Actions,
 -- in debug mode. The runner calls run(), waits for the action queue to empty, then calls
@@ -544,40 +545,25 @@ craftTest("hearingaid_craft_without_skill_requirement", {
 
 -- Loot -----------------------------------------------------------------------------------------
 
--- Fills a scratch container from corpse loot lists, as the game fills a corpse of that outfit, and
--- returns the share of fills that held a hearing aid.
-local function shareWithAid(listNames, fills)
-    local lists = {}
-    for _, listName in ipairs(listNames) do
-        table.insert(lists, ItemPickerJava.getItemContainer("all", listName, nil, false))
-    end
-    local container = ItemContainer.new()
-    local withAid = 0
-    for _ = 1, fills do
-        for _, list in ipairs(lists) do
-            ItemPickerJava.doRollItem(list, container, 0, nil, true, nil)
-        end
-        if container:containsEval(HearingAid.isHearingAid) then
-            withAid = withAid + 1
-        end
-        container:removeAllItems()
-    end
-    return withAid / fills
-end
-
--- About 15% of ordinary zombies wear a digital watch. Hearing aids should be a tenth as common on
--- ordinary corpses and far more common on retirees.
+-- HearingAidDistributions.lua measures aids against the wristwatches on the same corpses: broken
+-- aids are 2 to 3 times rarer and working ones 3 to 5 times rarer. Its weights aim at 2.5 and 4,
+-- far enough inside the bounds that sampling noise in 8000 corpses fails the test less than once in
+-- a million runs.
 test("hearingaid_corpse_loot", {
     run = function(self)
-        self.ordinary = shareWithAid({ "inventorymale" }, 4000)
-        self.retiree = shareWithAid({ "Outfit_Retiree", "inventorymale" }, 1000)
+        self.ordinary = HearingAidLoot.measureZombies("ordinary", 8000)
+        self.retirees = HearingAidLoot.measureZombies("retirees", 1000)
     end,
     validate = function(self)
-        print(string.format("HearingAidTest INFO corpses with a hearing aid: %.2f%% ordinary, %.2f%% retiree",
-            self.ordinary * 100, self.retiree * 100))
-        expect(self.ordinary >= 0.15 / 20 and self.ordinary <= 0.15 / 5,
-            "ordinary corpses outside 1/20 to 1/5 of the digital watch rate")
-        expect(self.retiree >= 3 * self.ordinary, "retirees less than three times as likely as ordinary corpses")
+        local ordinary, retirees = self.ordinary, self.retirees
+        print(string.format("HearingAidTest INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
+            .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
+            ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
+        expect(ordinary.broken >= ordinary.watch / 3 and ordinary.broken <= ordinary.watch / 2,
+            "broken aids on ordinary corpses not 2 to 3 times rarer than wristwatches")
+        expect(ordinary.working >= ordinary.watch / 5 and ordinary.working <= ordinary.watch / 3,
+            "working aids on ordinary corpses not 3 to 5 times rarer than wristwatches")
+        expect(retirees.any >= 2 * ordinary.any, "retirees less than twice as likely as ordinary corpses to carry an aid")
     end,
 })
 
