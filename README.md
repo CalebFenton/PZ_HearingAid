@@ -6,7 +6,7 @@ Take Deaf or Hard of Hearing and work your way out of it. Most hearing aids you 
 
 ## Install
 
-Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/filedetails/?id=2931424725) and enable **Hearing Aid** in the mod list. Build 41 loads the original release, which this repository keeps unchanged in `Contents/mods/HearingAid/media`.
+Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/filedetails/?id=2931424725) and enable **Hearing Aid** in the mod list.
 
 ## Hearing aid models
 
