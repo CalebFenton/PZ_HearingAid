@@ -3,9 +3,8 @@
 # requires-python = ">=3.10"
 # dependencies = ["pillow"]
 # ///
-"""Lays out the README and Workshop images from the captures that extract.py saved, and prints the
-loot tables from captures/loot.json as Markdown and as Workshop BBCode. Rerun it after editing a
-layout; recapture only when the game's look or the loot changes:
+"""Lays out the README and Workshop images from the captures that extract.py saved. Rerun it after
+editing a layout; recapture only when the game's look changes:
 
     art/promo/compose.py
 
@@ -13,7 +12,6 @@ Writes images/*.png. Every image is 1260 pixels wide, which the Workshop page sh
 stays sharp on high-density screens. Interface captures and icons are scaled by whole numbers with
 nearest-neighbour sampling, so their pixels stay crisp.
 """
-import json
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -53,30 +51,6 @@ RECIPES = [
 EAR_BOX = (0.36, 0.18, 0.96, 0.78)
 # The part of world_corpse.png around the corpse, the character and the loot window.
 CORPSE_BOX = (120, 90, 1000, 585)
-# Rows of the loot tables: report keys, and the label to print where it differs from the report's.
-ZOMBIE_ROWS = [
-    ("ordinary", "Most zombies"),
-    ("retirees", "Zombies dressed as retirees"),
-    ("hospitalPatients", "Hospital patients"),
-    ("nursingHomes", "Any zombie in a nursing home"),
-    ("trailerParks", "Any zombie in a trailer park"),
-    ("golfCourses", "Any zombie on a golf course"),
-    ("countryClubs", "Any zombie at a country club"),
-    ("richNeighborhoods", "Any zombie in a rich neighborhood"),
-    ("hospitalRooms", "Any zombie in a hospital room"),
-]
-CONTAINER_ROWS = [
-    ("HospitalRoomWardrobe", "Hospital bedside wardrobe"),
-    ("MedicalOfficeDesk", "Doctor's desk"),
-    ("LostAndFoundItems", "Lost and found box"),
-    ("WaitingRoomDesk", "Waiting room desk"),
-    ("BedroomSidetable", "Bedside table"),
-    ("BedroomDresser", "Dresser"),
-    ("LivingRoomSideTable", "Living room side table"),
-    ("BathroomCounter", "Bathroom counter"),
-    ("BathroomCabinet", "Bathroom cabinet"),
-    ("CrateElectronics", "Box of electronics"),
-]
 
 
 def font(size, weight="Regular"):
@@ -244,40 +218,10 @@ def corpse():
     return shot.resize((WIDTH, round(shot.height * WIDTH / shot.width)), Image.LANCZOS)
 
 
-# Loot tables -------------------------------------------------------------------------------------
-
-
-def one_in(share):
-    if share <= 0:
-        return "none"
-    n = 1 / share
-    if n < 1.5:
-        return f"{share:.0%}"
-    return f"1 in {n:.0f}" if n >= 9.5 else f"1 in {n:.1f}".replace(".0", "")
-
-
-def loot_tables():
-    report = json.loads((CAPTURES / "loot.json").read_text())
-    for group, rows, heading in [("zombies", ZOMBIE_ROWS, "Corpse"), ("containers", CONTAINER_ROWS, "Container")]:
-        entries = {entry["key"]: entry for entry in report[group]}
-        table = [(heading, "Any hearing aid", "A working one", "A wristwatch")]
-        for key, label in rows:
-            entry = entries[key]
-            table.append((label, one_in(entry["any"]), one_in(entry["working"]), one_in(entry["watch"])))
-        print("\n".join("| " + " | ".join(cells) + " |" for cells in table[:1] + [("---",) * 4] + table[1:]))
-        print()
-        print("[table]")
-        print("\n".join("[tr]" + "".join(f"[{'th' if i == 0 else 'td'}]{cell}[/{'th' if i == 0 else 'td'}]" for cell in cells) + "[/tr]"
-                        for i, cells in enumerate(table)))
-        print("[/table]")
-        print()
-
-
 def main():
     for name, make in [("banner", banner), ("tiers", tiers), ("ears", ears), ("interface", interface),
                        ("recipes", recipes), ("corpse", corpse)]:
         save(make(), name)
-    loot_tables()
 
 
 main()

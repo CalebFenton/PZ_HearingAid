@@ -4,10 +4,10 @@ require "HearingAid/HearingAid"
 
 -- Hearing aids spawn where their owners kept them in 1993, and most turn up on the dead. The
 -- yardstick is the wristwatch on the same corpse or in the same container, as
--- HearingAidLoot.report() measures both: a broken aid is 2 to 3 times rarer than a wristwatch, and
--- the weights aim at 2.5; a working aid is 3 to 5 times rarer, and they aim at 4. About 29% of
--- ordinary zombies wear a wristwatch, so 12% carry a broken aid and 7% a working one. Retirees
--- carry an aid three times as often, hospital patients twice as often, with the same split.
+-- HearingAidLoot.report() measures both: a broken aid is 4 to 6.5 times rarer than a wristwatch,
+-- and the weights aim at 5; a working aid is 6 to 11 times rarer, and they aim at 8. About 29%
+-- of ordinary zombies wear a wristwatch, so about 6% carry a broken aid and 3.5% a working one.
+-- Retirees carry an aid three times as often, hospital patients twice as often, with the same split.
 
 -- Weights are { broken, basic, efficient }. Each plain house list is tuned against its own
 -- wristwatches, and its classy and redneck variants get the same weights. Lists without
@@ -17,39 +17,39 @@ require "HearingAid/HearingAid"
 -- (MarkeTrak II, 1990), so doctors' desks hold only working ones.
 local PROCEDURAL = {
     -- Aids come out every night.
-    BedroomSidetable = { 0.29, 0.2, 0 },
-    BedroomSidetableClassy = { 0.29, 0.2, 0 },
-    BedroomSidetableRedneck = { 0.29, 0.2, 0 },
-    BathroomCabinet = { 0.145, 0.1, 0 },
-    BathroomCounter = { 0.145, 0.1, 0 },
+    BedroomSidetable = { 0.145, 0.1, 0 },
+    BedroomSidetableClassy = { 0.145, 0.1, 0 },
+    BedroomSidetableRedneck = { 0.145, 0.1, 0 },
+    BathroomCabinet = { 0.0725, 0.05, 0 },
+    BathroomCounter = { 0.0725, 0.05, 0 },
     -- Spares and replaced aids.
-    BedroomDresser = { 0.29, 0.18, 0 },
-    BedroomDresserClassy = { 0.29, 0.18, 0 },
-    BedroomDresserRedneck = { 0.29, 0.18, 0 },
-    LivingRoomSideTable = { 0.28, 0.16, 0 },
-    LivingRoomSideTableClassy = { 0.28, 0.16, 0 },
-    LivingRoomSideTableRedneck = { 0.28, 0.16, 0 },
-    CrateElectronics = { 0.18, 0, 0 },
+    BedroomDresser = { 0.145, 0.09, 0 },
+    BedroomDresserClassy = { 0.145, 0.09, 0 },
+    BedroomDresserRedneck = { 0.145, 0.09, 0 },
+    LivingRoomSideTable = { 0.14, 0.08, 0 },
+    LivingRoomSideTableClassy = { 0.14, 0.08, 0 },
+    LivingRoomSideTableRedneck = { 0.14, 0.08, 0 },
+    CrateElectronics = { 0.09, 0, 0 },
     -- Patients' bedside belongings.
-    HospitalRoomWardrobe = { 2.9, 2, 0.01 },
-    WaitingRoomDesk = { 0.29, 0.2, 0 },
-    LostAndFoundItems = { 0.29, 0.2, 0 },
-    MedicalOfficeDesk = { 0, 1, 0.01 },
+    HospitalRoomWardrobe = { 1.45, 1, 0.01 },
+    WaitingRoomDesk = { 0.145, 0.1, 0 },
+    LostAndFoundItems = { 0.145, 0.1, 0 },
+    MedicalOfficeDesk = { 0, 0.5, 0.01 },
 }
 
 -- A corpse rolls the SuburbsDistributions.all list of its outfit, if there is one, and then
 -- inventorymale or inventoryfemale, unless the outfit list sets defaultInventoryLoot = false, as the
 -- bathrobe and hospital patient lists do.
 local ALL = {
-    inventorymale = { 19.5, 12, 0.25 },
-    inventoryfemale = { 19.5, 12, 0.25 },
-    Outfit_Retiree = { 53, 31, 0.55 },
-    Outfit_HospitalPatient = { 41, 25, 0.5 },
-    Outfit_HospitalPatientBathrobe = { 41, 25, 0.5 },
-    Outfit_Bathrobe = { 19.5, 12, 0.25 },
+    inventorymale = { 9.75, 6, 0.125 },
+    inventoryfemale = { 9.75, 6, 0.125 },
+    Outfit_Retiree = { 26.5, 15.5, 0.275 },
+    Outfit_HospitalPatient = { 20.5, 12.5, 0.25 },
+    Outfit_HospitalPatientBathrobe = { 20.5, 12.5, 0.25 },
+    Outfit_Bathrobe = { 9.75, 6, 0.125 },
     -- Fallbacks for rooms without lists of their own.
-    sidetable = { 0.145, 0.1, 0 },
-    medicine = { 0.145, 0.1, 0 },
+    sidetable = { 0.0725, 0.05, 0 },
+    medicine = { 0.0725, 0.05, 0 },
 }
 
 -- `items` lists are flat name, weight pairs.

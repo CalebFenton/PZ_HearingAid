@@ -1,19 +1,16 @@
 -- Development only; dev/run-debug-client.sh --promo runs it instead of the tests. It saves the raw
 -- art that art/promo/compose.py lays out for the README and the Workshop page: screenshots named
 -- promo_<shot>.png in <cachedir>/Screenshots, and <cachedir>/Lua/HearingAidPromo.json, which names
--- the regions of every screenshot and holds the loot report. Shots of anything but the world are
--- taken twice, on black (promo_<shot>_k.png) and on white (promo_<shot>_w.png), so that
--- art/promo/extract.py can recover how transparent each pixel is.
+-- the regions of every screenshot. Shots of anything but the world are taken twice, on black
+-- (promo_<shot>_k.png) and on white (promo_<shot>_w.png), so that art/promo/extract.py can recover
+-- how transparent each pixel is.
 require "ISUI/ISUI3DModel"
 require "Vehicles/ISUI/ISUI3DScene"
 require "HearingAid/Debug/HearingAidDebug"
-require "HearingAid/Debug/HearingAidLoot"
 require "HearingAidDevArt"
 
 HearingAidDevPromo = {}
 
--- About 50 seconds; report(10000) runs the client out of memory.
-local LOOT_SAMPLES = 4000
 local TIERS = HearingAidDevArt.TIERS
 local TIER_NAMES = {
     [HearingAid.BROKEN] = "broken",
@@ -521,7 +518,6 @@ end
 function HearingAidDevPromo.capture(onDone)
     -- Hides the HUD, the debug console and every other window; the shots add their own.
     ISUIHandler.setVisibleAllUI(false)
-    local report = HearingAidLoot.report(LOOT_SAMPLES)
     addIcons()
     addHeads()
     addModels()
@@ -532,7 +528,6 @@ function HearingAidDevPromo.capture(onDone)
         writeJson("HearingAidPromo.json", {
             screen = { w = getCore():getScreenWidth(), h = getCore():getScreenHeight() },
             shots = shots,
-            loot = report,
         })
         onDone()
     end)

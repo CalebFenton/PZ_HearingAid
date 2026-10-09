@@ -4,7 +4,7 @@
 # dependencies = ["numpy", "pillow"]
 # ///
 """Crops the screenshots that `dev/run-debug-client.sh --promo` saves into the named images that
-compose.py lays out, and copies the loot report. The client script runs it; by hand:
+compose.py lays out. The client script runs it; by hand:
 
     art/promo/extract.py <cache dir>
 
@@ -53,8 +53,7 @@ def main():
             box = [round(v * scale) for v in (r["x"], r["y"], r["x"] + r["w"], r["y"] + r["h"])]
             image.crop(box).save(CAPTURES / f"{r['name']}.png", optimize=True)
             count += 1
-    (CAPTURES / "loot.json").write_text(json.dumps(manifest["loot"], indent=2) + "\n")
-    print(f"extract: {count} images and loot.json in {CAPTURES}")
+    print(f"extract: {count} images in {CAPTURES}")
 
 
 main()

@@ -1,18 +1,22 @@
--- Development only, not published; dev/run-debug-client.sh --test, --art and --promo load it. It
--- drives the vanilla debug tools the way you would by hand: the Hearing Aid debug scenario starts
--- from the main menu (with -debug and DebugScenario.ForceLaunch=true in debug-options.ini). With
--- --test, every hearingaid_* test runs from Debug menu > Dev > Unit Tests > Timed Actions, two
--- screenshots go to <cachedir>/Screenshots, and "HearingAidTest DONE passed=<n> failed=<n>" goes
--- to console.txt. With --art, HearingAidDevArt saves close-ups instead and prints "HearingAidArt
--- DONE"; with --promo, HearingAidDevPromo saves the art for the README and prints
--- "HearingAidPromo DONE". Then the game quits.
+-- Development only, not published; dev/run-debug-client.sh --test, --art, --promo and --loot load
+-- it. It drives the vanilla debug tools the way you would by hand: the Hearing Aid debug scenario
+-- starts from the main menu (with -debug and DebugScenario.ForceLaunch=true in debug-options.ini).
+-- With --test, every hearingaid_* test runs from Debug menu > Dev > Unit Tests > Timed Actions,
+-- two screenshots go to <cachedir>/Screenshots, and "HearingAidTest DONE passed=<n> failed=<n>"
+-- goes to console.txt. With --art, HearingAidDevArt saves close-ups instead and prints
+-- "HearingAidArt DONE"; with --promo, HearingAidDevPromo saves the art for the README and prints
+-- "HearingAidPromo DONE"; with --loot, HearingAidLoot measures the loot and prints a
+-- "HearingAidLootReport" line for each place. Then the game quits.
 require "HearingAid/Debug/HearingAidDebugScenario"
 require "HearingAid/Debug/HearingAidTests"
 require "DebugUIs/DebugMenu/UnitTests/UnitTestsDebug"
 require "HearingAidDevArt"
 require "HearingAidDevPromo"
+require "HearingAid/Debug/HearingAidLoot"
 
 local SETTLE_TICKS = 180
+-- About 50 seconds; report(10000) runs the client out of memory.
+local LOOT_SAMPLES = 4000
 
 local scenario = debugScenarios.HearingAidScenario
 scenario.forceLaunch = true
@@ -145,6 +149,24 @@ local function captureAndQuit(capture, mark)
     return onTick
 end
 
+local function share(fraction)
+    if fraction <= 0 then
+        return "none"
+    end
+    return string.format("%.1f%% (1 in %.1f)", fraction * 100, 1 / fraction)
+end
+
+local function reportLoot(onDone)
+    local report = HearingAidLoot.report(LOOT_SAMPLES)
+    for _, group in ipairs({ "zombies", "containers" }) do
+        for _, entry in ipairs(report[group]) do
+            print(string.format("HearingAidLootReport %s: wristwatch %s, broken aid %s, working aid %s, efficient aid %s, any aid %s",
+                entry.label, share(entry.watch), share(entry.broken), share(entry.working), share(entry.efficient), share(entry.any)))
+        end
+    end
+    onDone()
+end
+
 local originalOnStart = scenario.onStart
 scenario.onStart = function()
     originalOnStart()
@@ -153,6 +175,8 @@ scenario.onStart = function()
         Events.OnTick.Add(captureAndQuit(HearingAidDevArt.capture, "HearingAidArt"))
     elseif mode == "promo" then
         Events.OnTick.Add(captureAndQuit(HearingAidDevPromo.capture, "HearingAidPromo"))
+    elseif mode == "loot" then
+        Events.OnTick.Add(captureAndQuit(reportLoot, "HearingAidLootReport"))
     else
         Events.OnTick.Add(startTests)
     end

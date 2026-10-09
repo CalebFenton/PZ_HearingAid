@@ -5,7 +5,8 @@
 - Headless check: `dev/validate-server.sh`. It boots a dedicated server with only this mod and fails if the mod logged a Lua error, a script warning, or a missing loot table.
 - In-game tests: `dev/run-debug-client.sh --test`. It runs unattended in about 2 minutes: it presses **Click to start** itself, wakes the display, waits for the results, quits the game, and exits nonzero on a failed test or a Lua error. It needs a JDK's `javac` on `PATH` (or `JAVAC` set) to build `dev/ClickToStart.java`.
 - Art: `art/models/make.sh` rebuilds the 3D models and their textures with Blender, and `dev/run-debug-client.sh --art` saves in-game close-ups of them to `<cache>/Screenshots`.
-- README and Workshop images: `dev/run-debug-client.sh --promo` captures art and loot numbers from the game into `art/promo/captures`, and `art/promo/compose.py` lays them out into `art/promo/images` and prints the loot tables for `README.md` and `workshop.txt`.
+- README and Workshop images: `dev/run-debug-client.sh --promo` captures art from the game into `art/promo/captures`, and `art/promo/compose.py` lays it out into `art/promo/images`.
+- Loot: `dev/run-debug-client.sh --loot` prints how often each kind of corpse and container holds a hearing aid and a wristwatch.
 
 ## Rules
 

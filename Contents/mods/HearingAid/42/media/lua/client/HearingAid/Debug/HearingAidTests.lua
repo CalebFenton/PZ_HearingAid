@@ -546,12 +546,12 @@ craftTest("hearingaid_craft_without_skill_requirement", {
 -- Loot -----------------------------------------------------------------------------------------
 
 -- HearingAidDistributions.lua measures aids against the wristwatches on the same corpses: broken
--- aids are 2 to 3 times rarer and working ones 3 to 5 times rarer. Its weights aim at 2.5 and 4,
--- far enough inside the bounds that sampling noise in 8000 corpses fails the test less than once in
--- a million runs.
+-- aids are 4 to 6.5 times rarer and working ones 6 to 11 times rarer. Its weights aim at 5 and 8,
+-- far enough inside the bounds that sampling noise in 12000 corpses fails the test less than once
+-- in a million runs.
 test("hearingaid_corpse_loot", {
     run = function(self)
-        self.ordinary = HearingAidLoot.measureZombies("ordinary", 8000)
+        self.ordinary = HearingAidLoot.measureZombies("ordinary", 12000)
         self.retirees = HearingAidLoot.measureZombies("retirees", 1000)
     end,
     validate = function(self)
@@ -559,10 +559,10 @@ test("hearingaid_corpse_loot", {
         print(string.format("HearingAidTest INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
             .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
             ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
-        expect(ordinary.broken >= ordinary.watch / 3 and ordinary.broken <= ordinary.watch / 2,
-            "broken aids on ordinary corpses not 2 to 3 times rarer than wristwatches")
-        expect(ordinary.working >= ordinary.watch / 5 and ordinary.working <= ordinary.watch / 3,
-            "working aids on ordinary corpses not 3 to 5 times rarer than wristwatches")
+        expect(ordinary.broken >= ordinary.watch / 6.5 and ordinary.broken <= ordinary.watch / 4,
+            "broken aids on ordinary corpses not 4 to 6.5 times rarer than wristwatches")
+        expect(ordinary.working >= ordinary.watch / 11 and ordinary.working <= ordinary.watch / 6,
+            "working aids on ordinary corpses not 6 to 11 times rarer than wristwatches")
         expect(retirees.any >= 2 * ordinary.any, "retirees less than twice as likely as ordinary corpses to carry an aid")
     end,
 })

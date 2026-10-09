@@ -14,6 +14,9 @@
 #   dev/run-debug-client.sh --promo  the same, but the harness captures the art for the README and
 #                                    the Workshop page, and art/promo/extract.py crops it into
 #                                    art/promo/captures (needs uv, https://docs.astral.sh/uv/)
+#   dev/run-debug-client.sh --loot   the same, but the harness measures how often corpses and
+#                                    containers hold hearing aids and wristwatches, and the script
+#                                    prints the shares
 #
 # CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client), and JAVAC the compiler
 # for ClickToStart.java (default: javac from PATH; any JDK from 8 on works).
@@ -26,7 +29,8 @@ case "${1:-}" in
     --test) MODE=test ;;
     --art) MODE=art ;;
     --promo) MODE=promo ;;
-    *) echo "usage: $0 [--test | --art | --promo]" >&2; exit 2 ;;
+    --loot) MODE=loot ;;
+    *) echo "usage: $0 [--test | --art | --promo | --loot]" >&2; exit 2 ;;
 esac
 TIMEOUT=${TIMEOUT:-1200}
 
@@ -107,6 +111,7 @@ echo "log: $LOG"
 case "$MODE" in
     art) MARK=HearingAidArt ;;
     promo) MARK=HearingAidPromo ;;
+    loot) MARK=HearingAidLootReport ;;
     *) MARK=HearingAidTest ;;
 esac
 if ! grep -q "$MARK" "$LOG" 2>/dev/null; then
@@ -114,20 +119,20 @@ if ! grep -q "$MARK" "$LOG" 2>/dev/null; then
     tail -n 20 "$CACHE/stdout.txt"
     exit 1
 fi
-grep "$MARK" "$LOG" || true
+grep -o "$MARK.*" "$LOG" | uniq || true
 if grep -n -E '\(MOD:Hearing Aid' "$LOG"; then
     echo "FAIL: the mod logged Lua errors"
     exit 1
 fi
-if [ "$MODE" = art ] || [ "$MODE" = promo ]; then
+if [ "$MODE" = art ] || [ "$MODE" = promo ] || [ "$MODE" = loot ]; then
     if ! grep -q "$MARK DONE" "$LOG"; then
-        echo "FAIL: the captures didn't finish"
+        echo "FAIL: the harness didn't finish"
         exit 1
     fi
     if [ "$MODE" = promo ]; then
         "$REPO/art/promo/extract.py" "$CACHE"
     fi
-    echo "PASS: captures are in $CACHE/Screenshots"
+    [ "$MODE" = loot ] || echo "PASS: captures are in $CACHE/Screenshots"
     exit 0
 fi
 if ! grep -q -E "HearingAidTest DONE passed=[1-9][0-9]* failed=0$" "$LOG"; then
