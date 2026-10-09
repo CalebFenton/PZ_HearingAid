@@ -1,7 +1,7 @@
 name=Hearing Aid
 id=cf_hearing_aid
 author=Caleb Fenton
-description=Battery-powered hearing aids that let Deaf and Hard of Hearing survivors work their way back to better hearing.
+description=Hearing aids that let Deaf and Hard of Hearing survivors work their way back to better hearing.
 poster=poster.png
 modversion=2.0.0
 versionMin=42.21

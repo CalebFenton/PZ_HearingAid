@@ -133,8 +133,7 @@ def save(image, name):
 
 def banner():
     image = canvas(420)
-    text(image, (70, 120), "Hearing Aid", 88, "Bold")
-    text(image, (74, 238), "Battery-powered hearing aids\nfor Project Zomboid Build 42", 30, "Medium", MUTED)
+    text(image, (70, 210), "Hearing Aid", 88, "Bold", anchor="lm")
     positions = [(770, 130), (910, 280), (1050, 130), (1160, 285)]
     for tier, centre in zip(TIERS, positions):
         paste(image, fit(trim(capture(f"model_{tier}")), 210, 210), centre)
