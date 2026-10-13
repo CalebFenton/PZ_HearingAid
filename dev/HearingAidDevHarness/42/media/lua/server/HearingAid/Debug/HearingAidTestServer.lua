@@ -5,7 +5,7 @@ require "HearingAid/Debug/HearingAidLoot"
 
 -- Development only, not published. The server's half of HearingAidTests.lua: what only the
 -- authority does to the character, its hearing aids and their batteries, called with
--- PZHarness.Test.server (dev/harness/README.md, Multiplayer). On a multiplayer server these act on
+-- PZHarness.Test.server (dev/harness/docs/multiplayer.md). On a multiplayer server these act on
 -- the server's copy of the character; single player runs them in its one game. A --stay rerun
 -- loads this file again, so it only registers handlers.
 

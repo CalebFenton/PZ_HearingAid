@@ -18,8 +18,8 @@
 #                                    minutes without a run, or when another run needs the game.
 #   dev/run-debug-client.sh --test --mp [--stay]
 #                                    the same tests in multiplayer: a dedicated server and a client
-#                                    that joins it as the admin (dev/harness/README.md,
-#                                    Multiplayer); with --stay both stay open for the next
+#                                    that joins it as the admin (dev/harness/docs/multiplayer.md);
+#                                    with --stay both stay open for the next
 #                                    --test --mp --stay
 #   dev/run-debug-client.sh --art    the same, but instead of the tests the harness saves close-ups
 #                                    of the worn and dropped aids (art_*.png) to <cache>/Screenshots
