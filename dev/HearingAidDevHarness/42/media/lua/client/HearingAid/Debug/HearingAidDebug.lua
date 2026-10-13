@@ -1,6 +1,7 @@
+require "PZHarness/TestLib"
 require "HearingAid/HearingAid"
 
--- Setup helpers for the debug scenario and tests. Debug mode only.
+-- Setup helpers for the debug scenario, the tests and the art. Development only, in the dev mod.
 HearingAidDebug = {}
 
 -- Adds an aid with an exact battery state; nil charge means no battery.
@@ -36,37 +37,6 @@ function HearingAidDebug.addRecipeMaterials(player)
     inventory:AddItems("Base.ElectricWire", 3)
 end
 
-local WORK_TABLE_SPRITE = "carpentry_01_60" -- the Shoddy Table players build, a crafting surface
-
-local function hasWorkTable(square)
-    local objects = square:getObjects()
-    for i = 0, objects:size() - 1 do
-        local sprite = objects:get(i):getSprite()
-        if sprite and sprite:getName() == WORK_TABLE_SPRITE then
-            return true
-        end
-    end
-    return false
-end
-
--- Repairs and upgrades need a table the character can walk to. Puts one on a free square next to
--- the character, with no wall in between, unless one is there already.
-function HearingAidDebug.placeWorkTable(player)
-    local here = player:getSquare()
-    local free
-    for _, direction in ipairs({ IsoDirections.N, IsoDirections.W, IsoDirections.S, IsoDirections.E }) do
-        local square = here:getAdjacentSquare(direction)
-        if square and hasWorkTable(square) then
-            return
-        end
-        if not free and square and square:isFree(false) and not here:isBlockedTo(square) then
-            free = square
-        end
-    end
-    assert(free, "HearingAidDebug: no free square next to the character for a table")
-    free:AddTileObject(IsoObject.new(free, WORK_TABLE_SPRITE, "Table"))
-end
-
 -- A hard of hearing character with Electrical 8, every tier, batteries, recipe materials and a table.
 function HearingAidDebug.setupPlayer(player)
     HearingAid.setBaseLevel(player, HearingAid.Level.HARD_OF_HEARING)
@@ -78,5 +48,5 @@ function HearingAidDebug.setupPlayer(player)
     HearingAidDebug.addBattery(player, 1.0)
     HearingAidDebug.addBattery(player, 0.25)
     HearingAidDebug.addRecipeMaterials(player)
-    HearingAidDebug.placeWorkTable(player)
+    PZHarness.Test.placeWorkTable(player)
 end

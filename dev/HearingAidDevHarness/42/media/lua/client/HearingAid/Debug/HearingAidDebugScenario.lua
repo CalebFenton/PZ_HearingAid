@@ -1,8 +1,8 @@
 require "HearingAid/Debug/HearingAidDebug"
 
 -- Listed in the SCENARIOS panel on the main menu when the game runs with -debug
--- (DebugScenarios.lua). Starts a zombie-free world with a hard of hearing character, every
--- hearing aid tier, batteries, the crafting materials and a table to craft at.
+-- (DebugScenarios.lua). Starts a zombie-free world in the morning with a hard of hearing
+-- character, every hearing aid tier, batteries, the crafting materials and a table to craft at.
 debugScenarios = debugScenarios or {}
 
 debugScenarios.HearingAidScenario = {
@@ -14,6 +14,8 @@ debugScenarios.HearingAidScenario = {
         SandboxVars.Zombies = 6 -- none
     end,
     onStart = function()
+        -- Crafting needs light, and the character stands outdoors.
+        getGameTime():setTimeOfDay(10)
         HearingAidDebug.setupPlayer(getPlayer())
     end,
 }

@@ -169,6 +169,25 @@ local function pickZoneOutfit(zone, female, room)
     return picked and picked.name, female
 end
 
+-- The Default outfits that fit each sex and room, filtered once rather than for every sample,
+-- which took a sixth of the time of a sample.
+local defaultOutfits = {}
+
+local function fittingDefaults(female, room)
+    local key = tostring(female) .. "/" .. tostring(room)
+    local outfits = defaultOutfits[key]
+    if not outfits then
+        outfits = {}
+        for _, outfit in ipairs(ZombiesZoneDefinition.Default) do
+            if fits(outfit, female, room) then
+                table.insert(outfits, outfit)
+            end
+        end
+        defaultOutfits[key] = outfits
+    end
+    return outfits
+end
+
 -- ZombiesZoneDefinition.dressInRandomOutfit: the zone table first, and the Default table when it
 -- picks nothing.
 local function pickOutfit(spec, female)
@@ -181,13 +200,7 @@ local function pickOutfit(spec, female)
             return name, zoneFemale
         end
     end
-    local outfits = {}
-    for _, outfit in ipairs(ZombiesZoneDefinition.Default) do
-        if fits(outfit, female, spec.room) then
-            table.insert(outfits, outfit)
-        end
-    end
-    return pickByChance(outfits, false).name, female
+    return pickByChance(fittingDefaults(female, spec.room), false).name, female
 end
 
 -- Zombies ---------------------------------------------------------------------------------------

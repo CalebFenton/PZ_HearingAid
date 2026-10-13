@@ -1,4 +1,4 @@
-require "Tests/TimedActionsTests"
+require "PZHarness/TestLib"
 require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"
 require "TimedActions/ISWearClothing"
@@ -6,11 +6,15 @@ require "HearingAid/HearingAidRecipes"
 require "HearingAid/Debug/HearingAidDebug"
 require "HearingAid/Debug/HearingAidLoot"
 
--- Tests for the vanilla timed action test runner: Debug menu > Dev > Unit Tests > Timed Actions,
--- in debug mode. The runner calls run(), waits for the action queue to empty, then calls
--- validate(). Before each test it empties the inventory and clears worn items, but it keeps
--- traits, player modData and sandbox options, so test() sets those. Each result is also printed
+-- The mod's in-game tests, on the shared harness's test library
+-- (dev/harness/mod/42/media/lua/client/PZHarness/TestLib.lua explains the runner, the restore
+-- stack and the rules that keep each test independent of the ones before it). Besides the
+-- library's spec fields, a test may set `hearing`, the character's own hearing level, and
+-- `periodicUpdate = false`; HearingAidDevHarness.lua's setup applies them. Each result is printed
 -- to console.txt as "HearingAidTest PASS <name>" or "HearingAidTest FAIL <name>: <reasons>".
+
+local T = PZHarness.Test
+local player, expect, expectNear = T.player, T.expect, T.expectNear
 
 local Level = HearingAid.Level
 local Mode = HearingAid.DeafnessMode
@@ -29,10 +33,6 @@ local LEVEL_NAMES = {
 -- Battery items store whole uses, about 0.007 of a full charge each, and game time passes while
 -- an action runs.
 local CHARGE_TOLERANCE = 0.01
-
-local function player()
-    return getSpecificPlayer(0)
-end
 
 local function hoursNow()
     return getGameTime():getWorldAgeHours()
@@ -59,22 +59,9 @@ end
 
 -- Expectations ---------------------------------------------------------------------------------
 
--- Unmet expectations of the test being validated.
-local failures = {}
-
-local function expect(condition, message)
-    if not condition then
-        table.insert(failures, message)
-    end
-end
-
 local function expectHearing(expected)
     local actual = HearingAid.getHearingLevel(player())
     expect(actual == expected, "hearing is " .. LEVEL_NAMES[actual] .. ", expected " .. LEVEL_NAMES[expected])
-end
-
-local function expectNear(label, actual, expected, tolerance)
-    expect(math.abs(actual - expected) <= (tolerance or 0.0001), label .. " is " .. actual .. ", expected " .. expected)
 end
 
 local function expectCharge(aid, expected, tolerance)
@@ -95,49 +82,13 @@ local function expectBattery(charge)
     end
 end
 
--- Registers a test with the runner. Before run(), the character's own hearing becomes
--- `spec.hearing` (Hard of Hearing unless set) and the `spec.sandbox` options take effect, along
--- with the recipe skill levels that follow them; validate() restores the options. With
--- `periodicUpdate = false` the every-minute HearingAid.update() stops until validate() ends, so a
--- test can show that an action drains the battery itself.
+-- Registers a test. Its timed actions finish in one tick unless `spec.instant` is false: the tests
+-- check what an action does, not how long it takes.
 local function test(name, spec)
-    TimedActionTests.getTests()[name] = {
-        run = function(self)
-            HearingAid.setBaseLevel(player(), spec.hearing or Level.HARD_OF_HEARING)
-            self.savedSandbox = {}
-            for option, value in pairs(spec.sandbox or {}) do
-                self.savedSandbox[option] = SandboxVars.HearingAid[option]
-                SandboxVars.HearingAid[option] = value
-            end
-            HearingAid.Recipes.applySkillLevels()
-            if spec.periodicUpdate == false then
-                Events.EveryOneMinute.Remove(HearingAid.update)
-            end
-            if spec.run then
-                spec.run(self)
-            end
-        end,
-        validate = function(self)
-            failures = {}
-            local ok, err = pcall(spec.validate, self)
-            for option, value in pairs(self.savedSandbox) do
-                SandboxVars.HearingAid[option] = value
-            end
-            HearingAid.Recipes.applySkillLevels()
-            if spec.periodicUpdate == false then
-                Events.EveryOneMinute.Add(HearingAid.update)
-            end
-            if not ok then
-                table.insert(failures, tostring(err))
-            end
-            if #failures > 0 then
-                print("HearingAidTest FAIL " .. name .. ": " .. table.concat(failures, "; "))
-                return false
-            end
-            print("HearingAidTest PASS " .. name)
-            return true
-        end,
-    }
+    if spec.instant == nil then
+        spec.instant = true
+    end
+    T.test(name, spec)
 end
 
 -- Hearing --------------------------------------------------------------------------------------
@@ -381,51 +332,25 @@ local OPTIMIZE = "HearingAid.OptimizeHearingAid"
 local BOOST = "HearingAid.BoostHearingAid"
 local DISMANTLE = "HearingAid.DismantleHearingAid"
 
--- Why the right-click menu would refuse to start this craft, or nil if it would start it.
-local function craftRefusal(recipe, selectedItem)
-    local p = player()
-    local logic = HandcraftLogic.new(p, nil, nil)
-    logic:setIsoObject(logic:findCraftSurface(p, 2))
-    logic:setContainers(ISInventoryPaneContextMenu.getContainers(p))
-    logic:setRecipeFromContextClick(recipe, selectedItem)
-    if logic:canPerformCurrentRecipe() then
-        return nil
-    elseif not recipe:characterHasRequiredSkills(p) then
-        return "Electrical too low"
-    elseif recipe:isAnySurfaceCraft() and not logic:isCharacterInRangeOfWorkbench() then
-        return "no table in reach"
-    elseif p:tooDarkToRead() then
-        return "too dark"
-    end
-    local missing = {}
-    local inputs = recipe:getInputs()
-    for i = 0, inputs:size() - 1 do
-        if not logic:getRecipeData():getDataForInputScript(inputs:get(i)):isInputItemsSatisfied() then
-            table.insert(missing, inputs:get(i):getOriginalLine())
-        end
-    end
-    return "missing " .. table.concat(missing, "; ")
-end
-
 -- Registers a test that crafts `spec.recipe` the way the right-click menu does, from a new aid of
 -- type `spec.aid` with `spec.charge` and `spec.on`. The character has Electrical `spec.electrical`
 -- (8 unless set), every recipe material and a table, and `spec.setup(self)` runs just before the
 -- craft. validate() expects the inventory counts in `spec.counts`, then runs `spec.validate(self)`.
--- The menu refuses a craft silently, so a failing test also reports why the game refused.
+-- A failing test also reports why the game refused the craft (T.startCraft).
 local function craftTest(name, spec)
     test(name, {
         sandbox = spec.sandbox,
         run = function(self)
-            player():setPerkLevelDebug(Perks.Electricity, spec.electrical or 8)
+            T.setPerk(self, Perks.Electricity, spec.electrical or 8)
             HearingAidDebug.addRecipeMaterials(player())
-            HearingAidDebug.placeWorkTable(player())
+            T.placeWorkTable(player())
             if spec.setup then
                 spec.setup(self)
             end
-            local recipe = getScriptManager():getCraftRecipe(spec.recipe)
-            local aid = addAid(spec.aid, spec.charge, spec.on)
-            self.refusal = craftRefusal(recipe, aid)
-            ISInventoryPaneContextMenu.OnNewCraft(aid, recipe, player():getPlayerNum(), false)
+            local recipe = T.need(self, getScriptManager():getCraftRecipe(spec.recipe), "the recipe " .. spec.recipe)
+            if recipe then
+                T.startCraft(self, recipe, addAid(spec.aid, spec.charge, spec.on))
+            end
         end,
         validate = function(self)
             for fullType, count in pairs(spec.counts) do
@@ -433,9 +358,6 @@ local function craftTest(name, spec)
             end
             if spec.validate then
                 spec.validate(self)
-            end
-            if #failures > 0 and self.refusal then
-                table.insert(failures, "the game refused the craft: " .. self.refusal)
             end
         end,
     })
@@ -531,7 +453,8 @@ craftTest("hearingaid_craft_skill_level_from_sandbox", {
     aid = BROKEN,
     counts = { [BASIC] = 0, [BROKEN] = 1 },
     validate = function(self)
-        expect(self.refusal == "Electrical too low", "refusal was " .. tostring(self.refusal))
+        local expected = getScriptManager():getCraftRecipe(REPAIR):getName() .. ": skills too low"
+        expect(self.refusal == expected, "refusal was " .. tostring(self.refusal) .. ", expected " .. expected)
     end,
 })
 
@@ -545,7 +468,9 @@ craftTest("hearingaid_craft_without_skill_requirement", {
 
 -- Loot -----------------------------------------------------------------------------------------
 
--- The bounds are wide enough that sampling noise fails this test less than once in a million runs.
+-- Sampling noise fails this test about 3 times in a million runs: the tightest bound, the
+-- working-aid lower one, sits about 4.5 standard deviations from the ratio measured over 116,000
+-- samples.
 test("hearingaid_corpse_loot", {
     run = function(self)
         self.ordinary = HearingAidLoot.measureZombies("ordinary", 12000)
@@ -553,7 +478,7 @@ test("hearingaid_corpse_loot", {
     end,
     validate = function(self)
         local ordinary, retirees = self.ordinary, self.retirees
-        print(string.format("HearingAidTest INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
+        print(string.format(PZHarness.run.tag .. " INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
             .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
             ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
         expect(ordinary.broken >= ordinary.watch / 8 and ordinary.broken <= ordinary.watch / 4.8,

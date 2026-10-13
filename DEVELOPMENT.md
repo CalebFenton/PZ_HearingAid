@@ -4,11 +4,13 @@ What to run for each job, and Project Zomboid Build 42 behavior that the mod's c
 
 ## Commands
 
-The scripts use the macOS Steam install (set `PZ_APP` to another `Contents` folder) and their own cache under `$TMPDIR` (set `CACHE` to use another), so they never touch your saves, settings, or mod list.
+The client and server scripts are thin entry points into the shared test harness in `dev/harness`, a git submodule (run `git submodule update --init` after cloning); `dev/harness.conf` tells it about this mod, and `dev/harness/README.md` describes it. The tests, the debug scenario, their helpers and the art, promo, and loot code live in the dev mod `dev/HearingAidDevHarness`, which is never published. The scripts use the macOS Steam install (set `PZ_APP` to another `Contents` folder) and their own cache under `$TMPDIR` (set `CACHE` to use another), so they never touch your saves, settings, or mod list. Only one game started by these scripts runs at a time, for this mod or any other on the harness: a script waits for the lock while another one's game is up.
 
 - `dev/validate-server.sh`: run after every change. It boots a dedicated server with only this mod and fails if the mod logs an error or names a loot list that doesn't exist.
-- `dev/run-debug-client.sh --test`: runs every `hearingaid_*` test unattended and exits nonzero on a failure or a Lua error. It needs a JDK's `javac`, any version from 8 on.
-- `dev/run-debug-client.sh`: starts the debug client with the mod enabled and stops at the main menu.
+- `dev/run-debug-client.sh --test`: runs every `hearingaid_*` test unattended and exits nonzero on a failure or any Lua error. It needs a JDK's `javac`, any version from 8 on. `TESTS=hearingaid_craft_,hearingaid_turn_` runs only the tests whose names start with one of those prefixes. The harness runs the tests without the debug menu runner's one-second pause after each, with timed actions instant, and with the frame rate uncapped; "HearingAidTest TIME" gives the seconds and frames the tests took, about 2 seconds, most of it `hearingaid_corpse_loot`. Starting and quitting the game adds about 27 seconds.
+- `dev/run-debug-client.sh --test --stay`: the same, but the game stays open afterwards, and the next `--test --stay`, with any `TESTS`, loads `HearingAidTests.lua` again and reruns the tests in that game, in a second or two plus the tests' own time. A change to any other file restarts the game instead: the rest of the dev mod, the published mod, or the harness mod, because a reloaded file's `Events.*.Add` calls are ignored (see [Debugging by hand](#debugging-by-hand)). While it waits, the game shows and logs "HearingAidTest IDLE", and it quits after 10 minutes without a run or when another script needs the game. What earlier runs left in the kept world stays there, so finish with a plain `--test`.
+- The client runs stop at the first stack trace through the Lua of the mod, the dev mod or the harness mod, or at any Lua failure once the harness has started, and print the trace, instead of waiting for the timeout: in debug mode a Lua error stops the game in the error handler, so it never quits on its own.
+- `dev/run-debug-client.sh`: starts the debug client with the mod, the dev mod and the harness mod enabled and stops at the main menu, with the scenario and the tests of [Debugging by hand](#debugging-by-hand).
 - `dev/run-debug-client.sh --loot`: prints how often each kind of corpse and container holds a wristwatch and each hearing aid model. Run it after changing loot.
 - `art/models/make.sh`: rebuilds the models and textures with Blender. `--export` skips `build.py`, which would overwrite edits you made by hand in `hearing_aid.blend`. Previews land in `$TMPDIR/hearing-aid-previews`.
 - `dev/run-debug-client.sh --art`: saves in-game close-ups of the worn and dropped hearing aids to `<cache>/Screenshots`. In the front view, the right ear is on the left of the picture.
@@ -16,13 +18,13 @@ The scripts use the macOS Steam install (set `PZ_APP` to another `Contents` fold
 
 ## Debugging by hand
 
-Add `-debug` to the game's Steam launch options to get these in a normal game.
+`dev/run-debug-client.sh` without flags gives you these. With `-debug` in the game's Steam launch options a normal game has the debug menu, but neither the scenario nor the tests nor `HearingAidLoot`, which come with the dev mod.
 
-- The **Hearing Aid** scenario under **Scenarios** on the main menu starts a zombie-free world with every hearing aid model, batteries, recipe materials, and a table.
+- The **Hearing Aid** scenario under **Scenarios** on the main menu starts a zombie-free world at 10 in the morning with every hearing aid model, batteries, recipe materials, and a table.
 - To run one test, open the debug menu with the bug icon, then **Dev**, **Unit Tests**, **Timed Actions**.
 - To measure one loot list more precisely than `--loot` does, call `HearingAidLoot.measureZombies(key, samples)` or `HearingAidLoot.measureContainer(key, samples)` in the Lua console. One list takes 40,000 samples; `HearingAidLoot.report`, which measures every list, runs out of memory far sooner.
 - To see the loot of vanilla lists, right-click the world and choose **UI**, then **Generate Loot UI**. The **LootZed** admin power uses a simpler formula that ignores rounding, the zombie density bonus, and the rolls multiplier (`SpawnRateChecker.lua`).
-- Restart the client after changing Lua. `reloadLuaFile()`, which the debug Lua file browser uses, runs the file again but ignores its `Events.*.Add` calls (`LuaCompiler.rewriteEvents`), so the old handlers keep running.
+- Restart the client after changing Lua. `reloadLuaFile()`, which the debug Lua file browser uses, runs the file again but ignores its `Events.*.Add` calls (`LuaCompiler.rewriteEvents`), so the old handlers keep running. That is enough for the test file, which only registers tests, and `--test --stay` relies on it.
 - A dedicated server has no `-debug` argument; it reads only the JVM property `-Ddebug`.
 - In debug mode, every mod without `media/AnimSets` and `media/actiongroups` folders logs a `NoSuchFileException` for each, and vanilla logs errors about fonts, `FluidContainerScript` names, a mannequin zone, missing tiles, and missing icons. None come from this mod.
 - `getCore():TakeFullScreenshot("name.png")` writes to `<cachedir>/Screenshots/` without macOS Screen Recording permission.
@@ -30,7 +32,9 @@ Add `-debug` to the game's Steam launch options to get these in a normal game.
 
 ## Writing tests
 
-- The timed action test runner empties the inventory and calls `clearWornItems()` before each test, which fires no clothing event. Traits, player modData, and sandbox options carry over to the next test, and `EveryOneMinute` keeps firing. Write tests with the `test()` helper in `HearingAidTests.lua`.
+- The timed action test runner empties the inventory and calls `clearWornItems()` before each test, which fires no clothing event. Traits, perks, player modData, world objects, sandbox options, and the clock carry over to the next test, and `EveryOneMinute` keeps firing. Write tests with the `test()` helper in `HearingAidTests.lua` and the harness's library it builds on (`dev/harness/mod/42/media/lua/client/PZHarness/TestLib.lua`), whose setters and fixtures put back what they change.
+- `--test` runs with the frame rate uncapped, so a count of frames is not a length of time. A test that waits for the game waits on the condition it needs (`PZHarness.Test.waitUntil`), never for a fixed number of frames.
+- Every test runs at 10 in the morning, the scenario's hour, and waits for the light first: crafting needs light, and the world's light catches up with the clock only some frames after the game starts or the clock changes.
 - `ISInventoryPaneContextMenu.OnNewCraft` crafts through the same path as a right-click, and when the game refuses, it queues nothing and says nothing. `HandcraftLogic` can tell you why.
 - A table for an `AnySurfaceCraft` recipe must come from `IsoObject.new(square, spriteName, name)`. `IsoObject.new(square, spriteName)` builds a new sprite from the texture alone, so the object looks like a table but has no `Surface`. `findCraftSurface` also skips squares the character can't reach, such as the far side of a wall.
 

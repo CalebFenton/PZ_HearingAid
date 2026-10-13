@@ -1,5 +1,5 @@
 name=Hearing Aid Dev Harness
 id=cf_hearing_aid_devharness
-require=cf_hearing_aid
-description=Development only. Auto-launches the Hearing Aid debug scenario and runs its unit tests. Not published.
+require=cf_hearing_aid,cf_test_harness
+description=Development only. The Hearing Aid debug scenario, its tests and its art, promo and loot runs, for the shared test harness. Not published.
 versionMin=42.21

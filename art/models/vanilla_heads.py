@@ -3,7 +3,7 @@ frame that build.py models in, to fit the aid against:
 
     blender art/models/hearing_aid.blend -P art/models/vanilla_heads.py
 
-They come from the game install (PZ_APP overrides its Contents folder, as in dev/lib.sh), and
+They come from the game install (PZ_APP overrides its Contents folder, as in the dev scripts), and
 saving the .blend leaves them out, because they're the game's art.
 """
 import os
