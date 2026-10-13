@@ -3,23 +3,31 @@
 # requires-python = ">=3.10"
 # dependencies = ["pillow"]
 # ///
-"""Lays out the README and Workshop images from the captures that extract.py saved. Rerun it after
-editing a layout; recapture only when the game's look changes:
+"""Lays out the README and Workshop images from the captures that extract.py saved, and the mod's
+poster, Workshop preview and mod-list icon. Rerun it after editing a layout; recapture only when
+the game's look changes:
 
     art/promo/compose.py
 
-Writes images/*.png. Every image is 1260 pixels wide, which the Workshop page shows at 630, so it
-stays sharp on high-density screens. Interface captures and icons are scaled by whole numbers with
-nearest-neighbour sampling, so their pixels stay crisp.
+Writes images/*.png, 42/poster.png, 42/hearing_aid_icon.png and the repository's preview.png. The
+icon starts from art/drawings/hearing_aid.xcf, the drawing Item_HearingAid.png came from, which
+ImageMagick's `magick` flattens. Every README image is 1260 pixels wide, which the Workshop page
+shows at 630, so it stays sharp on high-density screens. Interface captures and icons are scaled by
+whole numbers with nearest-neighbour sampling, so their pixels stay crisp.
 """
+import subprocess
+import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 HERE = Path(__file__).resolve().parent
 CAPTURES = HERE / "captures"
 OUT = HERE / "images"
 FONT = HERE / "fonts" / "NotoSans.ttf"
+REPO = HERE.parent.parent
+MOD = REPO / "Contents" / "mods" / "HearingAid" / "42"
+DRAWING = HERE.parent / "drawings" / "hearing_aid.xcf"
 
 WIDTH = 1260
 BACKGROUND = (24, 26, 31)
@@ -83,11 +91,11 @@ def fraction(image, box):
     return image.crop(tuple(round(f * size) for f, size in zip(box, (image.width, image.height) * 2)))
 
 
-def canvas(height):
+def canvas(height, width=WIDTH):
     """A dark card with a faint vertical gradient."""
-    image = Image.new("RGBA", (WIDTH, height), BACKGROUND + (255,))
-    shade = Image.linear_gradient("L").resize((WIDTH, height)).point(lambda v: v * 0.35)
-    image.paste(Image.new("RGBA", (WIDTH, height), (12, 13, 16, 255)), (0, 0), shade)
+    image = Image.new("RGBA", (width, height), BACKGROUND + (255,))
+    shade = Image.linear_gradient("L").resize((width, height)).point(lambda v: v * 0.35)
+    image.paste(Image.new("RGBA", (width, height), (12, 13, 16, 255)), (0, 0), shade)
     return image
 
 
@@ -122,10 +130,11 @@ def arrow(base, centre, colour=MUTED):
     draw.polygon([(x + 4, y - 14), (x + 22, y), (x + 4, y + 14)], fill=colour)
 
 
-def save(image, name):
-    OUT.mkdir(exist_ok=True)
-    image.convert("RGB").save(OUT / f"{name}.png", optimize=True)
-    print(f"compose: images/{name}.png {image.width}x{image.height}")
+def save(image, name, path=None):
+    path = path or OUT / f"{name}.png"
+    path.parent.mkdir(exist_ok=True)
+    image.convert("RGB").save(path, optimize=True)
+    print(f"compose: {path.relative_to(REPO)} {image.width}x{image.height}")
 
 
 # Images ------------------------------------------------------------------------------------------
@@ -138,6 +147,74 @@ def banner():
     for tier, centre in zip(TIERS, positions):
         paste(image, fit(trim(capture(f"model_{tier}")), 210, 210), centre)
     return image
+
+
+def poster():
+    """The banner's title and four models, stacked for a square. The mod list and the Workshop show
+    it at about 196 pixels, so the title is large."""
+    image = canvas(512, 512)
+    text(image, (256, 74), "Hearing Aid", 76, "Bold", anchor="mm")
+    positions = [(140, 215), (372, 215), (140, 390), (372, 390)]
+    for tier, centre in zip(TIERS, positions):
+        paste(image, fit(trim(capture(f"model_{tier}")), 200, 160), centre)
+    return image
+
+
+# The mod list draws the icon at 22 to 28 pixels with smooth scaling, where the drawing's thin
+# outline and tube blur away. These are in pixels of the drawing, which is about 20 times the icon.
+ICON_SIZE = 32
+TUBE_GROWTH = 10
+OUTLINE = 12
+OUTLINE_COLOUR = (20, 18, 30, 255)
+TUBE_COLOUR = (178, 160, 206, 255)
+BODY_COLOUR = (150, 142, 80, 255)
+LED_COLOUR = (70, 255, 70, 255)
+
+
+def over(image, threshold):
+    return image.point(lambda v: 255 if v > threshold else 0)
+
+
+def both(*masks):
+    result = masks[0]
+    for m in masks[1:]:
+        result = ImageChops.multiply(result, m)
+    return result
+
+
+def grow(image, pixels):
+    return image.filter(ImageFilter.MaxFilter(2 * pixels + 1))
+
+
+def icon():
+    with tempfile.TemporaryDirectory() as tmp:
+        flat = Path(tmp) / "drawing.png"
+        subprocess.run(["magick", str(DRAWING), "-background", "none", "-layers", "merge", str(flat)], check=True)
+        image = Image.open(flat).convert("RGBA")
+    red, green, blue, alpha = image.split()
+    solid = over(alpha, 128)
+    fill = lambda m, colour: image.paste(Image.new("RGBA", image.size, colour), (0, 0), m)
+    # The yellow button would compete with the LED, the one bright spot left at icon size.
+    yellow = both(over(red, 170), over(green, 150), over(blue, 60).point(lambda v: 255 - v), solid)
+    fill(grow(yellow, 1), BODY_COLOUR)
+    led = both(over(green, 180), over(red, 120).point(lambda v: 255 - v), solid)
+    fill(grow(led.filter(ImageFilter.MedianFilter(5)), 4), LED_COLOUR)
+    # The tube is lavender: bluer than it is red or green. The median drops stray matches on edges.
+    tube = both(over(ImageChops.subtract(blue, red), 8), over(ImageChops.subtract(blue, green), 15),
+                over(red, 110), over(alpha, 200)).filter(ImageFilter.MedianFilter(9))
+    # Thicken only into outline and background, so the tube never covers the body or the earpiece.
+    free = ImageChops.lighter(solid.point(lambda v: 255 - v), image.convert("L").point(lambda v: 255 if v < 70 else 0))
+    thick = both(grow(tube, TUBE_GROWTH), free)
+    fill(thick, TUBE_COLOUR)
+    fill(ImageChops.subtract(both(grow(ImageChops.lighter(tube, thick), OUTLINE), free), thick), OUTLINE_COLOUR)
+    outlined = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    outlined.paste(Image.new("RGBA", image.size, OUTLINE_COLOUR), (0, 0), grow(over(image.getchannel("A"), 128), OUTLINE))
+    outlined.alpha_composite(image)
+    outlined = outlined.crop(outlined.getbbox())
+    side = max(outlined.size)
+    result = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    result.paste(outlined, ((side - outlined.width) // 2, (side - outlined.height) // 2))
+    return result.resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
 
 
 def tiers():
@@ -221,6 +298,12 @@ def main():
     for name, make in [("banner", banner), ("tiers", tiers), ("ears", ears), ("interface", interface),
                        ("recipes", recipes), ("corpse", corpse)]:
         save(make(), name)
+    square = poster()
+    save(square, "poster", MOD / "poster.png")
+    save(square, "preview", REPO / "preview.png")
+    mod_icon = icon()
+    mod_icon.save(MOD / "hearing_aid_icon.png", optimize=True)
+    print(f"compose: {(MOD / 'hearing_aid_icon.png').relative_to(REPO)} {mod_icon.width}x{mod_icon.height}")
 
 
 main()
