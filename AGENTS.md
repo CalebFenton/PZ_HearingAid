@@ -4,7 +4,7 @@
 
 - After every change: `dev/validate-server.sh`. It boots a headless dedicated server and fails on any error the mod logs.
 - Before finishing: `dev/run-debug-client.sh --test`. It runs every in-game test unattended and needs a JDK's `javac` on `PATH` (or `JAVAC` set). While you iterate, `TESTS=<name prefix> dev/run-debug-client.sh --test --stay` runs only those tests and keeps the game open, so the next such run reruns them in a second or two; finish with a plain `--test`.
-- Multiplayer: `dev/run-debug-client.sh --test --mp` runs the same tests with a dedicated server and a client that joins it (about 45 seconds); add `--stay` while you iterate, so the next such run reruns them in about a second. What only the server can do goes through `PZHarness.Test.server` and handlers in the dev mod's server Lua; `dev/harness/docs/multiplayer.md` explains it.
+- Multiplayer: `dev/run-debug-client.sh --test --mp` runs the same tests with a dedicated server and a client that joins it; add `--stay` while you iterate, so the next such run reruns them in about a second. What only the server can do goes through `PZHarness.Test.server` and handlers in the dev mod's server Lua; `dev/harness/docs/multiplayer.md` explains it.
 - The scripts run on the shared test harness in the `dev/harness` submodule (`git submodule update --init` in a fresh clone), whose README describes it. It's shared with other mods: change it only in ways that fit any mod, and expect a run to wait while another mod's dev script has a game up; just run them.
 
 ## Rules
