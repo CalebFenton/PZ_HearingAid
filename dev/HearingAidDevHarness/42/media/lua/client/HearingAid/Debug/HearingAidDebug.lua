@@ -24,17 +24,21 @@ function HearingAidDebug.wear(player, item)
     HearingAid.reconcile(player)
 end
 
--- Inputs of every hearing aid recipe once, including tools.
+-- Inputs of every hearing aid recipe once, including tools, as PZHarness.Test.give items.
+HearingAidDebug.RECIPE_MATERIALS = {}
+for _, fullType in ipairs({
+    "Base.Screwdriver", "Base.Tweezers", "Base.Glasses_Reading", "Base.Scalpel",
+    "Base.Earbuds", "Base.AlcoholWipes", "Base.Glue", "Base.WristWatch_Left_DigitalBlack",
+    "Base.Amplifier", "Base.Microphone", "Base.Epoxy",
+}) do
+    table.insert(HearingAidDebug.RECIPE_MATERIALS, { type = fullType })
+end
+table.insert(HearingAidDebug.RECIPE_MATERIALS, { type = "Base.ElectricWire", count = 3 })
+
 function HearingAidDebug.addRecipeMaterials(player)
-    local inventory = player:getInventory()
-    for _, fullType in ipairs({
-        "Base.Screwdriver", "Base.Tweezers", "Base.Glasses_Reading", "Base.Scalpel",
-        "Base.Earbuds", "Base.AlcoholWipes", "Base.Glue", "Base.WristWatch_Left_DigitalBlack",
-        "Base.Amplifier", "Base.Microphone", "Base.Epoxy",
-    }) do
-        inventory:AddItem(fullType)
+    for _, material in ipairs(HearingAidDebug.RECIPE_MATERIALS) do
+        player:getInventory():AddItems(material.type, material.count or 1)
     end
-    inventory:AddItems("Base.ElectricWire", 3)
 end
 
 -- A hard of hearing character with Electrical 8, every tier, batteries, recipe materials and a table.

@@ -40,7 +40,10 @@ function HearingAidAction:isValid()
     if not inventory:containsID(self.aid:getID()) then
         return false
     end
-    if self.battery and not inventory:containsID(self.battery:getID()) then
+    -- A multiplayer server's complete() takes the battery out of the inventory, and that removal
+    -- reaches the client before the action ends there, so the client checks the battery only
+    -- until the action starts: failing then would stop the action and empty the action queue.
+    if self.battery and not (isClient() and self:isStarted()) and not inventory:containsID(self.battery:getID()) then
         return false
     end
     -- A multiplayer client's item state can lag behind the server, which checks in complete().

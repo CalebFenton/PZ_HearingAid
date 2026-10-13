@@ -149,6 +149,9 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 - The server rebuilds the action by calling `<Class>:new()` with the values of the fields named like `new()`'s parameters, in parameter order (`NetTimedAction`). Parameter names must equal field names, and every argument must be serializable. Items are sent as container plus id, so they must be in a container. An unsupported argument type is dropped and shifts the arguments after it.
 - The server never calls `isValid()`, `update()`, or `perform()`, so check the action again in `complete()`; returning `false` rejects it.
 - On the client, fetch items again by id in `start()`, as vanilla does, because server syncs can replace the item objects.
+- The client's action waits for the server's `complete()` (`LuaTimedActionNew.setWaitForFinished`), and keeps calling `isValid()` meanwhile. What `complete()` removes, such as an inserted battery, reaches the client first, so an `isValid()` that checks it then fails; the client stops the action, skips `perform()`, and `ISBaseTimedAction:stop` empties the whole action queue. Check such items only until `self:isStarted()` on a client.
+- The server decides an action's length: it rebuilds the action and calls `getDuration()` with its own copy of the character, whose instant-action cheat is the server's.
+- The game deletes a drainable item whose uses run out (`DrainableComboItem.update`), so no empty battery ever stays in an inventory.
 
 ### Events
 

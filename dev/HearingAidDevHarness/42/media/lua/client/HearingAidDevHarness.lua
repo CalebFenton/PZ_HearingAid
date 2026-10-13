@@ -49,18 +49,13 @@ PZHarness.register({
         -- only some frames after the game starts, and a game kept by --stay runs on into the night.
         hour = 10,
         sandbox = "HearingAid",
-        -- The recipes' skill levels follow the *SkillLevel options.
+        -- The recipes' skill levels follow the *SkillLevel options; on the server too, through
+        -- HearingAidTestServer.lua.
         sandboxChanged = HearingAid.Recipes.applySkillLevels,
-        -- Traits and player modData carry over from the test before, so every test starts from the
-        -- character's own hearing `spec.hearing` (Hard of Hearing unless set). With
-        -- `spec.periodicUpdate = false` the every-minute HearingAid.update() stops until the test
-        -- ends, so a test can show that an action drains the battery itself.
+        -- The character's own hearing `spec.hearing` and `spec.periodicUpdate`. In the test file,
+        -- which a --stay rerun loads again.
         setup = function(self, spec)
-            HearingAid.setBaseLevel(getSpecificPlayer(0), spec.hearing or HearingAid.Level.HARD_OF_HEARING)
-            if spec.periodicUpdate == false then
-                Events.EveryOneMinute.Remove(HearingAid.update)
-                PZHarness.Test.defer(self, function() Events.EveryOneMinute.Add(HearingAid.update) end)
-            end
+            HearingAidTests.setup(self, spec)
         end,
     },
 })
