@@ -16,6 +16,11 @@
 #                                    other change to the mods restarts the game. While it waits it
 #                                    shows and logs "HearingAidTest IDLE"; it quits after 10
 #                                    minutes without a run, or when another run needs the game.
+#   dev/run-debug-client.sh --test --mp [--stay]
+#                                    the same tests in multiplayer: a dedicated server and a client
+#                                    that joins it as the admin (dev/harness/README.md,
+#                                    Multiplayer); with --stay both stay open for the next
+#                                    --test --mp --stay
 #   dev/run-debug-client.sh --art    the same, but instead of the tests the harness saves close-ups
 #                                    of the worn and dropped aids (art_*.png) to <cache>/Screenshots
 #   dev/run-debug-client.sh --promo  the same, but the harness captures the art for the README and
@@ -25,8 +30,8 @@
 #                                    containers hold hearing aids and wristwatches, and the script
 #                                    prints the shares
 #
-# CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client), JAVAC the compiler for
-# ClickToStart.java (default: javac from PATH; any JDK from 8 on works), TIMEOUT the seconds a
-# harness run may take (default 1200), and TESTS, a comma-separated list of test name prefixes,
-# limits --test to those tests (e.g. TESTS=hearingaid_craft_).
+# CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client, -mpclient with --mp),
+# JAVAC the compiler for ClickToStart.java (default: javac from PATH; any JDK from 8 on works),
+# TIMEOUT the seconds a harness run may take (default 1200), and TESTS, a comma-separated list of
+# test name prefixes, limits --test to those tests (e.g. TESTS=hearingaid_craft_).
 . "$(dirname "$0")/harness/bin/run-client.sh"
