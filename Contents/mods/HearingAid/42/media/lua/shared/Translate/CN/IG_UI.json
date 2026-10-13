@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "电池: ",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "无",
+    "IGUI_HearingAid_On": "已开启",
+    "IGUI_HearingAid_OnNotWorn": "已开启 (未佩戴)",
+    "IGUI_HearingAid_Off": "已关闭",
+    "IGUI_HearingAid_BatteryLow": "助听器电量不足",
+    "IGUI_HearingAid_BatteryDead": "助听器电池没电了"
+}

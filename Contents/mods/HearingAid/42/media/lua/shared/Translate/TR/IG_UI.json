@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Pil:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Yok",
+    "IGUI_HearingAid_On": "Açık",
+    "IGUI_HearingAid_OnNotWorn": "Açık (takılı değil)",
+    "IGUI_HearingAid_Off": "Kapalı",
+    "IGUI_HearingAid_BatteryLow": "İşitme cihazının pili azaldı",
+    "IGUI_HearingAid_BatteryDead": "İşitme cihazının pili bitti"
+}

@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Batteri:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Ingen",
+    "IGUI_HearingAid_On": "Skrudd på",
+    "IGUI_HearingAid_OnNotWorn": "Skrudd på (ikke i øret)",
+    "IGUI_HearingAid_Off": "Skrudd av",
+    "IGUI_HearingAid_BatteryLow": "Batteriet i høreapparatet er nesten tomt",
+    "IGUI_HearingAid_BatteryDead": "Batteriet i høreapparatet er tomt"
+}

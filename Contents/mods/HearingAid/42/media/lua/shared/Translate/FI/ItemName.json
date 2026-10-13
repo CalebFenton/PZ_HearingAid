@@ -1,0 +1,10 @@
+{
+    "HearingAid.BrokenHearingAid": "Rikkinäinen kuulolaite",
+    "HearingAid.BrokenHearingAid_Left": "Rikkinäinen kuulolaite",
+    "HearingAid.HearingAid": "Kuulolaite",
+    "HearingAid.HearingAid_Left": "Kuulolaite",
+    "HearingAid.EfficientHearingAid": "Tehokas kuulolaite",
+    "HearingAid.EfficientHearingAid_Left": "Tehokas kuulolaite",
+    "HearingAid.BoostedHearingAid": "Tehostettu kuulolaite",
+    "HearingAid.BoostedHearingAid_Left": "Tehostettu kuulolaite"
+}

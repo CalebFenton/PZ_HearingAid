@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "乾電池:",
+    "IGUI_HearingAid_Charge": "%1 %%",
+    "IGUI_HearingAid_NoBattery": "なし",
+    "IGUI_HearingAid_On": "作動中",
+    "IGUI_HearingAid_OnNotWorn": "作動中(未装着)",
+    "IGUI_HearingAid_Off": "停止中",
+    "IGUI_HearingAid_BatteryLow": "補聴器の電池残量が少ない",
+    "IGUI_HearingAid_BatteryDead": "補聴器の電池が切れた"
+}

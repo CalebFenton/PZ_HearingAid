@@ -76,6 +76,10 @@ The **Hearing Aid** page of the sandbox options holds:
 
 Everything above describes the defaults.
 
+## Languages
+
+Every text the mod shows is translated into each language the game offers, using the game's own terms for traits, items and skills.
+
 ## Development
 
 Clone the repository to `~/Zomboid/Workshop/HearingAid`. With Steam running, the game lists it as a local mod. Read [DEVELOPMENT.md](DEVELOPMENT.md) for the commands that test the mod and rebuild its art, and for the Build 42 behavior it depends on. Rebuilding the art needs [Blender](https://www.blender.org/) and [uv](https://docs.astral.sh/uv/).

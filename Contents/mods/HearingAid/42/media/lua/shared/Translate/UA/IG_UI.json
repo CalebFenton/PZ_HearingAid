@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Батарейка:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Немає",
+    "IGUI_HearingAid_On": "Увімкнено",
+    "IGUI_HearingAid_OnNotWorn": "Увімкнено (не вдягнено)",
+    "IGUI_HearingAid_Off": "Вимкнено",
+    "IGUI_HearingAid_BatteryLow": "Батарейка слухового апарата сідає",
+    "IGUI_HearingAid_BatteryDead": "Батарейка слухового апарата розряджена"
+}

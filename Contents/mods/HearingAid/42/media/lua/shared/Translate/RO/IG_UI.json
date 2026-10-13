@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Baterie:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Niciuna",
+    "IGUI_HearingAid_On": "Pornit",
+    "IGUI_HearingAid_OnNotWorn": "Pornit (nepurtat)",
+    "IGUI_HearingAid_Off": "Oprit",
+    "IGUI_HearingAid_BatteryLow": "Bateria aparatului auditiv este aproape descărcată",
+    "IGUI_HearingAid_BatteryDead": "Bateria aparatului auditiv s-a descărcat"
+}

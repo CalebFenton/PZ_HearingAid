@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Baterie:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Žádná",
+    "IGUI_HearingAid_On": "Zapnuto",
+    "IGUI_HearingAid_OnNotWorn": "Zapnuto (nenasazeno)",
+    "IGUI_HearingAid_Off": "Vypnuto",
+    "IGUI_HearingAid_BatteryLow": "Baterie naslouchátka je téměř vybitá",
+    "IGUI_HearingAid_BatteryDead": "Baterie naslouchátka je vybitá"
+}

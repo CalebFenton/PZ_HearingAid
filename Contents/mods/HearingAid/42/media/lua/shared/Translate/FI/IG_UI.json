@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Akku:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Ei akkua",
+    "IGUI_HearingAid_On": "Päällä",
+    "IGUI_HearingAid_OnNotWorn": "Päällä (ei korvalla)",
+    "IGUI_HearingAid_Off": "Pois päältä",
+    "IGUI_HearingAid_BatteryLow": "Kuulolaitteen akku on vähissä",
+    "IGUI_HearingAid_BatteryDead": "Kuulolaitteen akku on tyhjä"
+}

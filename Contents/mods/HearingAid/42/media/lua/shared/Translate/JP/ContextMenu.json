@@ -1,0 +1,5 @@
+{
+    "ContextMenu_HearingAid_EarRight": "右耳に装着する",
+    "ContextMenu_HearingAid_EarLeft": "左耳に装着する",
+    "ContextMenu_HearingAid_BatteryCharge": "%1(%2 %%)"
+}

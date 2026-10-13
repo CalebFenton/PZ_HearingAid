@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Batteria:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Nessuna",
+    "IGUI_HearingAid_On": "Acceso",
+    "IGUI_HearingAid_OnNotWorn": "Acceso (non indossato)",
+    "IGUI_HearingAid_Off": "Spento",
+    "IGUI_HearingAid_BatteryLow": "Batteria dell'apparecchio acustico quasi scarica",
+    "IGUI_HearingAid_BatteryDead": "Batteria dell'apparecchio acustico esaurita"
+}

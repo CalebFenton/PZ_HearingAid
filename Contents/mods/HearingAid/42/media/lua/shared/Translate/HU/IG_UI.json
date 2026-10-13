@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Akkumulátor:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Nincs",
+    "IGUI_HearingAid_On": "Bekapcsolva",
+    "IGUI_HearingAid_OnNotWorn": "Bekapcsolva (nincs viselve)",
+    "IGUI_HearingAid_Off": "Kikapcsolva",
+    "IGUI_HearingAid_BatteryLow": "A hallókészülék akkumulátora lemerülőben",
+    "IGUI_HearingAid_BatteryDead": "A hallókészülék akkumulátora lemerült"
+}

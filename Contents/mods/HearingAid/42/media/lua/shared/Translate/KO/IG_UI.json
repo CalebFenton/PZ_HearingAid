@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "건전지 : ",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "없음",
+    "IGUI_HearingAid_On": "켜짐",
+    "IGUI_HearingAid_OnNotWorn": "켜짐 (미착용)",
+    "IGUI_HearingAid_Off": "꺼짐",
+    "IGUI_HearingAid_BatteryLow": "보청기 건전지가 부족합니다",
+    "IGUI_HearingAid_BatteryDead": "보청기 건전지가 다 닳았습니다"
+}

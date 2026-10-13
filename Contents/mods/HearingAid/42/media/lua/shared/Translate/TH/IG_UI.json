@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "แบตเตอรี่:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "ไม่มี",
+    "IGUI_HearingAid_On": "เปิดอยู่",
+    "IGUI_HearingAid_OnNotWorn": "เปิดอยู่ (ไม่ได้สวมใส่)",
+    "IGUI_HearingAid_Off": "ปิดอยู่",
+    "IGUI_HearingAid_BatteryLow": "แบตเตอรี่เครื่องช่วยฟังใกล้หมด",
+    "IGUI_HearingAid_BatteryDead": "แบตเตอรี่เครื่องช่วยฟังหมดแล้ว"
+}

@@ -40,9 +40,9 @@ function ISToolTipInv:render()
     local font = self.tooltip:getFont()
     local textManager = getTextManager()
     local lineHeight = textManager:getFontHeight(font)
-    local label = getText("IGUI_HearingAid_Battery") .. ":"
+    local label = getText("IGUI_HearingAid_Battery")
     local barX = PAD + textManager:MeasureStringX(font, label) + PAD
-    local width = math.max(self.width, barX + BAR_WIDTH + PAD + textManager:MeasureStringX(font, "100%") + PAD)
+    local width = math.max(self.width, barX + BAR_WIDTH + PAD + textManager:MeasureStringX(font, getText("IGUI_HearingAid_Charge", 100)) + PAD)
     local top = self.height
     local height = PAD + lineHeight * 2 + PAD
     -- Flip above the tooltip if the strip would leave the screen.
@@ -57,7 +57,7 @@ function ISToolTipInv:render()
     if HearingAid.hasBattery(aid) then
         local charge = HearingAid.getCharge(aid)
         drawBar(self, barX, y + (lineHeight - BAR_HEIGHT) / 2, charge)
-        self:drawText(round(charge * 100) .. "%", barX + BAR_WIDTH + PAD, y, 1.0, 1.0, 1.0, 1.0, font)
+        self:drawText(getText("IGUI_HearingAid_Charge", round(charge * 100)), barX + BAR_WIDTH + PAD, y, 1.0, 1.0, 1.0, 1.0, font)
     else
         self:drawText(getText("IGUI_HearingAid_NoBattery"), barX, y, 0.7, 0.7, 0.7, 1.0, font)
     end

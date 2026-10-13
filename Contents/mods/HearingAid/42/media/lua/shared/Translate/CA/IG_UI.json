@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Pila:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Cap",
+    "IGUI_HearingAid_On": "Engegat",
+    "IGUI_HearingAid_OnNotWorn": "Engegat (no posat)",
+    "IGUI_HearingAid_Off": "Apagat",
+    "IGUI_HearingAid_BatteryLow": "La pila de l'audiòfon està baixa",
+    "IGUI_HearingAid_BatteryDead": "La pila de l'audiòfon s'ha esgotat"
+}

@@ -1,0 +1,10 @@
+{
+    "IGUI_HearingAid_Battery": "Baterai:",
+    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_NoBattery": "Tidak Ada",
+    "IGUI_HearingAid_On": "Hidup",
+    "IGUI_HearingAid_OnNotWorn": "Hidup (tidak dipakai)",
+    "IGUI_HearingAid_Off": "Mati",
+    "IGUI_HearingAid_BatteryLow": "Baterai alat bantu dengar lemah",
+    "IGUI_HearingAid_BatteryDead": "Baterai alat bantu dengar habis"
+}

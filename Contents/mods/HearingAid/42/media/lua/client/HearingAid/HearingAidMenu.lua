@@ -44,7 +44,7 @@ local function addBatteryOptions(context, player, aid)
     local submenu = context:getNew(context)
     context:addSubMenu(option, submenu)
     for _, battery in ipairs(batteries) do
-        local label = battery:getDisplayName() .. " (" .. round(battery:getCurrentUsesFloat() * 100) .. "%)"
+        local label = getText("ContextMenu_HearingAid_BatteryCharge", battery:getDisplayName(), round(battery:getCurrentUsesFloat() * 100))
         submenu:addOption(label, player, queueAction, HearingAidAction.INSERT_BATTERY, aid, battery)
     end
 end

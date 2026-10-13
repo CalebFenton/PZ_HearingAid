@@ -1,4 +1,5 @@
 {
     "ContextMenu_HearingAid_EarRight": "on Right Ear",
-    "ContextMenu_HearingAid_EarLeft": "on Left Ear"
+    "ContextMenu_HearingAid_EarLeft": "on Left Ear",
+    "ContextMenu_HearingAid_BatteryCharge": "%1 (%2%%)"
 }
