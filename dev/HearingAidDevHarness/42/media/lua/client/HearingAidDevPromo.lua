@@ -176,7 +176,7 @@ end
 local function addMatted(name, regions)
     add(function()
         setLevel(0)
-        return 10
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     add(function()
         screenshot("promo_" .. name .. "_k")
@@ -184,7 +184,7 @@ local function addMatted(name, regions)
     end)
     add(function()
         setLevel(1)
-        return 10
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     add(function()
         screenshot("promo_" .. name .. "_w")
@@ -251,7 +251,7 @@ local function addIcons()
             place("trait_" .. trait.name, CharacterTraitDefinition.getCharacterTraitDefinition(trait.trait):getTexture())
         end
         backdrop:addChild(sheet)
-        return 10
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     addMatted("icons", function()
         local regions = {}
@@ -312,14 +312,14 @@ local function addHeads()
         for i, view in ipairs(VIEWS) do
             panels[i] = newModelPanel(left + ((i - 1) % 2) * size, math.floor((i - 1) / 2) * size, size, player, view)
         end
-        return 10
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     for _, look in ipairs(LOOKS) do
         local sex = look.female and "female" or "male"
         local ear = look.female and "left" or "right"
         add(function()
             setLook(player, look)
-            return 30
+            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, tier in ipairs(TIERS) do
             local name = table.concat({ "head", look.name, sex, ear, TIER_NAMES[tier] }, "_")
@@ -332,11 +332,11 @@ local function addHeads()
                     panels[i]:setDirection(view[ear])
                     panels[i]:setCharacter(player)
                 end
-                return 60
+                return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
             end)
             add(function()
                 frozen = true
-                return 5
+                return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
             end)
             addMatted(name, function()
                 local regions = {}
@@ -376,7 +376,7 @@ local function addModels()
             scene.javaObject:fromLua1("setGizmoVisible", "none")
             scene.javaObject:fromLua2("createModel", "aid", "Base.HearingAid_Ground_" .. string.gsub(TIER_NAMES[tier], "^%l", string.upper))
             table.insert(tinted, scene)
-            return 30
+            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         addMatted(name, function()
             return { region(name, scene.width / 2 - 400, scene.height / 2 - 400, 800, 800) }
@@ -410,7 +410,7 @@ local function addTooltips()
             tooltip:setVisible(true)
             tooltips[aid.name] = tooltip
         end
-        return 30
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     -- HearingAidTooltip.lua draws the battery strip below the vanilla tooltip, so each region
     -- reaches past it; compose.py trims the transparent margin.
@@ -449,7 +449,7 @@ local function addWearMenu()
             end
         end
         context.forceVisible = true
-        return 30
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     -- The menu with its Wear submenu open beside it.
     addMatted("menu", function()
@@ -483,13 +483,12 @@ end
 local function addCorpse()
     local player = getPlayer()
     add(function()
-        getGameTime():setTimeOfDay(12)
         setLook(player, LOOKS[2])
         HearingAidDebug.wear(player, HearingAidDebug.addAid(player, HearingAid.BASIC, 0.6, true))
         for _ = 1, 8 do
             getCore():doZoomScroll(0, -1)
         end
-        return 60
+        return HearingAidDevArt.zoomSettled()
     end)
     add(function()
         local square = HearingAidDevArt.groundSquare(player)
@@ -509,7 +508,7 @@ local function addCorpse()
                 loot:selectContainer(button)
             end
         end
-        return 240
+        return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
     end)
     addOpaque("world_corpse", function()
         local x, y = squareCentre(player:getCurrentSquare())
@@ -520,17 +519,20 @@ end
 function HearingAidDevPromo.capture(onDone)
     -- Hides the HUD, the debug console and every other window; the shots add their own.
     ISUIHandler.setVisibleAllUI(false)
+    -- Noon from the start: the world's light takes most of a second to follow the clock, and the
+    -- world shot comes last.
+    getGameTime():setTimeOfDay(12)
     addIcons()
     addHeads()
     addModels()
     addTooltips()
     addWearMenu()
     addCorpse()
-    HearingAidDevArt.runSteps(steps, function()
+    HearingAidDevArt.runSteps(steps, HearingAidDevArt.withFastUI(function()
         writeJson("HearingAidPromo.json", {
             screen = { w = getCore():getScreenWidth(), h = getCore():getScreenHeight() },
             shots = shots,
         })
         onDone()
-    end)
+    end))
 end

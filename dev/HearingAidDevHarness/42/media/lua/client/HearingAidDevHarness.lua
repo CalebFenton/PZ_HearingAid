@@ -38,10 +38,10 @@ PZHarness.register({
     scenario = "HearingAidScenario",
     prefix = "hearingaid_",
     modes = {
-        -- Their steps wait fixed tick counts for the models and the zoom to settle, so they keep
-        -- 60 frames a second.
-        art = { run = function(_, done) HearingAidDevArt.capture(done) end },
-        promo = { run = function(_, done) HearingAidDevPromo.capture(done) end },
+        -- Both wait on the UI's drawings and the zoom rather than on frame counts, so they draw
+        -- uncapped.
+        art = { uncapped = true, run = function(_, done) HearingAidDevArt.capture(done) end },
+        promo = { uncapped = true, run = function(_, done) HearingAidDevPromo.capture(done) end },
         loot = { run = reportLoot },
     },
     tests = {

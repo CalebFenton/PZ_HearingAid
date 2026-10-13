@@ -55,6 +55,38 @@ function HearingAidDevArt.groundSquare(player)
     return here
 end
 
+-- UI drawings for a change to reach the screen.
+HearingAidDevArt.DRAW_FRAMES = 10
+-- UI drawings for a preview to show a new look or model. Models load on another thread, which Lua
+-- can't watch, and a preview keeps drawing the old model until the new one has loaded.
+HearingAidDevArt.MODEL_FRAMES = 10
+
+-- The UI draws at its own rate (Core.StartFrameUI, the uiRenderFPS option) and the frames in
+-- between show its last drawing, so the steps count its drawings rather than frames.
+local uiDraws = 0
+Events.OnPostUIDraw.Add(function()
+    uiDraws = uiDraws + 1
+end)
+
+--- A runSteps wait until the UI has drawn `count` more times.
+function HearingAidDevArt.drawn(count)
+    local start = uiDraws
+    return function()
+        return uiDraws - start >= count
+    end
+end
+
+--- A runSteps wait until the zoom stops changing, which eases towards its target every frame.
+function HearingAidDevArt.zoomSettled()
+    local last
+    return function()
+        local zoom = getCore():getZoom(0)
+        local settled = zoom == last
+        last = zoom
+        return settled
+    end
+end
+
 -- A row of preview panels on an opaque backdrop across the middle of the screen.
 local function createPanels(player)
     local size = math.floor(getCore():getScreenWidth() / #DIRECTIONS)
@@ -78,10 +110,17 @@ local function createPanels(player)
     return backdrop, panels
 end
 
--- Runs each step on its own tick, then waits as many ticks as the step returns.
+-- Runs each step on its own tick, then waits before the next: as many ticks as the step returns,
+-- or, if it returns a function, until that function returns true.
 function HearingAidDevArt.runSteps(steps, onDone)
-    local index, wait = 1, 0
+    local index, wait, poll = 1, 0, nil
     local function onTick()
+        if poll then
+            if poll() then
+                poll = nil
+            end
+            return
+        end
         if wait > 0 then
             wait = wait - 1
             return
@@ -93,9 +132,25 @@ function HearingAidDevArt.runSteps(steps, onDone)
             return
         end
         index = index + 1
-        wait = step() or 0
+        local result = step()
+        if type(result) == "function" then
+            poll = result
+        else
+            wait = result or 0
+        end
     end
     Events.OnTick.Add(onTick)
+end
+
+--- Draws the UI as often as the option allows, rather than at the player's chosen rate, and
+--- returns `onDone` wrapped to put that rate back first, so no saved options keep it.
+function HearingAidDevArt.withFastUI(onDone)
+    local fps = getCore():getOptionUIRenderFPS()
+    getCore():setOptionUIRenderFPS(120)
+    return function()
+        getCore():setOptionUIRenderFPS(fps)
+        onDone()
+    end
 end
 
 function HearingAidDevArt.capture(onDone)
@@ -108,13 +163,13 @@ function HearingAidDevArt.capture(onDone)
 
     add(function()
         backdrop, panels = createPanels(player)
-        return 10
+        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
     end)
     for _, female in ipairs({ false, true }) do
         local sex = female and "female" or "male"
         add(function()
             setLook(player, female)
-            return 30
+            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, fullType in ipairs(AIDS) do
             add(function()
@@ -123,7 +178,7 @@ function HearingAidDevArt.capture(onDone)
                 for _, panel in ipairs(panels) do
                     panel:setCharacter(player)
                 end
-                return 60
+                return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
             end)
             add(function()
                 local itemType = string.match(fullType, "%.(.+)$")
@@ -143,12 +198,16 @@ function HearingAidDevArt.capture(onDone)
         for _ = 1, 8 do
             getCore():doZoomScroll(0, -1)
         end
-        return 240
+        return HearingAidDevArt.zoomSettled()
+    end)
+    -- The world draws every frame, the item models once they have loaded.
+    add(function()
+        return HearingAidDevArt.DRAW_FRAMES
     end)
     add(function()
         getCore():TakeFullScreenshot("art_ground.png")
         print("HearingAidArt saved art_ground.png")
         return 10
     end)
-    HearingAidDevArt.runSteps(steps, onDone)
+    HearingAidDevArt.runSteps(steps, HearingAidDevArt.withFastUI(onDone))
 end
