@@ -528,11 +528,11 @@ function HearingAidDevPromo.capture(onDone)
     addTooltips()
     addWearMenu()
     addCorpse()
-    HearingAidDevArt.runSteps(steps, HearingAidDevArt.withFastUI(function()
+    HearingAidDevArt.runSteps(steps, function()
         writeJson("HearingAidPromo.json", {
             screen = { w = getCore():getScreenWidth(), h = getCore():getScreenHeight() },
             shots = shots,
         })
         onDone()
-    end))
+    end)
 end

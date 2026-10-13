@@ -39,9 +39,9 @@ PZHarness.register({
     prefix = "hearingaid_",
     modes = {
         -- Both wait on the UI's drawings and the zoom rather than on frame counts, so they draw
-        -- uncapped.
-        art = { uncapped = true, run = function(_, done) HearingAidDevArt.capture(done) end },
-        promo = { uncapped = true, run = function(_, done) HearingAidDevPromo.capture(done) end },
+        -- uncapped, and their world shots show a clear day.
+        art = { uncapped = true, clearWeather = true, fastUI = true, run = function(_, done) HearingAidDevArt.capture(done) end },
+        promo = { uncapped = true, clearWeather = true, fastUI = true, run = function(_, done) HearingAidDevPromo.capture(done) end },
         loot = { run = reportLoot },
     },
     tests = {

@@ -142,17 +142,6 @@ function HearingAidDevArt.runSteps(steps, onDone)
     Events.OnTick.Add(onTick)
 end
 
---- Draws the UI as often as the option allows, rather than at the player's chosen rate, and
---- returns `onDone` wrapped to put that rate back first, so no saved options keep it.
-function HearingAidDevArt.withFastUI(onDone)
-    local fps = getCore():getOptionUIRenderFPS()
-    getCore():setOptionUIRenderFPS(120)
-    return function()
-        getCore():setOptionUIRenderFPS(fps)
-        onDone()
-    end
-end
-
 function HearingAidDevArt.capture(onDone)
     local player = getPlayer()
     local backdrop, panels
@@ -209,5 +198,5 @@ function HearingAidDevArt.capture(onDone)
         print("HearingAidArt saved art_ground.png")
         return 10
     end)
-    HearingAidDevArt.runSteps(steps, HearingAidDevArt.withFastUI(onDone))
+    HearingAidDevArt.runSteps(steps, onDone)
 end
