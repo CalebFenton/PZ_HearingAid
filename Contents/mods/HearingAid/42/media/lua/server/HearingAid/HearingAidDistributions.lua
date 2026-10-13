@@ -3,8 +3,9 @@ require "Items/ProceduralDistributions"
 require "HearingAid/HearingAid"
 
 -- Hearing aids spawn where their owners kept them in 1993, and most turn up on the dead.
--- hearingaid_corpse_loot holds the corpse weights against the wristwatches on the same corpses, and
--- dev/run-debug-client.sh --loot measures every list here.
+-- hearingaid_corpse_loot checks that ordinary corpses carry broken aids more often than working
+-- ones, and retirees carry aids more often than they do; dev/run-debug-client.sh --loot measures
+-- every list here.
 
 -- Weights are { broken, basic, efficient }. Any positive weight spawns at least 1 in 10,000 per
 -- roll, so the efficient weight in containers is as small as it gets. Physicians' offices sold new

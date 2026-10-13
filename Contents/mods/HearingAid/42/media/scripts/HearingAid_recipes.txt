@@ -21,7 +21,7 @@ module HearingAid
         Tags = AnySurfaceCraft,
         category = Electrical,
         SkillRequired = Electricity:2,
-        xpAward = Electricity:10,
+        xpAward = Electricity:20,
         AllowBatchCraft = false,
         OnCreate = HearingAid.Recipes.transferState,
         inputs
@@ -47,7 +47,7 @@ module HearingAid
         Tags = AnySurfaceCraft,
         category = Electrical,
         SkillRequired = Electricity:4,
-        xpAward = Electricity:15,
+        xpAward = Electricity:40,
         AllowBatchCraft = false,
         OnCreate = HearingAid.Recipes.transferState,
         inputs
@@ -73,7 +73,7 @@ module HearingAid
         Tags = AnySurfaceCraft,
         category = Electrical,
         SkillRequired = Electricity:8,
-        xpAward = Electricity:25,
+        xpAward = Electricity:80,
         AllowBatchCraft = false,
         OnTest = HearingAid_isBoostEnabled,
         OnAddToMenu = HearingAid_isBoostEnabled,

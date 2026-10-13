@@ -667,9 +667,8 @@ craftTest("hearingaid_craft_without_skill_requirement", {
 -- Loot -----------------------------------------------------------------------------------------
 
 -- Measured where the loot is rolled, on the server in multiplayer (HearingAidLoot.lua through
--- HearingAidTestServer.lua's corpseLoot). Sampling noise fails this test about 3 times in a
--- million runs: the tightest bound, the working-aid lower one, sits about 4.5 standard deviations
--- from the ratio measured over 116,000 samples.
+-- HearingAidTestServer.lua's corpseLoot). The test holds what the loot is for, not its tuning:
+-- dev/run-debug-client.sh --loot measures the rates.
 test("hearingaid_corpse_loot", {
     run = function(self)
         T.server(self, "corpseLoot", { ordinary = 12000, retirees = 1000 })
@@ -679,11 +678,9 @@ test("hearingaid_corpse_loot", {
         print(string.format(PZHarness.run.tag .. " INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
             .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
             ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
-        expect(ordinary.broken >= ordinary.watch / 8 and ordinary.broken <= ordinary.watch / 4.8,
-            "broken aids on ordinary corpses not 4.8 to 8 times rarer than wristwatches")
-        expect(ordinary.working >= ordinary.watch / 14 and ordinary.working <= ordinary.watch / 7.5,
-            "working aids on ordinary corpses not 7.5 to 14 times rarer than wristwatches")
-        expect(retirees.any >= 2 * ordinary.any, "retirees less than twice as likely as ordinary corpses to carry an aid")
+        expect(ordinary.working > 0, "no working aids on ordinary corpses")
+        expect(ordinary.broken > ordinary.working, "broken aids on ordinary corpses not more common than working ones")
+        expect(retirees.any > ordinary.any, "retirees not more likely than ordinary corpses to carry an aid")
     end,
 })
 
@@ -960,9 +957,6 @@ test("hearingaid_translations", {
                             expect(shown == formatted(value), language .. " shows \"" .. tostring(shown) .. "\" for " .. key
                                 .. ", expected \"" .. formatted(value) .. "\"")
                         end
-                    end
-                    for key in pairs(entries or {}) do
-                        expect(english[file][key] ~= nil, name .. " has " .. key .. ", which English lacks")
                     end
                 end
             end

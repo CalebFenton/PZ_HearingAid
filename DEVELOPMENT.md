@@ -1,6 +1,21 @@
 # Developer notes
 
-What to run for each job, and Project Zomboid Build 42 behavior that the mod's code can't show you. Each game fact names its source in the decompiled 42.21.0 Java or the vanilla Lua, so you can check it again after a game update. Published modding docs mostly describe Build 41; when they disagree with the game files, trust the game files.
+What to run, and how Project Zomboid Build 42 behaves where the mod's code can't show you.
+
+What belongs here:
+
+- Commands: what to run for each job, what it needs, and how it fails.
+- Game behavior the mod depends on that fails silently or isn't obvious from the code. Each fact names its source in the decompiled 42.21.0 Java or the vanilla Lua, so it can be checked again after a game update. Published modding docs mostly describe Build 41; when they disagree with the game files, trust the game files.
+- Tips for debugging and writing tests that hold for any change, and the Workshop and release steps.
+
+What doesn't:
+
+- How the mod's own code or tests work. Put that in comments beside the code.
+- The mod's own numbers: loot rates, XP, battery hours, test counts, run times that grow with the suite. The code and the commands' output hold them, and a copy here goes stale.
+- Why a design or value was chosen, or what changed. That goes in the commit message.
+- Notes from one task, and anything not checked against the game files.
+
+Before adding a line, ask whether someone changing the mod a year from now, with the code open, would get something wrong without it.
 
 ## Commands
 
@@ -125,7 +140,6 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 - Debug builds parse strict JSON, without comments or trailing commas. A file that doesn't parse throws from `Translator.loadFiles`, which runs when the game starts, a game loads, or the language changes.
 - Values are Java format strings (`Translator.formatFixer`): `%1`, `%2` take `getText(key, a, b)`'s arguments, and `%%` is a literal percent sign. A whole Lua number formats without a decimal point (`Translator.fixupArgs`). Let translators place numbers and punctuation (`"%1%%"`, `"Battery:"`) instead of concatenating them in Lua: French writes `Pile :`, Danish `50 %`.
 - Vanilla keys such as `ContextMenu_Turn_On`, `ContextMenu_AddBattery`, and `ContextMenu_Remove_Battery` are already translated into every language. For terms the mod shares with the game (traits, items, skills, the wristwatch's `ContextMenu_LeftWrist`), look up the vanilla key's value in the game's folder of that language. The `glossary.tbx` files there are nearly empty.
-- `hearingaid_translations` loads every language and fails on a missing file or key, a key English lacks, a value whose format tokens differ from English, or a value the game doesn't show. It reads one entry per line, so keep the files formatted that way.
 - `Translator.loadFiles` in a running game changes what `getText` returns, but items keep the names their scripts got when the game started. To see the mod in another language, set `language=` in `options.ini` of the debug client's cache (`$TMPDIR/pz-hearingaid-client`) before starting it.
 
 ## Lua runtime
