@@ -15,6 +15,7 @@ ImageMagick's `magick` flattens. Every README image is 1260 pixels wide, which t
 shows at 630, so it stays sharp on high-density screens. Interface captures and icons are scaled by
 whole numbers with nearest-neighbour sampling, so their pixels stay crisp. Item names and the other
 text the game shows come from captures/promo.json, which the game wrote in the last --promo run.
+gallery/NN-*.jpg are the Workshop gallery's 1920x1080 slides, one caption each, in upload order.
 """
 import json
 import subprocess
@@ -26,6 +27,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 HERE = Path(__file__).resolve().parent
 CAPTURES = HERE / "captures"
 OUT = HERE / "images"
+GALLERY = HERE / "gallery"
 FONT = HERE / "fonts" / "NotoSans.ttf"
 REPO = HERE.parent.parent
 MOD = REPO / "Contents" / "mods" / "HearingAid" / "42"
@@ -35,6 +37,9 @@ DRAWING = HERE.parent / "drawings" / "hearing_aid.xcf"
 POSTER_FILES = [MOD / "poster.png", REPO / "preview.png"]
 POSTER_SIZE = 512
 PREVIEW_BYTES = 1_024_000
+# Steam shows the gallery at 16:9 and rejects a preview file of 1 MB or more (ISteamUGC::AddItemPreviewFile).
+GALLERY_SIZE = (1920, 1080)
+GALLERY_BYTES = 1_000_000
 PROMO = json.loads((CAPTURES / "promo.json").read_text())
 NAMES = PROMO["names"]
 STRINGS = PROMO["strings"]
@@ -247,11 +252,7 @@ def tiers():
         x = i * column + column / 2
         panel(image, (i * column + 10, 14, (i + 1) * column - 10, 706), colour)
         paste(image, fit(trim(capture(f"model_{tier}")), 240, 190), (x, 140))
-        ear = fraction(capture(f"head_plain_male_right_{tier}_back_close", border=2), EAR_BOX)
-        ear = fit(ear, 270, 270)
-        mask = Image.new("L", ear.size, 0)
-        ImageDraw.Draw(mask).rounded_rectangle((0, 0, ear.width - 1, ear.height - 1), 14, fill=255)
-        ear.putalpha(Image.composite(ear.getchannel("A"), mask, mask))
+        ear = close_ear(tier, 270)
         paste(image, ear, (x, 400), shadow=False)
         paste(image, pixels(capture(f"icon_{tier}"), 3), (x, 600), shadow=False)
         text(image, (x, 674), NAMES[tier], 22, "SemiBold", anchor="mm")
@@ -265,29 +266,53 @@ def ears():
         head = fit(trim(capture(f"head_styled_{sex}_{ear}_{tier}_side", border=2)), 460, 400)
         paste(image, head, (x, 225), shadow=False)
         text(image, (x, 455), label, 26, "SemiBold", anchor="mm")
-    # The Wear row and its submenu: the top of the menu, as tall as the submenu at its right edge.
-    menu = trim(capture("menu_wear"))
-    submenu_height = menu.getchannel("A").crop((menu.width - 4, 0, menu.width - 3, menu.height)).getbbox()[3]
-    menu = pixels(menu.crop((0, 0, menu.width, submenu_height)), 2)
+    menu = pixels(wear_menu(), 2)
     paste(image, menu, (WIDTH / 2, 560))
     return image
 
 
+def close_ear(tier, size):
+    """The aid on the plain head's right ear, seen close from behind, with rounded corners."""
+    ear = fraction(capture(f"head_plain_male_right_{tier}_back_close", border=2), EAR_BOX)
+    ear = fit(ear, size, size)
+    mask = Image.new("L", ear.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, ear.width - 1, ear.height - 1), 14, fill=255)
+    ear.putalpha(Image.composite(ear.getchannel("A"), mask, mask))
+    return ear
+
+
+def wear_menu():
+    """The Wear row and its submenu: the top of the menu, as tall as the submenu at its right edge."""
+    menu = trim(capture("menu_wear"))
+    submenu_height = menu.getchannel("A").crop((menu.width - 4, 0, menu.width - 3, menu.height)).getbbox()[3]
+    return menu.crop((0, 0, menu.width, submenu_height))
+
+
+def tooltip_captures(factor):
+    return [pixels(trim(capture(f"tooltip_{name}")), factor) for name in ("basic", "boosted", "broken")]
+
+
+def tooltips(base, captures, top, gap):
+    """The working tooltips side by side, over the broken one, centred across base."""
+    basic, boosted, broken = captures
+    left = (base.width - (basic.width + gap + boosted.width)) // 2
+    base.alpha_composite(basic, (left, top))
+    base.alpha_composite(boosted, (left + basic.width + gap, top))
+    base.alpha_composite(broken, ((base.width - broken.width) // 2, top + basic.height + gap))
+
+
 def interface():
-    basic, boosted, broken = (pixels(trim(capture(f"tooltip_{name}")), 2) for name in ("basic", "boosted", "broken"))
+    captures = tooltip_captures(2)
     gap = 40
-    image = canvas(basic.height + broken.height + 3 * gap)
-    row = basic.width + gap + boosted.width
-    image.alpha_composite(basic, ((WIDTH - row) // 2, gap))
-    image.alpha_composite(boosted, ((WIDTH - row) // 2 + basic.width + gap, gap))
-    image.alpha_composite(broken, ((WIDTH - broken.width) // 2, 2 * gap + basic.height))
+    image = canvas(captures[0].height + captures[2].height + 3 * gap)
+    tooltips(image, captures, gap, gap)
     return image
 
 
-def item(base, name, label, centre, factor=2):
+def item(base, name, label, centre, factor=2, size=19):
     icon = pixels(capture(f"icon_{name}"), factor)
     paste(base, icon, centre, shadow=False)
-    text(base, (centre[0], centre[1] + icon.height / 2 + 10), label, 19, "Medium", MUTED, "ma")
+    text(base, (centre[0], centre[1] + icon.height / 2 + 10), label, size, "Medium", MUTED, "ma")
 
 
 def recipes():
@@ -317,11 +342,125 @@ def corpse():
     return shot.resize((WIDTH, round(shot.height * WIDTH / shot.width)), Image.LANCZOS)
 
 
+# Gallery -----------------------------------------------------------------------------------------
+# Steam shows each slide at 636x358, so the caption is large and sits in the same top band on every
+# slide; the content fills the area below it, between CONTENT_TOP and CONTENT_BOTTOM.
+
+CONTENT_TOP = 150
+CONTENT_BOTTOM = 1050
+
+
+def slide(caption):
+    image = canvas(GALLERY_SIZE[1], GALLERY_SIZE[0])
+    text(image, (GALLERY_SIZE[0] / 2, CONTENT_TOP / 2), caption, 60, "Bold", anchor="mm")
+    return image
+
+
+def hero_slide():
+    image = slide(STRINGS["modName"])
+    positions = [(330, 540), (750, 700), (1170, 540), (1590, 700)]
+    for tier, centre in zip(TIERS, positions):
+        paste(image, fit(trim(capture(f"model_{tier}")), 500, 460), centre)
+    return image
+
+
+def tiers_slide():
+    image = slide("From broken to boosted.")
+    column = GALLERY_SIZE[0] // len(TIERS)
+    for i, (tier, colour) in enumerate(TIERS.items()):
+        x = i * column + column / 2
+        panel(image, (i * column + 14, CONTENT_TOP, (i + 1) * column - 14, CONTENT_BOTTOM), colour)
+        paste(image, fit(trim(capture(f"model_{tier}")), 300, 210), (x, 275))
+        paste(image, close_ear(tier, 370), (x, 580), shadow=False)
+        paste(image, pixels(capture(f"icon_{tier}"), 4), (x, 855), shadow=False)
+        text(image, (x, 970), NAMES[tier], 30, "SemiBold", anchor="mm")
+    return image
+
+
+def ears_slide():
+    image = slide("Wear it on either ear.")
+    sides = [("male", "right", "basic", STRINGS["rightEar"], 470), ("female", "left", "efficient", STRINGS["leftEar"], 1450)]
+    for sex, ear, tier, label, x in sides:
+        head = fit(trim(capture(f"head_styled_{sex}_{ear}_{tier}_side", border=2)), 560, 540)
+        paste(image, head, (x, 435), shadow=False)
+        text(image, (x, 760), label, 36, "SemiBold", anchor="mm")
+    paste(image, pixels(wear_menu(), 3), (GALLERY_SIZE[0] / 2, 930))
+    return image
+
+
+def tooltips_slide():
+    image = slide("Check the battery before you trust it.")
+    captures = tooltip_captures(3)
+    gap = 60
+    height = captures[0].height + gap + captures[2].height
+    tooltips(image, captures, (CONTENT_TOP + CONTENT_BOTTOM - height) // 2, gap)
+    return image
+
+
+def corpse_slide():
+    image = slide("Most are still on their late owners.")
+    # 1.5 times is as far as the world's pixel art scales before it turns soft. The crop is a little
+    # taller than CORPSE_BOX, to keep the loot window's title bar.
+    shot = Image.open(CAPTURES / "world_corpse.png").convert("RGBA").crop((110, 70, 1010, 576))
+    shot = shot.resize((shot.width * 3 // 2, shot.height * 3 // 2), Image.LANCZOS)
+    mask = Image.new("L", shot.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, shot.width - 1, shot.height - 1), 18, fill=255)
+    shot.putalpha(mask)
+    paste(image, shot, (GALLERY_SIZE[0] / 2, (CONTENT_TOP + CONTENT_BOTTOM) / 2))
+    return image
+
+
+def recipes_slide():
+    """The recipe sheet with the tools in a column at the left, so the icons fit at three times."""
+    image = slide("Repair it, then upgrade it twice.")
+    panel(image, (40, CONTENT_TOP, 500, CONTENT_BOTTOM))
+    text(image, (80, 220), "Tools", 44, "Bold")
+    text(image, (80, 280), "for every recipe, at a\ntable with enough light", 26, "Medium", MUTED)
+    for i, (name, before) in enumerate(TOOLS):
+        item(image, name, wrap(before + NAMES[name]), (160 + i % 2 * 220, 480 + i // 2 * 200), 3, 24)
+    row = (CONTENT_BOTTOM - CONTENT_TOP + 20) // len(RECIPES)
+    for r, (name, level, source, parts, result) in enumerate(RECIPES):
+        top = CONTENT_TOP + r * row
+        panel(image, (530, top, GALLERY_SIZE[0] - 40, top + row - 20), TIERS[result])
+        text(image, (570, top + 95), name, 44, "Bold")
+        text(image, (570, top + 160), f"{STRINGS['electrical']} {level}", 28, "Medium", MUTED)
+        inputs = [(source, tier_label(source))] + [(part, wrap(NAMES[part]) + after) for part, after in parts]
+        for j, (part, label) in enumerate(inputs):
+            item(image, part, label, (850 + j * 140, top + 115), 3, 22)
+        x = 850 + len(inputs) * 140 - 30
+        arrow(image, (x, top + 115))
+        item(image, result, tier_label(result), (x + 120, top + 115), 4, 22)
+    return image
+
+
+def save_gallery():
+    """Writes the slides in upload order and removes any other file, so the folder is the gallery."""
+    GALLERY.mkdir(exist_ok=True)
+    written = set()
+    slides = [("hero", hero_slide), ("tiers", tiers_slide), ("ears", ears_slide), ("tooltips", tooltips_slide),
+              ("corpse", corpse_slide), ("recipes", recipes_slide)]
+    for number, (name, make) in enumerate(slides, 1):
+        image = make()
+        assert image.size == GALLERY_SIZE
+        path = GALLERY / f"{number:02}-{name}.jpg"
+        # Full-resolution colour keeps the captions' and tooltips' edges clean.
+        image.convert("RGB").save(path, quality=90, subsampling=0, optimize=True)
+        assert path.stat().st_size < GALLERY_BYTES, f"{path.name} is over Steam's {GALLERY_BYTES} bytes"
+        written.add(path)
+        print(f"compose: {path.relative_to(REPO)} {image.width}x{image.height} {path.stat().st_size} bytes")
+    for path in GALLERY.iterdir():
+        if path not in written:
+            path.unlink()
+
+
+
+
 def main():
     for name, make in [("banner", banner), ("tiers", tiers), ("ears", ears), ("interface", interface),
                        ("recipes", recipes), ("corpse", corpse)]:
         save(make(), name)
     save_poster(poster())
+    save_gallery()
     mod_icon = icon()
     mod_icon.save(MOD / "hearing_aid_icon.png", optimize=True)
     print(f"compose: {(MOD / 'hearing_aid_icon.png').relative_to(REPO)} {mod_icon.width}x{mod_icon.height}")

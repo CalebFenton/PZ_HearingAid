@@ -30,9 +30,10 @@ The scripts in `dev/` are entry points into the shared test harness in `dev/harn
 - `dev/run-debug-client.sh --test --mp`: the same tests against a dedicated server; add `--stay` to keep both open. `dev/harness/docs/multiplayer.md` explains the server channel.
 - `dev/run-debug-client.sh --loot`: prints how often each kind of corpse and container holds a wristwatch and each hearing aid model. Run it after changing loot.
 - `dev/workshop-txt.sh`: writes `workshop.txt`'s description from `README.md`, leaving out the sections `WORKSHOP_SKIP` in `dev/harness.conf` names.
+- `dev/workshop-gallery.sh`: lists the Workshop item's gallery; `--upload` replaces its images with `art/promo/gallery`'s. Needs Steam running.
 - `art/models/make.sh`: rebuilds the models and textures with Blender; previews land in `$TMPDIR/hearing-aid-previews`. `--export` skips `build.py`, which would overwrite hand edits in `hearing_aid.blend`.
 - `dev/run-debug-client.sh --art`: saves in-game close-ups of the worn and dropped hearing aids to `<cache>/Screenshots`; `HearingAidDevArt.lua` in the dev mod lists the shots. In the front view, the right ear is on the left of the picture.
-- `dev/run-debug-client.sh --promo`, then `art/promo/compose.py`: shoots the README and Workshop art into `art/promo/captures`, then lays it out into `art/promo/images`, `42/poster.png`, `preview.png` and the mod list icon. `HearingAidDevPromo.lua` in the dev mod lists the shots. Commit the captures, so a layout change needs only `compose.py`. The item names and other game text in the images come from the game too, so a renamed item or option needs a new `--promo`. `compose.py` needs ImageMagick's `magick` for the icon.
+- `dev/run-debug-client.sh --promo`, then `art/promo/compose.py`: shoots the README and Workshop art into `art/promo/captures`, then lays it out into `art/promo/images`, the Workshop gallery in `art/promo/gallery`, `42/poster.png`, `preview.png` and the mod list icon. `HearingAidDevPromo.lua` in the dev mod lists the shots. Commit the captures, so a layout change needs only `compose.py`. The item names and other game text in the images come from the game too, so a renamed item or option needs a new `--promo`. `compose.py` needs ImageMagick's `magick` for the icon.
 - `PROMO=<group>,... dev/run-debug-client.sh --promo`: reshoots only those groups (`MODE_GROUPS_promo` in `dev/harness.conf`) and replaces only their captures. Reshoot the group you are changing, then check `git status art/promo/captures`.
 
 ## Debugging by hand
@@ -216,4 +217,4 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 1. `dev/static-check.sh`, `dev/validate-server.sh` and `dev/run-debug-client.sh --test` must pass. Then run what fits the change: `--art` for models, `--promo` and `compose.py` for art or the interface, `--loot` for loot.
 2. Bump `modversion` in `42/mod.info`. Raise `versionMin` when the mod starts depending on a newer game version; lower it only after testing on the older version.
 3. Update `README.md`, then run `dev/workshop-txt.sh`.
-4. Upload from the in-game Workshop screen.
+4. Upload from the in-game Workshop screen, then `dev/workshop-gallery.sh --upload` if the gallery changed.
