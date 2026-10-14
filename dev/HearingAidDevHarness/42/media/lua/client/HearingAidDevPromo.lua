@@ -1,12 +1,12 @@
 -- Development only; dev/run-debug-client.sh --promo runs it instead of the tests. It saves the raw
 -- art that art/promo/compose.py lays out for the README and the Workshop page: screenshots named
 -- promo_<shot>.png in <cachedir>/Screenshots, and <cachedir>/Lua/HearingAidPromo.json, which names
--- the regions of every screenshot. Shots of anything but the world are taken twice, on black
--- (promo_<shot>_k.png) and on white (promo_<shot>_w.png), so that art/promo/extract.py can recover
--- how transparent each pixel is.
+-- the regions of every screenshot and holds the item and option names in the game's language.
+-- Shots of anything but the world are taken twice, on black (promo_<shot>_k.png) and on white
+-- (promo_<shot>_w.png), so that art/promo/extract.py can recover how transparent each pixel is.
 require "ISUI/ISUI3DModel"
 require "Vehicles/ISUI/ISUI3DScene"
-require "HearingAid/Debug/HearingAidDebug"
+local Debug = require "HearingAid/Debug/HearingAidDebug"
 require "HearingAidDevArt"
 
 HearingAidDevPromo = {}
@@ -327,7 +327,7 @@ local function addHeads()
                 frozen = false
                 HearingAidDevArt.takeOffAids(player)
                 local fullType = look.female and HearingAid.leftEarType(tier) or tier
-                HearingAidDebug.wear(player, player:getInventory():AddItem(fullType))
+                Debug.wear(player, player:getInventory():AddItem(fullType))
                 for i, view in ipairs(VIEWS) do
                     panels[i]:setDirection(view[ear])
                     panels[i]:setCharacter(player)
@@ -393,11 +393,11 @@ local function addTooltips()
     add(function()
         newBackdrop()
         HearingAidDevArt.takeOffAids(player)
-        local worn = HearingAidDebug.addAid(player, HearingAid.BOOSTED, 0.73, true)
-        HearingAidDebug.wear(player, worn)
+        local worn = Debug.addAid(player, HearingAid.BOOSTED, 0.73, true)
+        Debug.wear(player, worn)
         local aids = {
-            { name = "tooltip_broken", item = HearingAidDebug.addAid(player, HearingAid.BROKEN, nil, false) },
-            { name = "tooltip_basic", item = HearingAidDebug.addAid(player, HearingAid.BASIC, 0.4, false) },
+            { name = "tooltip_broken", item = Debug.addAid(player, HearingAid.BROKEN, nil, false) },
+            { name = "tooltip_basic", item = Debug.addAid(player, HearingAid.BASIC, 0.4, false) },
             { name = "tooltip_boosted", item = worn },
         }
         for i, aid in ipairs(aids) do
@@ -436,7 +436,7 @@ local function addWearMenu()
     local context
     add(function()
         newBackdrop()
-        local aid = HearingAidDebug.addAid(player, HearingAid.BASIC, 0.8, false)
+        local aid = Debug.addAid(player, HearingAid.BASIC, 0.8, false)
         -- Away from the mouse, which would otherwise move the highlight.
         local x = getMouseX() < getCore():getScreenWidth() / 2 and 1300 or 300
         context = ISInventoryPaneContextMenu.createMenu(0, true, { aid }, x, 300)
@@ -484,7 +484,7 @@ local function addCorpse()
     local player = getPlayer()
     add(function()
         setLook(player, LOOKS[2])
-        HearingAidDebug.wear(player, HearingAidDebug.addAid(player, HearingAid.BASIC, 0.6, true))
+        Debug.wear(player, Debug.addAid(player, HearingAid.BASIC, 0.6, true))
         for _ = 1, 8 do
             getCore():doZoomScroll(0, -1)
         end
@@ -529,9 +529,21 @@ function HearingAidDevPromo.capture(onDone)
     addWearMenu()
     addCorpse()
     HearingAidDevArt.runSteps(steps, function()
+        -- The layout's text, in the game's words, so a renamed item or option shows in the images.
+        local names = {}
+        for _, icon in ipairs(ICONS) do
+            names[icon.name] = getItemNameFromFullType(icon.fullType)
+        end
         writeJson("HearingAidPromo.json", {
             screen = { w = getCore():getScreenWidth(), h = getCore():getScreenHeight() },
             shots = shots,
+            names = names,
+            strings = {
+                modName = getText("Sandbox_HearingAid"),
+                rightEar = getText("ContextMenu_HearingAid_EarRight"),
+                leftEar = getText("ContextMenu_HearingAid_EarLeft"),
+                electrical = Perks.Electricity:getName(),
+            },
         })
         onDone()
     end)

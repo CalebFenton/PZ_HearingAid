@@ -4,11 +4,12 @@
 # dependencies = ["numpy", "pillow"]
 # ///
 """Crops the screenshots that `dev/run-debug-client.sh --promo` saves into the named images that
-compose.py lays out. The client script runs it; by hand:
+compose.py lays out, and saves the item and option names the game reported as captures/promo.json.
+The client script runs it; by hand:
 
     art/promo/extract.py <cache dir>
 
-Every image in captures/ is replaced. The harness takes each shot of something other than the world
+Everything in captures/ is replaced. The harness takes each shot of something other than the world
 twice, on black and on white: a pixel that reads k on black and w on white has alpha a = 1 - (w - k)
 and colour k / a.
 """
@@ -53,7 +54,9 @@ def main():
             box = [round(v * scale) for v in (r["x"], r["y"], r["x"] + r["w"], r["y"] + r["h"])]
             image.crop(box).save(CAPTURES / f"{r['name']}.png", optimize=True)
             count += 1
-    print(f"extract: {count} images in {CAPTURES}")
+    promo = {key: manifest[key] for key in ("names", "strings")}
+    (CAPTURES / "promo.json").write_text(json.dumps(promo, indent=4, sort_keys=True, ensure_ascii=False) + "\n")
+    print(f"extract: {count} images and promo.json in {CAPTURES}")
 
 
 main()

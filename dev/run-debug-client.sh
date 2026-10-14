@@ -14,7 +14,7 @@
 #                                    --test --stay reruns the tests in it, after reloading
 #                                    HearingAidTests.lua, instead of starting the game again. Any
 #                                    other change to the mods restarts the game. While it waits it
-#                                    shows and logs "HearingAidTest IDLE"; it quits after 10
+#                                    shows and logs "HearingAidTest IDLE"; it quits after 30
 #                                    minutes without a run, or when another run needs the game.
 #   dev/run-debug-client.sh --test --mp [--stay]
 #                                    the same tests in multiplayer: a dedicated server and a client
@@ -32,6 +32,7 @@
 #
 # CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client, -mpclient with --mp),
 # JAVAC the compiler for ClickToStart.java (default: javac from PATH; any JDK from 8 on works),
-# TIMEOUT the seconds a harness run may take (default 1200), and TESTS, a comma-separated list of
-# test name prefixes, limits --test to those tests (e.g. TESTS=hearingaid_craft_).
+# TIMEOUT the seconds a harness run may take (default 300 for --test, 1200 for the other modes),
+# and TESTS, a comma-separated list of test name prefixes, limits --test to those tests (e.g.
+# TESTS=hearingaid_craft_).
 . "$(dirname "$0")/harness/bin/run-client.sh"

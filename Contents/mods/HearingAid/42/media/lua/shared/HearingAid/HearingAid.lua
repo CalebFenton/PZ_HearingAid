@@ -200,7 +200,9 @@ end
 -- Dedicated server only: the base and applied levels of each online player, keyed by username.
 -- A client's player modData transmit replaces the server's copy (ISHotbar sends one after every
 -- clothing change) and can drop the levels just written, so readRecord() puts them back. Entries
--- remember their IsoPlayer, so a reconnect or a new character starts from the saved modData.
+-- remember their IsoPlayer, so a reconnect or a new character starts from the saved modData, and
+-- update() drops those whose IsoPlayer is no longer online, which would otherwise stay in memory
+-- for the whole server session.
 local serverRecords = {}
 
 local function readRecord(player)
@@ -344,7 +346,8 @@ function HearingAid.update(now)
     end
     now = now or getGameTime():getWorldAgeHours()
     local tracked = {}
-    for _, player in ipairs(authoritativePlayers()) do
+    local players = authoritativePlayers()
+    for _, player in ipairs(players) do
         if not player:isDead() then
             local aid = activeAid(player)
             if aid then
@@ -360,6 +363,17 @@ function HearingAid.update(now)
         end
     end
     lastDrain = tracked
+    if isServer() then
+        local kept = {}
+        for _, player in ipairs(players) do
+            local username = player:getUsername()
+            local record = serverRecords[username]
+            if record and record.player == player then
+                kept[username] = record
+            end
+        end
+        serverRecords = kept
+    end
 end
 
 -- Battery items --------------------------------------------------------------------------------

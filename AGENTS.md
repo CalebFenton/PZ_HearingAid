@@ -3,12 +3,13 @@
 ## Commands
 
 - After every change: `dev/validate-server.sh`. It boots a headless dedicated server and fails on any error the mod logs.
-- While you iterate: `TESTS=<name prefix> dev/run-debug-client.sh --test --stay`, adding `--mp` when the change touches what the server does or sends. Before committing: `dev/run-debug-client.sh --test` and `dev/run-debug-client.sh --test --mp`.
+- While you iterate: `dev/run-debug-client.sh --test --changed --stay`, or `TESTS=<name prefix>` instead of `--changed`, adding `--mp` when the change touches what the server does or sends. Before committing: `dev/run-debug-client.sh --test` and `dev/run-debug-client.sh --test --mp`.
 
 ## Rules
 
 - Check Build 42 APIs against the installed game's Lua, scripts, and decompiled Java, not web docs or memory. Most published modding docs describe Build 41, and their APIs fail silently in Build 42.
 - Add tests to `dev/HearingAidDevHarness/42/media/lua/client/HearingAid/Debug/HearingAidTests.lua`, with the harness's test library (`PZHarness.Test`). Tests, the debug scenario, and the art, promo, and loot code live in that dev mod, never in `Contents`, which is published. Don't write standalone Lua tests with stubbed game APIs; the stubs encode guesses about the game, which is what the tests must check.
+- Give a new file under `Contents/` or the dev mod a `TEST_MAP` line in `dev/harness.conf` naming the tests that reach its code; without one, `--changed` runs every test.
 - Edit `art/models/build.py` and `art/promo/compose.py`, not the models, textures, or images they generate; the next run overwrites hand edits.
 - Comments say why, without repeating values from the code. Before editing `DEVELOPMENT.md`, read its opening on what belongs there.
 - Don't add `CLAUDE.md` files; the `AGENTS.md` files hold the agent instructions.

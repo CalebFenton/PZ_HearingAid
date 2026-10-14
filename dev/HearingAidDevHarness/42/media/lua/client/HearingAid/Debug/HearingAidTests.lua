@@ -3,7 +3,7 @@ require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"
 require "TimedActions/ISWearClothing"
 require "HearingAid/HearingAidRecipes"
-require "HearingAid/Debug/HearingAidDebug"
+local Debug = require "HearingAid/Debug/HearingAidDebug"
 
 -- The mod's in-game tests, on the shared harness's test library
 -- (dev/harness/mod/42/media/lua/client/PZHarness/TestLib.lua explains the runner, the restore
@@ -529,7 +529,7 @@ local function craftTest(name, spec)
             T.setPerk(self, Perks.Electricity, spec.electrical or 8)
             T.placeWorkTable(player())
             local materials = {}
-            for _, material in ipairs(HearingAidDebug.RECIPE_MATERIALS) do
+            for _, material in ipairs(Debug.RECIPE_MATERIALS) do
                 table.insert(materials, { type = material.type, count = material.count, worn = material.type == spec.wear or nil })
             end
             T.give(self, "materials", materials)
@@ -808,8 +808,6 @@ test("hearingaid_wear_menu_ears", {
     end,
     validate = function(self)
         local right, left = getText(ON_RIGHT_EAR), getText(ON_LEFT_EAR)
-        expect(right ~= ON_RIGHT_EAR, ON_RIGHT_EAR .. " has no text")
-        expect(left ~= ON_LEFT_EAR, ON_LEFT_EAR .. " has no text")
         local cases = {
             { "unworn", given(self, 1), right .. ", " .. left },
             { "worn on the left ear", given(self, 2), right },

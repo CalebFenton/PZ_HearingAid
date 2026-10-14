@@ -3,7 +3,7 @@
 -- that aid from four sides, drawn by the character preview panel of the character creation
 -- screen, and art_ground.png shows every aid on the ground at the closest zoom.
 require "ISUI/ISUI3DModel"
-require "HearingAid/Debug/HearingAidDebug"
+local Debug = require "HearingAid/Debug/HearingAidDebug"
 
 HearingAidDevArt = {}
 
@@ -163,7 +163,7 @@ function HearingAidDevArt.capture(onDone)
         for _, fullType in ipairs(AIDS) do
             add(function()
                 HearingAidDevArt.takeOffAids(player)
-                HearingAidDebug.wear(player, player:getInventory():AddItem(fullType))
+                Debug.wear(player, player:getInventory():AddItem(fullType))
                 for _, panel in ipairs(panels) do
                     panel:setCharacter(player)
                 end

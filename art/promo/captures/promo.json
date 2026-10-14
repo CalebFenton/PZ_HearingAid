@@ -1,0 +1,32 @@
+{
+    "names": {
+        "alcohol_cotton_balls": "Cotton Balls Doused in Alcohol",
+        "alcohol_wipes": "Alcohol Wipes",
+        "amplifier": "Amplifier",
+        "basic": "Hearing Aid",
+        "battery": "Battery",
+        "boosted": "Boosted Hearing Aid",
+        "broken": "Broken Hearing Aid",
+        "digital_watch": "Digital Watch",
+        "earbuds": "Earbuds",
+        "efficient": "Efficient Hearing Aid",
+        "electric_wire": "Electrical Wire",
+        "electronics_scrap": "Scrap Electronics",
+        "epoxy": "Epoxy",
+        "glue": "Glue",
+        "loupe": "Loupe",
+        "magnifying_glass": "Magnifying Glass",
+        "microphone": "Microphone",
+        "reading_glasses": "Reading Glasses",
+        "scalpel": "Scalpel",
+        "screwdriver": "Screwdriver",
+        "speaker": "Speaker",
+        "tweezers": "Tweezers"
+    },
+    "strings": {
+        "electrical": "Electrical",
+        "leftEar": "on Left Ear",
+        "modName": "Hearing Aid",
+        "rightEar": "on Right Ear"
+    }
+}
