@@ -150,42 +150,37 @@ local function pickByChance(outfits, upTo100)
     return nil
 end
 
--- ZombiesZoneDefinition.pickDefinition. Mandatory outfits spawn only until a zone has its quota,
--- so in the long run they are left out.
-local function pickZoneOutfit(zone, female, room)
+-- The outfits of a ZombiesZoneDefinition table that fit each sex and room, filtered once rather
+-- than for every sample. Mandatory outfits spawn only until a zone has its quota
+-- (ZombiesZoneDefinition.pickDefinition), so in the long run they are left out.
+local fittingCache = {}
+
+local function fittingOutfits(tableName, female, room)
+    local key = tableName .. "/" .. tostring(female) .. "/" .. tostring(room)
+    local outfits = fittingCache[key]
+    if not outfits then
+        outfits = {}
+        for _, outfit in pairs(ZombiesZoneDefinition[tableName]) do
+            if type(outfit) == "table" and tostring(outfit.mandatory) ~= "true" and fits(outfit, female, room) then
+                table.insert(outfits, outfit)
+            end
+        end
+        fittingCache[key] = outfits
+    end
+    return outfits
+end
+
+-- ZombiesZoneDefinition.pickDefinition.
+local function pickZoneOutfit(zoneName, female, room)
+    local zone = ZombiesZoneDefinition[zoneName]
     if (zone.maleChance or 0) > 0 and ZombRand(100) < zone.maleChance then
         female = false
     end
     if (zone.femaleChance or 0) > 0 and ZombRand(100) < zone.femaleChance then
         female = true
     end
-    local outfits = {}
-    for _, outfit in pairs(zone) do
-        if type(outfit) == "table" and tostring(outfit.mandatory) ~= "true" and fits(outfit, female, room) then
-            table.insert(outfits, outfit)
-        end
-    end
-    local picked = pickByChance(outfits, true)
+    local picked = pickByChance(fittingOutfits(zoneName, female, room), true)
     return picked and picked.name, female
-end
-
--- The Default outfits that fit each sex and room, filtered once rather than for every sample,
--- which took a sixth of the time of a sample.
-local defaultOutfits = {}
-
-local function fittingDefaults(female, room)
-    local key = tostring(female) .. "/" .. tostring(room)
-    local outfits = defaultOutfits[key]
-    if not outfits then
-        outfits = {}
-        for _, outfit in ipairs(ZombiesZoneDefinition.Default) do
-            if fits(outfit, female, room) then
-                table.insert(outfits, outfit)
-            end
-        end
-        defaultOutfits[key] = outfits
-    end
-    return outfits
 end
 
 -- ZombiesZoneDefinition.dressInRandomOutfit: the zone table first, and the Default table when it
@@ -195,12 +190,12 @@ local function pickOutfit(spec, female)
         return spec.outfit, female
     end
     if spec.zone then
-        local name, zoneFemale = pickZoneOutfit(ZombiesZoneDefinition[spec.zone], female, spec.room)
+        local name, zoneFemale = pickZoneOutfit(spec.zone, female, spec.room)
         if name then
             return name, zoneFemale
         end
     end
-    return pickByChance(fittingDefaults(female, spec.room), false).name, female
+    return pickByChance(fittingOutfits("Default", female, spec.room), false).name, female
 end
 
 -- Zombies ---------------------------------------------------------------------------------------

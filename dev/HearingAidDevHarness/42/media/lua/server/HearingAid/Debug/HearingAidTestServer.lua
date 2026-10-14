@@ -58,8 +58,7 @@ end)
 
 -- Hearing aids and batteries for the character: `args.items` is a list of { type, charge, on, worn }:
 -- an aid with a battery of `charge` (none if nil), switched on if `on`, put on if `worn`; or a
--- battery (HearingAid.BATTERY) holding `charge`. The reply lists them as `given`, and `now` is the
--- world age in hours, a base for "steps".
+-- battery (HearingAid.BATTERY) holding `charge`. The reply lists them as `given`.
 handler("giveAids", function(player, args)
     local given = {}
     for _, spec in ipairs(args.items or {}) do
@@ -72,7 +71,7 @@ handler("giveAids", function(player, args)
         end
         table.insert(given, PZHarness.giveItem(player, item, { worn = spec.worn }))
     end
-    return { given = given, now = getGameTime():getWorldAgeHours() }
+    return { given = given }
 end)
 
 local function aid(player, id)
@@ -84,14 +83,14 @@ local function aid(player, id)
 end
 
 -- What the periodic update and the character do over time, in one go so that no periodic update
--- comes in between: `args.steps` is a list of { op = "update", at = hours after `args.base` (the
--- world age now by default) }, { op = "wear", id } and { op = "takeOff", id } (at once, without an
--- action), and { op = "switch", id, on } (without an action). Replies with the state after them.
+-- comes in between: `args.steps` is a list of { op = "update", at = hours from now },
+-- { op = "wear", id } and { op = "takeOff", id } (at once, without an action), and
+-- { op = "switch", id, on } (without an action). Replies with the state after them.
 handler("steps", function(player, args)
-    local base = args.base or getGameTime():getWorldAgeHours()
+    local now = getGameTime():getWorldAgeHours()
     for _, step in ipairs(args.steps or {}) do
         if step.op == "update" then
-            HearingAid.update(base + step.at)
+            HearingAid.update(now + step.at)
         elseif step.op == "wear" then
             local item = aid(player, step.id)
             player:setWornItem(item:getBodyLocation(), item)

@@ -1,4 +1,4 @@
--- Hearing aid state and rules, used by the timed action, recipes, UI and the periodic update.
+-- Hearing aid state and rules.
 --
 -- Only the authority changes state: single player, or the dedicated server in multiplayer
 -- (`not isClient()`). Multiplayer clients read item state for the UI and never touch traits.

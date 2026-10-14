@@ -1,11 +1,7 @@
 -- Development only, not published; dev/run-debug-client.sh loads it with the shared harness mod
--- (dev/harness), which runs the modes it registers here. Every mode starts the Hearing Aid debug
--- scenario. With --test the harness runs every hearingaid_* test and prints
--- "HearingAidTest DONE passed=<n> failed=<n> skipped=<n>". With --art, HearingAidDevArt saves
--- close-ups and prints "HearingAidArt DONE"; with --promo, HearingAidDevPromo saves the art for the
--- README and prints "HearingAidPromo DONE"; with --loot, HearingAidLoot measures the loot and
--- prints a "HearingAidLootReport" line for each place, then "HearingAidLootReport DONE". Then the
--- game quits. run-debug-client.sh reads those lines from console.txt.
+-- (dev/harness), which runs the mode the script names (--test, or one registered here) in the
+-- Hearing Aid debug scenario and then quits the game. The script reads the mode's result from the
+-- console.txt lines marked with its TAG or MODE_MARK_* in dev/harness.conf.
 require "PZHarness/Runner"
 require "HearingAid/Debug/HearingAidDebugScenario"
 require "HearingAid/Debug/HearingAidLoot"

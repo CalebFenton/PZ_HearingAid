@@ -1,7 +1,7 @@
 -- Development only; dev/run-debug-client.sh --art runs it instead of the tests. It saves close-ups
 -- of the art to <cachedir>/Screenshots: art_<sex>_<item type>.png shows a bald character wearing
--- that aid from four sides, drawn by the character preview panel of the character creation
--- screen, and art_ground.png shows every aid on the ground at the closest zoom.
+-- that aid from each side, drawn by the character preview panel of the character creation
+-- screen, and art_ground.png shows each tier on the ground at the closest zoom.
 require "ISUI/ISUI3DModel"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
 local Capture = require "PZHarness/Capture"
@@ -54,6 +54,13 @@ function HearingAidDevArt.groundSquare(player)
         end
     end
     return here
+end
+
+-- Scrolls the world view to the closest zoom; Capture.zoomSettled() waits until it gets there.
+function HearingAidDevArt.zoomToClosest()
+    for _ = 1, 8 do
+        getCore():doZoomScroll(0, -1)
+    end
 end
 
 -- UI drawings for a preview to show a new look or model. Models load on another thread, which Lua
@@ -119,9 +126,7 @@ function HearingAidDevArt.capture(onDone)
         for i, fullType in ipairs(TIERS) do
             square:AddWorldInventoryItem(instanceItem(fullType), 0.4, 0.15 + 0.22 * (i - 1), 0)
         end
-        for _ = 1, 8 do
-            getCore():doZoomScroll(0, -1)
-        end
+        HearingAidDevArt.zoomToClosest()
         return Capture.zoomSettled()
     end)
     -- The world draws every frame, the item models once they have loaded.

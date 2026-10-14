@@ -56,7 +56,7 @@ local ICONS = {
     { name = "basic", fullType = HearingAid.BASIC },
     { name = "efficient", fullType = HearingAid.EFFICIENT },
     { name = "boosted", fullType = HearingAid.BOOSTED },
-    { name = "battery", fullType = "Base.Battery" },
+    { name = "battery", fullType = HearingAid.BATTERY },
     { name = "screwdriver", fullType = "Base.Screwdriver" },
     { name = "tweezers", fullType = "Base.Tweezers" },
     { name = "reading_glasses", fullType = "Base.Glasses_Reading" },
@@ -88,10 +88,6 @@ local run
 local region, elementRegion = Capture.region, Capture.elementRegion
 local frozen = false
 
-local function add(step)
-    run:add(step)
-end
-
 -- Icons ------------------------------------------------------------------------------------------
 
 local IconSheet = ISPanel:derive("HearingAidDevPromoIconSheet")
@@ -104,7 +100,7 @@ end
 
 local function addIcons()
     local sheet
-    add(function()
+    run:add(function()
         local backdrop = run:newBackdrop()
         sheet = IconSheet:new(100, 100, getCore():getScreenWidth() - 200, getCore():getScreenHeight() - 200)
         sheet:noBackground()
@@ -180,7 +176,7 @@ end
 local function addHeads()
     local player = getPlayer()
     local panels = {}
-    add(function()
+    run:add(function()
         run:newBackdrop()
         local size = math.floor(math.min(getCore():getScreenWidth(), getCore():getScreenHeight()) / 2)
         local left = math.floor((getCore():getScreenWidth() - 2 * size) / 2)
@@ -192,13 +188,13 @@ local function addHeads()
     for _, look in ipairs(LOOKS) do
         local sex = look.female and "female" or "male"
         local ear = look.female and "left" or "right"
-        add(function()
+        run:add(function()
             setLook(player, look)
             return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, tier in ipairs(TIERS) do
             local name = table.concat({ "head", look.name, sex, ear, TIER_NAMES[tier] }, "_")
-            add(function()
+            run:add(function()
                 frozen = false
                 HearingAidDevArt.takeOffAids(player)
                 local fullType = look.female and HearingAid.leftEarType(tier) or tier
@@ -209,7 +205,7 @@ local function addHeads()
                 end
                 return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
             end)
-            add(function()
+            run:add(function()
                 frozen = true
                 return Capture.drawn(Capture.DRAW_FRAMES)
             end)
@@ -222,7 +218,7 @@ local function addHeads()
             end)
         end
     end
-    add(function()
+    run:add(function()
         frozen = false
         HearingAidDevArt.takeOffAids(player)
         return 1
@@ -238,7 +234,7 @@ local function addModels()
     for _, tier in ipairs(TIERS) do
         local name = "model_" .. TIER_NAMES[tier]
         local scene
-        add(function()
+        run:add(function()
             local backdrop = run:newBackdrop()
             scene = ISUI3DScene:new(0, 0, backdrop.width, backdrop.height)
             backdrop:addChild(scene)
@@ -265,7 +261,7 @@ end
 local function addTooltips()
     local player = getPlayer()
     local tooltips = {}
-    add(function()
+    run:add(function()
         run:newBackdrop()
         HearingAidDevArt.takeOffAids(player)
         local worn = Debug.addAid(player, HearingAid.BOOSTED, 0.73, true)
@@ -296,7 +292,7 @@ local function addTooltips()
         end
         return regions
     end)
-    add(function()
+    run:add(function()
         for _, tooltip in pairs(tooltips) do
             tooltip:removeFromUIManager()
         end
@@ -309,7 +305,7 @@ end
 local function addWearMenu()
     local player = getPlayer()
     local context
-    add(function()
+    run:add(function()
         run:newBackdrop()
         local aid = Debug.addAid(player, HearingAid.BASIC, 0.8, false)
         -- Away from the mouse, which would otherwise move the highlight.
@@ -334,7 +330,7 @@ local function addWearMenu()
         local bottom = math.max(context:getAbsoluteY() + context:getHeight(), sub:getAbsoluteY() + sub:getHeight())
         return { region("menu_wear", x, y, right - x, bottom - y) }
     end)
-    add(function()
+    run:add(function()
         context:closeAll()
         return 1
     end)
@@ -357,15 +353,13 @@ end
 -- A corpse next to the character with an aid among its things, and the loot window open on it.
 local function addCorpse()
     local player = getPlayer()
-    add(function()
+    run:add(function()
         setLook(player, LOOKS[2])
         Debug.wear(player, Debug.addAid(player, HearingAid.BASIC, 0.6, true))
-        for _ = 1, 8 do
-            getCore():doZoomScroll(0, -1)
-        end
+        HearingAidDevArt.zoomToClosest()
         return Capture.zoomSettled()
     end)
-    add(function()
+    run:add(function()
         local square = HearingAidDevArt.groundSquare(player)
         local body = createRandomDeadBody(square, 0)
         HearingAid.setCharge(body:getContainer():AddItem(HearingAid.BASIC), 0.55)
@@ -401,8 +395,8 @@ local GROUPS = {
     world = addCorpse,
 }
 
---- Shoots the groups named in `selection`, comma-separated in the order to shoot them, which
---- run-client.sh gives every group of MODE_GROUPS_promo when PROMO names none, and calls onDone.
+-- Shoots the groups named in `selection`, comma-separated in the order to shoot them, which
+-- run-client.sh gives every group of MODE_GROUPS_promo when PROMO names none, and calls onDone.
 function HearingAidDevPromo.capture(selection, onDone)
     run = Capture.new("HearingAidPromo")
     local chosen = Capture.names(selection)

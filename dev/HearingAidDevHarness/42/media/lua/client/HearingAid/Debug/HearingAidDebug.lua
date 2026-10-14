@@ -42,10 +42,12 @@ function Debug.addRecipeMaterials(player)
     end
 end
 
--- A hard of hearing character with Electrical 8, every tier, batteries, recipe materials and a table.
+-- Enough Electrical for every recipe at the default *SkillLevel sandbox options.
+Debug.ELECTRICAL_LEVEL = 8
+
 function Debug.setupPlayer(player)
     HearingAid.setBaseLevel(player, HearingAid.Level.HARD_OF_HEARING)
-    player:setPerkLevelDebug(Perks.Electricity, 8)
+    player:setPerkLevelDebug(Perks.Electricity, Debug.ELECTRICAL_LEVEL)
     Debug.addAid(player, HearingAid.BROKEN, nil, false)
     Debug.addAid(player, HearingAid.BASIC, nil, false)
     Debug.addAid(player, HearingAid.EFFICIENT, 0.5, false)

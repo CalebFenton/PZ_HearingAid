@@ -1,8 +1,7 @@
 local Debug = require "HearingAid/Debug/HearingAidDebug"
 
 -- Listed in the SCENARIOS panel on the main menu when the game runs with -debug
--- (DebugScenarios.lua). Starts a zombie-free world in the morning with a hard of hearing
--- character, every hearing aid tier, batteries, the crafting materials and a table to craft at.
+-- (DebugScenarios.lua). Starts a zombie-free world with the character Debug.setupPlayer equips.
 debugScenarios = debugScenarios or {}
 
 debugScenarios.HearingAidScenario = {
