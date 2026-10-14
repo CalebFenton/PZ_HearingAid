@@ -51,6 +51,6 @@ description=[*][b]Does it work in my language?[/b] Every text the mod shows is t
 description=[/list]
 description=
 description=[h2]Credits[/h2]
-description=By Caleb Fenton. The source is on [url=https://github.com/CalebFenton/PZ_HearingAid]GitHub[/url].
+description=By Caleb Fenton. The source is on [url=https://github.com/CalebFenton/PZ_HearingAid]GitHub[/url]. Licensed under the Apache License 2.0, see [url=https://github.com/CalebFenton/PZ_HearingAid/blob/master/LICENSE]LICENSE[/url].
 tags=Build 42;Clothing/Armor;Items;Traits
 visibility=public

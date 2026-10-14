@@ -54,7 +54,7 @@ Loot rates, the chance a found one still holds a battery, and **Enable Boosted H
 
 ## Credits
 
-By Caleb Fenton. The source is on [GitHub](https://github.com/CalebFenton/PZ_HearingAid).
+By Caleb Fenton. The source is on [GitHub](https://github.com/CalebFenton/PZ_HearingAid). Licensed under the Apache License 2.0, see [LICENSE](LICENSE).
 
 ## Install
 
