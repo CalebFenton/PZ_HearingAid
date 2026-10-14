@@ -5,6 +5,6 @@ description=Hearing aids that let Deaf and Hard of Hearing survivors work their 
 poster=poster.png
 icon=hearing_aid_icon.png
 category=features
-modversion=2.0.0
+modversion=2.1.0
 versionMin=42.21
 url=https://github.com/CalebFenton/PZ_HearingAid
