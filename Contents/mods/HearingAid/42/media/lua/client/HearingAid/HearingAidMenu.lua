@@ -1,4 +1,3 @@
-require "Vehicles/ISUI/ISVehicleMechanics"
 require "HearingAid/HearingAid"
 require "TimedActions/HearingAidAction"
 
@@ -20,13 +19,6 @@ local function disable(option, description)
     option.toolTip.description = description
 end
 
--- What Add Battery lacks with no charged battery carried, listed the way vanilla's mechanics
--- window lists what a job needs (ISVehicleMechanics.doMenuTooltip), in its bad colour.
-local function needsBattery()
-    return getText("Tooltip_craft_Needs") .. " : <LINE> " .. ISVehicleMechanics.bhs
-        .. getItemNameFromFullType(HearingAid.BATTERY) .. " 0/1 <LINE>"
-end
-
 -- Batteries anywhere in the inventory, bags included, that can go into the aid, fullest first.
 local function insertableBatteries(player, aid)
     local found = player:getInventory():getAllEvalRecurse(function(item)
@@ -42,13 +34,14 @@ local function insertableBatteries(player, aid)
     return batteries
 end
 
+-- Add Battery only with a charged battery carried, as vanilla offers it for a lamp
+-- (ISWorldObjectContextMenu) and a flashlight (ISLightSourceRadialMenu).
 local function addBatteryOptions(context, player, aid)
-    local option = context:addOption(getText("ContextMenu_AddBattery"))
     local batteries = insertableBatteries(player, aid)
     if #batteries == 0 then
-        disable(option, needsBattery())
         return
     end
+    local option = context:addOption(getText("ContextMenu_AddBattery"))
     local submenu = context:getNew(context)
     context:addSubMenu(option, submenu)
     for _, battery in ipairs(batteries) do
