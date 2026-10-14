@@ -1,17 +1,18 @@
 # Developer notes
 
-What to run, and how Project Zomboid Build 42 behaves where the mod's code can't show you.
+Commands, and Project Zomboid Build 42 behavior that the mod's code can't show you. Each game fact names its source in the decompiled 42.21.0 Java or the vanilla Lua, so you can check it again after a game update. Published modding docs mostly describe Build 41; when they disagree with the game files, trust the game files.
 
 What belongs here:
 
-- Commands: what to run for each job, what it needs, and how it fails.
-- Game behavior the mod depends on that fails silently or isn't obvious from the code. Each fact names its source in the decompiled 42.21.0 Java or the vanilla Lua, so it can be checked again after a game update. Published modding docs mostly describe Build 41; when they disagree with the game files, trust the game files.
+- Commands, one line each: what it's for and how to run it.
+- Game behavior the mod depends on that fails silently or cost time to find, with its source.
 - Tips for debugging and writing tests that hold for any change, and the Workshop and release steps.
 
 What doesn't:
 
-- How the mod's own code or tests work. Put that in comments beside the code.
-- The mod's own numbers: loot rates, XP, battery hours, test counts, run times that grow with the suite. The code and the commands' output hold them, and a copy here goes stale.
+- How the mod's own code or tests work, or what a mode builds or shoots. That belongs in comments beside the code; point to the file.
+- The mod's own numbers: loot rates, XP, battery hours, test counts, run times. The code and the commands' output hold them.
+- What a script's header or `--help` says, or what the harness docs already cover.
 - Why a design or value was chosen, or what changed. That goes in the commit message.
 - Notes from one task, and anything not checked against the game files.
 
@@ -19,47 +20,46 @@ Before adding a line, ask whether someone changing the mod a year from now, with
 
 ## Commands
 
-The check, client and server scripts are thin entry points into the shared test harness in `dev/harness`, a git submodule (run `git submodule update --init` after cloning); `dev/harness.conf` tells it about this mod, and `dev/harness/README.md` describes it. The tests, the debug scenario, their helpers and the art, promo, and loot code live in the dev mod `dev/HearingAidDevHarness`, which is never published. The scripts use the macOS Steam install (set `PZ_APP` to another `Contents` folder) and their own cache under `$TMPDIR` (set `CACHE` to use another), so they never touch your saves, settings, or mod list. Only one game started by these scripts runs at a time, for this mod or any other on the harness: a script waits for the lock while another one's game is up.
+The scripts in `dev/` are entry points into the shared test harness in `dev/harness`, a git submodule (run `git submodule update --init` after cloning), which `dev/harness.conf` configures for this mod. They run the game from its own cache under `$TMPDIR`, so they never touch your saves, settings or mod list. `dev/harness/docs/running.md` covers every flag, environment variable and console line, and `dev/harness/docs/debugging.md` which run answers which question. The tests, the debug scenario and the art, promo and loot code live in the dev mod `dev/HearingAidDevHarness`, which is never published.
 
-- `dev/static-check.sh`: run after every change; it takes seconds and starts no game. It compiles every Lua file of the mod, the dev mod and the harness mod with the game's Kahlua compiler, then cross-checks them against the installed game: translations (every language the game offers has every file and key English has, with the same `%1` placeholders, and each literal `getText` key exists in the file the game looks it up in), item and recipe fields, sandbox options, textures, method and global names, and requires. `dev/harness/docs/static-check.md` lists every check. Every game run runs it first (`PRECHECK` in `dev/harness.conf`). It needs a JDK's `javac`, any version from 8 on.
-- `dev/validate-server.sh`: run after every change. It boots a dedicated server with only this mod and fails if the mod logs an error or names a loot list that doesn't exist.
-- `dev/run-debug-client.sh --test`: runs every `hearingaid_*` test unattended and exits nonzero on a failure or any Lua error. It needs a JDK's `javac`, any version from 8 on. `TESTS=hearingaid_craft_,hearingaid_turn_` runs only the tests whose names start with one of those prefixes, and `--changed` runs the ones `TEST_MAP` in `dev/harness.conf` gives for the files changed since the last commit, printing why for each file (a file without a line there runs every test). The harness runs the tests without the debug menu runner's one-second pause after each, with timed actions instant, and with the frame rate uncapped; "HearingAidTest TIME" gives the seconds and frames the tests took. Starting and quitting the game adds about 27 seconds.
-- `dev/run-debug-client.sh --test --stay`: the same, but the game stays open afterwards, and the next `--test --stay`, with any `TESTS`, loads `HearingAidTests.lua` again and reruns the tests in that game, in a second or two plus the tests' own time. A change to any other file restarts the game instead: the rest of the dev mod, the published mod, or the harness mod, because a reloaded file's `Events.*.Add` calls are ignored (see [Debugging by hand](#debugging-by-hand)). While it waits, the game shows and logs "HearingAidTest IDLE", and it quits after 30 minutes without a run or when another script needs the game. What earlier runs left in the kept world stays there (a rerun starts with `HearingAidTest DIRTY` lines naming it), so finish with a plain `--test`.
-- `dev/run-debug-client.sh --test --mp`: the same tests in multiplayer: a dedicated server with the mod, the dev mod and the harness mod, and a debug client that joins it as the admin, runs the tests and quits. It fails on anything either side logs, and prints both logs' paths. On the client the inventory, traits and world are the client's copies, so what only the server can do goes through `PZHarness.Test.server` to handlers in the dev mod's server Lua (in files named `HearingAidTest*.lua`, which `RELOAD_FILES` in `dev/harness.conf` loads again), which single player calls in the same game. A test that can't run in one mode says why with `spOnly = "..."` or `mpOnly = "..."`, and the run lists it as `HearingAidTest SKIP`. With `--stay` both stay open and the next `--test --mp --stay` reruns in about a second. `dev/harness/docs/multiplayer.md` explains the server channel and what a client can't do.
-- The client runs stop at the first stack trace through the Lua of the mod, the dev mod or the harness mod, or at any Lua failure once the harness has started, and print the trace, instead of waiting for the timeout: in debug mode a Lua error stops the game in the error handler, so it never quits on its own.
-- `dev/run-debug-client.sh`: starts the debug client with the mod, the dev mod and the harness mod enabled and stops at the main menu, with the scenario and the tests of [Debugging by hand](#debugging-by-hand).
+- `dev/static-check.sh`: run after every change. Compiles every Lua file with the game's compiler and cross-checks it against the installed game, including complete translations in every language (`dev/harness/docs/static-check.md` lists the checks).
+- `dev/validate-server.sh`: run after every change. Boots a dedicated server with only this mod and fails if the mod logs an error or names a loot list that doesn't exist.
+- `dev/run-debug-client.sh`: starts the debug client with the mod, the dev mod and the harness mod, at the main menu; see [Debugging by hand](#debugging-by-hand).
+- `dev/run-debug-client.sh --test`: runs every test unattended and exits nonzero on a failure or any Lua error. Needs a JDK's `javac`. Narrow it with `TESTS=<prefix>,...`, `--changed` (by `TEST_MAP` in `dev/harness.conf`) or `--failed`.
+- `dev/run-debug-client.sh --test --stay`: keeps the game open, and the next `--test --stay` reloads only the test files and reruns in it. Finish with a plain `--test`, since the kept world holds what earlier runs left.
+- `dev/run-debug-client.sh --test --mp`: the same tests against a dedicated server; add `--stay` to keep both open. `dev/harness/docs/multiplayer.md` explains the server channel.
 - `dev/run-debug-client.sh --loot`: prints how often each kind of corpse and container holds a wristwatch and each hearing aid model. Run it after changing loot.
-- `art/models/make.sh`: rebuilds the models and textures with Blender. `--export` skips `build.py`, which would overwrite edits you made by hand in `hearing_aid.blend`. Previews land in `$TMPDIR/hearing-aid-previews`.
-- `dev/run-debug-client.sh --art`: saves in-game close-ups of the worn and dropped hearing aids to `<cache>/Screenshots`. In the front view, the right ear is on the left of the picture.
-- `dev/run-debug-client.sh --promo`, then `art/promo/compose.py`: captures the README and Workshop art from the game into `art/promo/captures`, then lays it out into `art/promo/images`. Commit the captures, so that a layout change needs only `compose.py`. The item names and the other game text in the images come from the game too, through `captures/promo.json`, so a renamed item or option needs a new `--promo`. `compose.py` also writes `42/poster.png` and `preview.png` from the same model captures as the banner, failing if the preview is too big for the Workshop, and the mod-list icon `42/hearing_aid_icon.png` from `art/drawings/hearing_aid.xcf`, which needs ImageMagick's `magick` to flatten. The mod list draws the icon at 22 to 28 pixels, so `compose.py` thickens the drawing's tube and outline first.
-- `PROMO=<group>,... dev/run-debug-client.sh --promo` shoots only those groups of the `--promo` shots (`icons`, `heads`, `models`, `tooltips`, `menu`, `world`, as `dev/harness.conf`'s `MODE_GROUPS_promo` lists them) and replaces only their captures; `captures/promo.json` lists each group's captures, and the item and option names, which cost no shot, come with every run. A wrong name fails at once and lists the groups. Reshoot the group you are changing and check `git status art/promo/captures`.
-- `--art` and `--promo` draw uncapped frames like `--test`, so their steps wait on the zoom settling and on the UI's drawings, never on counts of frames. The UI draws at its own rate, the `uiRenderFPS` option (at most 120; `Core.StartFrameUI`), and the frames in between show its last drawing; `Events.OnPostUIDraw` fires once per drawing. Both run with the harness's `fastUI`, which draws it at 120, and `clearWeather`, so no fog greys the world shots. Lua can't tell when a model has loaded, and a character preview keeps drawing the old model until the new one has, so a capture that shows the aid of the shot before needs more drawings after the change.
+- `art/models/make.sh`: rebuilds the models and textures with Blender; previews land in `$TMPDIR/hearing-aid-previews`. `--export` skips `build.py`, which would overwrite hand edits in `hearing_aid.blend`.
+- `dev/run-debug-client.sh --art`: saves in-game close-ups of the worn and dropped hearing aids to `<cache>/Screenshots`; `HearingAidDevArt.lua` in the dev mod lists the shots. In the front view, the right ear is on the left of the picture.
+- `dev/run-debug-client.sh --promo`, then `art/promo/compose.py`: shoots the README and Workshop art into `art/promo/captures`, then lays it out into `art/promo/images`, `42/poster.png`, `preview.png` and the mod list icon. `HearingAidDevPromo.lua` in the dev mod lists the shots. Commit the captures, so a layout change needs only `compose.py`. The item names and other game text in the images come from the game too, so a renamed item or option needs a new `--promo`. `compose.py` needs ImageMagick's `magick` for the icon.
+- `PROMO=<group>,... dev/run-debug-client.sh --promo`: reshoots only those groups (`MODE_GROUPS_promo` in `dev/harness.conf`) and replaces only their captures. Reshoot the group you are changing, then check `git status art/promo/captures`.
 
 ## Debugging by hand
 
 `dev/run-debug-client.sh` without flags gives you these. With `-debug` in the game's Steam launch options a normal game has the debug menu, but neither the scenario nor the tests nor `HearingAidLoot`, which come with the dev mod.
 
-- The **Hearing Aid** scenario under **Scenarios** on the main menu starts a zombie-free world at 10 in the morning with every hearing aid model, batteries, recipe materials, and a table.
+- The **Hearing Aid** scenario under **Scenarios** on the main menu starts a zombie-free world stocked for trying the mod (`HearingAidDebugScenario.lua`).
 - To run one test, open the debug menu with the bug icon, then **Dev**, **Unit Tests**, **Timed Actions**.
-- To measure one loot list more precisely than `--loot` does, call `HearingAidLoot.measureZombies(key, samples)` or `HearingAidLoot.measureContainer(key, samples)` in the Lua console. One list takes 40,000 samples; `HearingAidLoot.report`, which measures every list, runs out of memory far sooner.
+- To measure one loot list more precisely than `--loot` does, call `HearingAidLoot.measureZombies(key, samples)` or `HearingAidLoot.measureContainer(key, samples)` in the Lua console. `HearingAidLoot.report` measures every list and runs out of memory at far fewer samples per list.
 - To see the loot of vanilla lists, right-click the world and choose **UI**, then **Generate Loot UI**. The **LootZed** admin power uses a simpler formula that ignores rounding, the zombie density bonus, and the rolls multiplier (`SpawnRateChecker.lua`).
-- Restart the client after changing Lua. `reloadLuaFile()`, which the debug Lua file browser uses, runs the file again but ignores its `Events.*.Add` calls (`LuaCompiler.rewriteEvents`), so the old handlers keep running. That is enough for the test file, which only registers tests, and `--test --stay` relies on it.
+- Restart the client after changing Lua. `reloadLuaFile()`, which the debug Lua file browser uses, runs the file again but ignores its `Events.*.Add` calls (`LuaCompiler.rewriteEvents`), so the old handlers keep running.
 - A dedicated server has no `-debug` argument; it reads only the JVM property `-Ddebug`.
 - In debug mode, every mod without `media/AnimSets` and `media/actiongroups` folders logs a `NoSuchFileException` for each, and vanilla logs errors about fonts, `FluidContainerScript` names, a mannequin zone, missing tiles, and missing icons. None come from this mod.
 - `getCore():TakeFullScreenshot("name.png")` writes to `<cachedir>/Screenshots/` without macOS Screen Recording permission.
-- Keep `media/scripts` out of the dev harness. When it had one, this mod's items showed "Mod: Hearing Aid Dev Harness" in their tooltips.
+- Keep `media/scripts` out of the dev mod: with one, this mod's items show "Mod: Hearing Aid Dev Harness" in their tooltips.
 
 ## Writing tests
 
-- The timed action test runner empties the inventory and calls `clearWornItems()` before each test, which fires no clothing event. Traits, perks, player modData, world objects, sandbox options, and the clock carry over to the next test, and `EveryOneMinute` keeps firing. Write tests with the `test()` helper in `HearingAidTests.lua` and the harness's library it builds on (`dev/harness/mod/42/media/lua/client/PZHarness/TestLib.lua`), whose setters and fixtures put back what they change.
+- The timed action test runner empties the inventory and calls `clearWornItems()` before each test, which fires no clothing event. Traits, perks, player modData, world objects, sandbox options, and the clock carry over to the next test, and `EveryOneMinute` keeps firing. Use the `test()` helper in `HearingAidTests.lua` and the harness's `dev/harness/mod/42/media/lua/client/PZHarness/TestLib.lua`, whose setters and fixtures put back what they change.
+- Tests run in both modes. On a multiplayer client the inventory, traits and world are the client's copies, so what only the server can do goes through `PZHarness.Test.server` to the dev mod's server handlers (`HearingAidTest*.lua`), which single player calls in the same game. A test that can't run in one mode says why with `spOnly = "..."` or `mpOnly = "..."`.
 - `--test` runs with the frame rate uncapped, so a count of frames is not a length of time. A test that waits for the game waits on the condition it needs (`PZHarness.Test.waitUntil`), never for a fixed number of frames.
-- Every test runs at 10 in the morning, the scenario's hour, and waits for the light first: crafting needs light, and the world's light catches up with the clock only some frames after the game starts or the clock changes.
+- Every test runs at the scenario's hour and waits for the light first: crafting needs light, and the world's light catches up with the clock only some frames after the game starts or the clock changes.
 - `ISInventoryPaneContextMenu.OnNewCraft` crafts through the same path as a right-click, and when the game refuses, it queues nothing and says nothing. `HandcraftLogic` can tell you why.
 - A table for an `AnySurfaceCraft` recipe must come from `IsoObject.new(square, spriteName, name)`. `IsoObject.new(square, spriteName)` builds a new sprite from the texture alone, so the object looks like a table but has no `Surface`. `findCraftSurface` also skips squares the character can't reach, such as the far side of a wall.
 
 ## Ground truth
 
-The game ships its Lua, scripts, and assets unpacked, and its Java decompiles cleanly. The bundled Java has no `jar` tool, so `unzip` and `zip` pick out the `zombie` packages; decompiling them takes about 20 seconds:
+The game ships its Lua, scripts, and assets unpacked, and its Java decompiles cleanly. The bundled Java has no `jar` tool, so `unzip` and `zip` pick out the `zombie` packages:
 
 ```sh
 PZC="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents"
@@ -161,7 +161,7 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 - `item:syncItemFields()` sends an item's modData, uses, and condition to the other side: from the server to the player whose inventory holds it, or from a client to the server. The global `syncItemFields(player, item)` does the same for that player. Both do nothing in single player.
 - On the server, `Actions.addOrDropItem(character, item)` adds and syncs an item. To remove one, call `container:Remove(item)` and then `sendRemoveItemFromContainer(container, item)`; the send does nothing outside the server.
 - A client sends its whole player modData to the server (`transmitModData`), and the server replaces its copy with it. ISHotbar does this after every clothing change, so anything the server writes to player modData can disappear.
-- Create a battery with `instanceItem("Base.Battery")`; `InventoryItemFactory` isn't exposed to Lua. Its charge is `getCurrentUsesFloat()` and `setCurrentUsesFloat()`. `getUsedDelta()` no longer exists on drainable items, and `setUsedDelta` is a deprecated alias. A full battery has 142 uses, and `setCurrentUsesFloat()` rounds to the nearest whole use.
+- Create a battery with `instanceItem("Base.Battery")`; `InventoryItemFactory` isn't exposed to Lua. Its charge is `getCurrentUsesFloat()` and `setCurrentUsesFloat()`. Drainable items have no `getUsedDelta()`, and `setUsedDelta` is a deprecated alias. A full battery has 142 uses, and `setCurrentUsesFloat()` rounds to the nearest whole use.
 
 ### Timed actions in multiplayer
 
@@ -188,6 +188,8 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 - To add inventory context menu options, handle `Events.OnFillInventoryObjectContextMenu(playerNum, context, items)` and pass `items` through `ISInventoryPane.getActualItems(items)`, which unpacks stacks.
 - `ISToolTipInv` also shows things that aren't items, such as fluid containers and energy resources. Check `instanceof(x, "InventoryItem")` before calling item methods.
 - `HaloTextHelper` draws only on the local client, so in multiplayer the server has to send a command to show halo text.
+- The UI draws at its own rate, the `uiRenderFPS` option (at most 120; `Core.StartFrameUI`), and the frames in between show its last drawing, so at an uncapped frame rate frames can pass with no UI drawn. `Events.OnPostUIDraw` fires once per drawing.
+- Lua can't tell when a model has loaded, and a character preview keeps drawing the old model until the new one has, so a screenshot soon after a change of model can show the old one.
 
 ## Loot
 
