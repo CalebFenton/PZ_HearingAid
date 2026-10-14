@@ -2,11 +2,13 @@
 -- art that art/promo/compose.py lays out for the README and the Workshop page: screenshots named
 -- promo_<shot>.png in <cachedir>/Screenshots, and <cachedir>/Lua/HearingAidPromo.json, which names
 -- the regions of every screenshot and holds the item and option names in the game's language.
--- Shots of anything but the world are taken twice, on black (promo_<shot>_k.png) and on white
--- (promo_<shot>_w.png), so that art/promo/extract.py can recover how transparent each pixel is.
+-- Shots of anything but the world are taken twice, on black and on white (PZHarness/Capture.lua).
+-- The shots come in groups (dev/harness.conf's MODE_GROUPS_promo), and PROMO=<group>,... shoots
+-- only those, so the extraction replaces only their captures.
 require "ISUI/ISUI3DModel"
 require "Vehicles/ISUI/ISUI3DScene"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
+local Capture = require "PZHarness/Capture"
 require "HearingAidDevArt"
 
 HearingAidDevPromo = {}
@@ -79,142 +81,15 @@ local TRAITS = {
     { name = "keen_hearing", trait = CharacterTrait.KEEN_HEARING },
 }
 
--- JSON -------------------------------------------------------------------------------------------
-
--- Kahlua has no next(), so an empty table is the one whose pairs() yields nothing.
-local function isArray(value)
-    if value[1] ~= nil then
-        return true
-    end
-    for _ in pairs(value) do
-        return false
-    end
-    return true
-end
-
-local function encode(value, out)
-    local kind = type(value)
-    if kind == "table" then
-        if isArray(value) then
-            table.insert(out, "[")
-            for i, element in ipairs(value) do
-                if i > 1 then
-                    table.insert(out, ",")
-                end
-                encode(element, out)
-            end
-            table.insert(out, "]")
-        else
-            local keys = {}
-            for key in pairs(value) do
-                table.insert(keys, tostring(key))
-            end
-            table.sort(keys)
-            table.insert(out, "{")
-            for i, key in ipairs(keys) do
-                if i > 1 then
-                    table.insert(out, ",")
-                end
-                encode(key, out)
-                table.insert(out, ":")
-                encode(value[key], out)
-            end
-            table.insert(out, "}")
-        end
-    elseif kind == "string" then
-        local escaped = string.gsub(value, '[%c"\\]', function(c)
-            return string.format("\\u%04x", string.byte(c))
-        end)
-        table.insert(out, '"' .. escaped .. '"')
-    elseif kind == "number" or kind == "boolean" then
-        table.insert(out, tostring(value))
-    else
-        table.insert(out, "null")
-    end
-end
-
-local function writeJson(fileName, value)
-    local out = {}
-    encode(value, out)
-    local writer = getFileWriter(fileName, true, false)
-    writer:write(table.concat(out))
-    writer:close()
-end
-
 -- Shots ------------------------------------------------------------------------------------------
 
-local steps = {}
-local shots = {}
-local tinted = {}
+-- The run whose steps are being added; HearingAidDevPromo.capture makes it.
+local run
+local region, elementRegion = Capture.region, Capture.elementRegion
 local frozen = false
 
 local function add(step)
-    table.insert(steps, step)
-end
-
-local function region(name, x, y, w, h)
-    return { name = name, x = math.floor(x), y = math.floor(y), w = math.floor(w), h = math.floor(h) }
-end
-
-local function elementRegion(name, element)
-    return region(name, element:getAbsoluteX(), element:getAbsoluteY(), element:getWidth(), element:getHeight())
-end
-
-local function screenshot(file)
-    getCore():TakeFullScreenshot(file .. ".png")
-    print("HearingAidPromo saved " .. file .. ".png")
-end
-
--- Every tinted element, the backdrop first, takes the backdrop colour.
-local function setLevel(level)
-    for _, element in ipairs(tinted) do
-        element.backgroundColor = { r = level, g = level, b = level, a = 1 }
-    end
-end
-
--- Takes the shot on black and on white. regions() runs once the shot is laid out.
-local function addMatted(name, regions)
-    add(function()
-        setLevel(0)
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
-    end)
-    add(function()
-        screenshot("promo_" .. name .. "_k")
-        return 10
-    end)
-    add(function()
-        setLevel(1)
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
-    end)
-    add(function()
-        screenshot("promo_" .. name .. "_w")
-        table.insert(shots, { name = name, matte = true, regions = regions() })
-        return 10
-    end)
-end
-
-local function addOpaque(name, regions)
-    add(function()
-        screenshot("promo_" .. name)
-        table.insert(shots, { name = name, matte = false, regions = regions() })
-        return 10
-    end)
-end
-
-local function newBackdrop()
-    local backdrop = ISPanel:new(0, 0, getCore():getScreenWidth(), getCore():getScreenHeight())
-    backdrop:initialise()
-    backdrop:addToUIManager()
-    backdrop:setVisible(true)
-    tinted = { backdrop }
-    return backdrop
-end
-
-local function removeBackdrop()
-    add(function()
-        tinted[1]:removeFromUIManager()
-        return 1
-    end)
+    run:add(step)
 end
 
 -- Icons ------------------------------------------------------------------------------------------
@@ -230,7 +105,7 @@ end
 local function addIcons()
     local sheet
     add(function()
-        local backdrop = newBackdrop()
+        local backdrop = run:newBackdrop()
         sheet = IconSheet:new(100, 100, getCore():getScreenWidth() - 200, getCore():getScreenHeight() - 200)
         sheet:noBackground()
         sheet.icons = {}
@@ -251,16 +126,16 @@ local function addIcons()
             place("trait_" .. trait.name, CharacterTraitDefinition.getCharacterTraitDefinition(trait.trait):getTexture())
         end
         backdrop:addChild(sheet)
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+        return Capture.drawn(Capture.DRAW_FRAMES)
     end)
-    addMatted("icons", function()
+    run:addMatted("icons", function()
         local regions = {}
         for _, icon in ipairs(sheet.icons) do
             table.insert(regions, region(icon.name, sheet:getAbsoluteX() + icon.x, sheet:getAbsoluteY() + icon.y, icon.w, icon.h))
         end
         return regions
     end)
-    removeBackdrop()
+    run:removeBackdrop()
 end
 
 -- Heads ------------------------------------------------------------------------------------------
@@ -273,7 +148,7 @@ local function newModelPanel(x, y, size, player, view)
         self.javaObject:setAnimate(not frozen)
     end
     panel:setVisible(true)
-    tinted[1]:addChild(panel)
+    run.tinted[1]:addChild(panel)
     panel:setState("idle")
     panel:setIsometric(false)
     panel:setZoom(view.close and CLOSE_ZOOM or HEAD_ZOOM)
@@ -306,20 +181,20 @@ local function addHeads()
     local player = getPlayer()
     local panels = {}
     add(function()
-        newBackdrop()
+        run:newBackdrop()
         local size = math.floor(math.min(getCore():getScreenWidth(), getCore():getScreenHeight()) / 2)
         local left = math.floor((getCore():getScreenWidth() - 2 * size) / 2)
         for i, view in ipairs(VIEWS) do
             panels[i] = newModelPanel(left + ((i - 1) % 2) * size, math.floor((i - 1) / 2) * size, size, player, view)
         end
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+        return Capture.drawn(Capture.DRAW_FRAMES)
     end)
     for _, look in ipairs(LOOKS) do
         local sex = look.female and "female" or "male"
         local ear = look.female and "left" or "right"
         add(function()
             setLook(player, look)
-            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+            return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, tier in ipairs(TIERS) do
             local name = table.concat({ "head", look.name, sex, ear, TIER_NAMES[tier] }, "_")
@@ -332,13 +207,13 @@ local function addHeads()
                     panels[i]:setDirection(view[ear])
                     panels[i]:setCharacter(player)
                 end
-                return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+                return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
             end)
             add(function()
                 frozen = true
-                return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+                return Capture.drawn(Capture.DRAW_FRAMES)
             end)
-            addMatted(name, function()
+            run:addMatted(name, function()
                 local regions = {}
                 for i, view in ipairs(VIEWS) do
                     table.insert(regions, elementRegion(name .. "_" .. view.name, panels[i]))
@@ -352,7 +227,7 @@ local function addHeads()
         HearingAidDevArt.takeOffAids(player)
         return 1
     end)
-    removeBackdrop()
+    run:removeBackdrop()
 end
 
 -- Models -----------------------------------------------------------------------------------------
@@ -364,7 +239,7 @@ local function addModels()
         local name = "model_" .. TIER_NAMES[tier]
         local scene
         add(function()
-            local backdrop = newBackdrop()
+            local backdrop = run:newBackdrop()
             scene = ISUI3DScene:new(0, 0, backdrop.width, backdrop.height)
             backdrop:addChild(scene)
             scene.borderColor = { r = 0, g = 0, b = 0, a = 0 }
@@ -375,13 +250,13 @@ local function addModels()
             scene.javaObject:fromLua1("setDrawGrid", false)
             scene.javaObject:fromLua1("setGizmoVisible", "none")
             scene.javaObject:fromLua2("createModel", "aid", "Base.HearingAid_Ground_" .. string.gsub(TIER_NAMES[tier], "^%l", string.upper))
-            table.insert(tinted, scene)
-            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+            run:tint(scene)
+            return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
-        addMatted(name, function()
+        run:addMatted(name, function()
             return { region(name, scene.width / 2 - 400, scene.height / 2 - 400, 800, 800) }
         end)
-        removeBackdrop()
+        run:removeBackdrop()
     end
 end
 
@@ -391,7 +266,7 @@ local function addTooltips()
     local player = getPlayer()
     local tooltips = {}
     add(function()
-        newBackdrop()
+        run:newBackdrop()
         HearingAidDevArt.takeOffAids(player)
         local worn = Debug.addAid(player, HearingAid.BOOSTED, 0.73, true)
         Debug.wear(player, worn)
@@ -410,11 +285,11 @@ local function addTooltips()
             tooltip:setVisible(true)
             tooltips[aid.name] = tooltip
         end
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+        return Capture.drawn(Capture.DRAW_FRAMES)
     end)
     -- HearingAidTooltip.lua draws the battery strip below the vanilla tooltip, so each region
     -- reaches past it; compose.py trims the transparent margin.
-    addMatted("tooltips", function()
+    run:addMatted("tooltips", function()
         local regions = {}
         for name, tooltip in pairs(tooltips) do
             table.insert(regions, region(name, tooltip:getX(), tooltip:getY(), tooltip:getWidth() + 120, tooltip:getHeight() + 100))
@@ -428,14 +303,14 @@ local function addTooltips()
         HearingAidDevArt.takeOffAids(player)
         return 1
     end)
-    removeBackdrop()
+    run:removeBackdrop()
 end
 
 local function addWearMenu()
     local player = getPlayer()
     local context
     add(function()
-        newBackdrop()
+        run:newBackdrop()
         local aid = Debug.addAid(player, HearingAid.BASIC, 0.8, false)
         -- Away from the mouse, which would otherwise move the highlight.
         local x = getMouseX() < getCore():getScreenWidth() / 2 and 1300 or 300
@@ -449,10 +324,10 @@ local function addWearMenu()
             end
         end
         context.forceVisible = true
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+        return Capture.drawn(Capture.DRAW_FRAMES)
     end)
     -- The menu with its Wear submenu open beside it.
-    addMatted("menu", function()
+    run:addMatted("menu", function()
         local sub = context.subMenu
         local x, y = context:getAbsoluteX(), math.min(context:getAbsoluteY(), sub:getAbsoluteY())
         local right = math.max(context:getAbsoluteX() + context:getWidth(), sub:getAbsoluteX() + sub:getWidth())
@@ -463,7 +338,7 @@ local function addWearMenu()
         context:closeAll()
         return 1
     end)
-    removeBackdrop()
+    run:removeBackdrop()
 end
 
 -- World ------------------------------------------------------------------------------------------
@@ -488,7 +363,7 @@ local function addCorpse()
         for _ = 1, 8 do
             getCore():doZoomScroll(0, -1)
         end
-        return HearingAidDevArt.zoomSettled()
+        return Capture.zoomSettled()
     end)
     add(function()
         local square = HearingAidDevArt.groundSquare(player)
@@ -508,43 +383,57 @@ local function addCorpse()
                 loot:selectContainer(button)
             end
         end
-        return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+        return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
     end)
-    addOpaque("world_corpse", function()
+    run:addOpaque("world_corpse", function()
         local x, y = squareCentre(player:getCurrentSquare())
         return { clampedRegion("world_corpse", x + 150, y - 60, 1260, 709) }
     end)
 end
 
-function HearingAidDevPromo.capture(onDone)
+-- The groups of dev/harness.conf's MODE_GROUPS_promo, and what adds their steps.
+local GROUPS = {
+    icons = addIcons,
+    heads = addHeads,
+    models = addModels,
+    tooltips = addTooltips,
+    menu = addWearMenu,
+    world = addCorpse,
+}
+
+--- Shoots the groups named in `selection`, comma-separated in the order to shoot them, which
+--- run-client.sh gives every group of MODE_GROUPS_promo when PROMO names none, and calls onDone.
+function HearingAidDevPromo.capture(selection, onDone)
+    run = Capture.new("HearingAidPromo")
+    local chosen = Capture.names(selection)
+    for _, name in ipairs(chosen) do
+        if not GROUPS[name] then
+            run:fail("MODE_GROUPS_promo names " .. name .. ", which GROUPS lacks")
+            return
+        end
+    end
     -- Hides the HUD, the debug console and every other window; the shots add their own.
     ISUIHandler.setVisibleAllUI(false)
     -- Noon from the start: the world's light takes most of a second to follow the clock, and the
     -- world shot comes last.
     getGameTime():setTimeOfDay(12)
-    addIcons()
-    addHeads()
-    addModels()
-    addTooltips()
-    addWearMenu()
-    addCorpse()
-    HearingAidDevArt.runSteps(steps, function()
-        -- The layout's text, in the game's words, so a renamed item or option shows in the images.
-        local names = {}
-        for _, icon in ipairs(ICONS) do
-            names[icon.name] = getItemNameFromFullType(icon.fullType)
-        end
-        writeJson("HearingAidPromo.json", {
-            screen = { w = getCore():getScreenWidth(), h = getCore():getScreenHeight() },
-            shots = shots,
-            names = names,
-            strings = {
-                modName = getText("Sandbox_HearingAid"),
-                rightEar = getText("ContextMenu_HearingAid_EarRight"),
-                leftEar = getText("ContextMenu_HearingAid_EarLeft"),
-                electrical = Perks.Electricity:getName(),
-            },
-        })
-        onDone()
-    end)
+    for _, name in ipairs(chosen) do
+        run:group(name)
+        GROUPS[name]()
+    end
+    -- The layout's text, in the game's words, so a renamed item or option shows in the images. It
+    -- comes with every run, since it costs no shot.
+    local names = {}
+    for _, icon in ipairs(ICONS) do
+        names[icon.name] = getItemNameFromFullType(icon.fullType)
+    end
+    run:run({
+        names = names,
+        strings = {
+            modName = getText("Sandbox_HearingAid"),
+            rightEar = getText("ContextMenu_HearingAid_EarRight"),
+            leftEar = getText("ContextMenu_HearingAid_EarLeft"),
+            electrical = Perks.Electricity:getName(),
+        },
+    }, onDone)
 end

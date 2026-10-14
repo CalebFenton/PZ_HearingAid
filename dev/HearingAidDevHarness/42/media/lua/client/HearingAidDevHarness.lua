@@ -7,7 +7,6 @@
 -- prints a "HearingAidLootReport" line for each place, then "HearingAidLootReport DONE". Then the
 -- game quits. run-debug-client.sh reads those lines from console.txt.
 require "PZHarness/Runner"
-require "HearingAid/HearingAidRecipes"
 require "HearingAid/Debug/HearingAidDebugScenario"
 require "HearingAid/Debug/HearingAidLoot"
 require "HearingAidDevArt"
@@ -41,21 +40,7 @@ PZHarness.register({
         -- Both wait on the UI's drawings and the zoom rather than on frame counts, so they draw
         -- uncapped, and their world shots show a clear day.
         art = { uncapped = true, clearWeather = true, fastUI = true, run = function(_, done) HearingAidDevArt.capture(done) end },
-        promo = { uncapped = true, clearWeather = true, fastUI = true, run = function(_, done) HearingAidDevPromo.capture(done) end },
+        promo = { uncapped = true, clearWeather = true, fastUI = true, run = HearingAidDevPromo.capture },
         loot = { run = reportLoot },
-    },
-    tests = {
-        -- The scenario's hour. Crafting needs light, the world's light catches up with the clock
-        -- only some frames after the game starts, and a game kept by --stay runs on into the night.
-        hour = 10,
-        sandbox = "HearingAid",
-        -- The recipes' skill levels follow the *SkillLevel options; on the server too, through
-        -- HearingAidTestServer.lua.
-        sandboxChanged = HearingAid.Recipes.applySkillLevels,
-        -- The character's own hearing `spec.hearing` and `spec.periodicUpdate`. In the test file,
-        -- which a --stay rerun loads again.
-        setup = function(self, spec)
-            HearingAidTests.setup(self, spec)
-        end,
     },
 })

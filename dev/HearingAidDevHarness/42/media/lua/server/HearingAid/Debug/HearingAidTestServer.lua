@@ -1,6 +1,5 @@
 require "PZHarness/ServerFixtures"
 require "HearingAid/HearingAid"
-require "HearingAid/HearingAidRecipes"
 require "HearingAid/Debug/HearingAidLoot"
 
 -- Development only, not published. The server's half of HearingAidTests.lua: what only the
@@ -10,9 +9,6 @@ require "HearingAid/Debug/HearingAidLoot"
 -- loads this file again, so it only registers handlers.
 
 local handler = PZHarness.serverHandler
-
--- The recipes' skill levels follow the *SkillLevel options on the server too.
-PZHarness.serverSettings.sandboxChanged = HearingAid.Recipes.applySkillLevels
 
 local SYNC_TRAITS = 2 -- SyncPlayerFieldsPacket.PF_Traits
 

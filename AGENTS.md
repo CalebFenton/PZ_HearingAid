@@ -2,7 +2,7 @@
 
 ## Commands
 
-- After every change: `dev/validate-server.sh`. It boots a headless dedicated server and fails on any error the mod logs.
+- After every change: `dev/static-check.sh`. It compiles every Lua file with the game's compiler and cross-checks scripts, translations (complete in every language), textures and API names in seconds. Then `dev/validate-server.sh`, which boots a headless dedicated server and fails on any error the mod logs.
 - While you iterate: `dev/run-debug-client.sh --test --changed --stay`, or `TESTS=<name prefix>` instead of `--changed`, adding `--mp` when the change touches what the server does or sends. Before committing: `dev/run-debug-client.sh --test` and `dev/run-debug-client.sh --test --mp`.
 
 ## Rules

@@ -3,7 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["pillow"]
 # ///
-"""Lays out the README and Workshop images from the captures that extract.py saved, and the mod's
+"""Lays out the README and Workshop images from the captures that --promo saved, and the mod's
 poster, Workshop preview and mod-list icon. Rerun it after editing a layout; recapture only when
 the game's look changes:
 

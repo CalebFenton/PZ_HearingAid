@@ -4,6 +4,7 @@
 -- screen, and art_ground.png shows every aid on the ground at the closest zoom.
 require "ISUI/ISUI3DModel"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
+local Capture = require "PZHarness/Capture"
 
 HearingAidDevArt = {}
 
@@ -55,37 +56,9 @@ function HearingAidDevArt.groundSquare(player)
     return here
 end
 
--- UI drawings for a change to reach the screen.
-HearingAidDevArt.DRAW_FRAMES = 10
 -- UI drawings for a preview to show a new look or model. Models load on another thread, which Lua
 -- can't watch, and a preview keeps drawing the old model until the new one has loaded.
 HearingAidDevArt.MODEL_FRAMES = 10
-
--- The UI draws at its own rate (Core.StartFrameUI, the uiRenderFPS option) and the frames in
--- between show its last drawing, so the steps count its drawings rather than frames.
-local uiDraws = 0
-Events.OnPostUIDraw.Add(function()
-    uiDraws = uiDraws + 1
-end)
-
---- A runSteps wait until the UI has drawn `count` more times.
-function HearingAidDevArt.drawn(count)
-    local start = uiDraws
-    return function()
-        return uiDraws - start >= count
-    end
-end
-
---- A runSteps wait until the zoom stops changing, which eases towards its target every frame.
-function HearingAidDevArt.zoomSettled()
-    local last
-    return function()
-        local zoom = getCore():getZoom(0)
-        local settled = zoom == last
-        last = zoom
-        return settled
-    end
-end
 
 -- A row of preview panels on an opaque backdrop across the middle of the screen.
 local function createPanels(player)
@@ -110,74 +83,36 @@ local function createPanels(player)
     return backdrop, panels
 end
 
--- Runs each step on its own tick, then waits before the next: as many ticks as the step returns,
--- or, if it returns a function, until that function returns true.
-function HearingAidDevArt.runSteps(steps, onDone)
-    local index, wait, poll = 1, 0, nil
-    local function onTick()
-        if poll then
-            if poll() then
-                poll = nil
-            end
-            return
-        end
-        if wait > 0 then
-            wait = wait - 1
-            return
-        end
-        local step = steps[index]
-        if not step then
-            Events.OnTick.Remove(onTick)
-            onDone()
-            return
-        end
-        index = index + 1
-        local result = step()
-        if type(result) == "function" then
-            poll = result
-        else
-            wait = result or 0
-        end
-    end
-    Events.OnTick.Add(onTick)
-end
-
 function HearingAidDevArt.capture(onDone)
+    local run = Capture.new("HearingAidArt")
     local player = getPlayer()
     local backdrop, panels
-    local steps = {}
-    local function add(step)
-        table.insert(steps, step)
-    end
 
-    add(function()
+    run:add(function()
         backdrop, panels = createPanels(player)
-        return HearingAidDevArt.drawn(HearingAidDevArt.DRAW_FRAMES)
+        return Capture.drawn(Capture.DRAW_FRAMES)
     end)
     for _, female in ipairs({ false, true }) do
         local sex = female and "female" or "male"
-        add(function()
+        run:add(function()
             setLook(player, female)
-            return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+            return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, fullType in ipairs(AIDS) do
-            add(function()
+            run:add(function()
                 HearingAidDevArt.takeOffAids(player)
                 Debug.wear(player, player:getInventory():AddItem(fullType))
                 for _, panel in ipairs(panels) do
                     panel:setCharacter(player)
                 end
-                return HearingAidDevArt.drawn(HearingAidDevArt.MODEL_FRAMES)
+                return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
             end)
-            add(function()
-                local itemType = string.match(fullType, "%.(.+)$")
-                getCore():TakeFullScreenshot("art_" .. sex .. "_" .. itemType .. ".png")
-                print("HearingAidArt saved art_" .. sex .. "_" .. itemType .. ".png")
-                return 10
+            run:add(function()
+                run:screenshot("art_" .. sex .. "_" .. string.match(fullType, "%.(.+)$"))
             end)
         end
     end
-    add(function()
+    run:add(function()
         backdrop:removeFromUIManager()
         HearingAidDevArt.takeOffAids(player)
         local square = HearingAidDevArt.groundSquare(player)
@@ -187,16 +122,14 @@ function HearingAidDevArt.capture(onDone)
         for _ = 1, 8 do
             getCore():doZoomScroll(0, -1)
         end
-        return HearingAidDevArt.zoomSettled()
+        return Capture.zoomSettled()
     end)
     -- The world draws every frame, the item models once they have loaded.
-    add(function()
-        return HearingAidDevArt.DRAW_FRAMES
+    run:add(function()
+        return Capture.DRAW_FRAMES
     end)
-    add(function()
-        getCore():TakeFullScreenshot("art_ground.png")
-        print("HearingAidArt saved art_ground.png")
-        return 10
+    run:add(function()
+        run:screenshot("art_ground")
     end)
-    HearingAidDevArt.runSteps(steps, onDone)
+    run:run(nil, onDone)
 end

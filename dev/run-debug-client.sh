@@ -24,8 +24,10 @@
 #   dev/run-debug-client.sh --art    the same, but instead of the tests the harness saves close-ups
 #                                    of the worn and dropped aids (art_*.png) to <cache>/Screenshots
 #   dev/run-debug-client.sh --promo  the same, but the harness captures the art for the README and
-#                                    the Workshop page, and art/promo/extract.py crops it into
-#                                    art/promo/captures (needs uv, https://docs.astral.sh/uv/)
+#                                    the Workshop page and crops it into art/promo/captures (needs
+#                                    uv, https://docs.astral.sh/uv/). PROMO=<group>,... shoots only
+#                                    those groups and replaces only their captures (e.g.
+#                                    PROMO=heads); a bad name lists the groups
 #   dev/run-debug-client.sh --loot   the same, but the harness measures how often corpses and
 #                                    containers hold hearing aids and wristwatches, and the script
 #                                    prints the shares
