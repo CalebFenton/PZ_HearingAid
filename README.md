@@ -52,10 +52,6 @@ Loot rates, the chance a found one still holds a battery, and **Enable Boosted H
 - **Can I remove it from a save?** Take your hearing aid off first. While one works, your hearing trait is the one it gives you, and without the mod nothing would change it back. Hearing aids in the world disappear with the mod.
 - **Does it work in my language?** Every text the mod shows is translated into each language the game offers, in the game's own words for traits, items and skills.
 
-## Credits
-
-By Caleb Fenton. The source is on [GitHub](https://github.com/CalebFenton/PZ_HearingAid). Licensed under the Apache License 2.0, see [LICENSE](LICENSE).
-
 ## Install
 
 Subscribe on the [Steam Workshop page](https://steamcommunity.com/sharedfiles/filedetails/?id=2931424725) and enable **Hearing Aid** in the mod list.

@@ -49,8 +49,5 @@ description=[list]
 description=[*][b]Can I remove it from a save?[/b] Take your hearing aid off first. While one works, your hearing trait is the one it gives you, and without the mod nothing would change it back. Hearing aids in the world disappear with the mod.
 description=[*][b]Does it work in my language?[/b] Every text the mod shows is translated into each language the game offers, in the game's own words for traits, items and skills.
 description=[/list]
-description=
-description=[h2]Credits[/h2]
-description=By Caleb Fenton. The source is on [url=https://github.com/CalebFenton/PZ_HearingAid]GitHub[/url]. Licensed under the Apache License 2.0, see [url=https://github.com/CalebFenton/PZ_HearingAid/blob/master/LICENSE]LICENSE[/url].
 tags=Build 42;Clothing/Armor;Items;Traits
 visibility=public
