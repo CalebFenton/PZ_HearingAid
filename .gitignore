@@ -3,3 +3,4 @@ __pycache__/
 *.blend1
 dev/.runs.log
 dev/.runs-failed
+dev/.runs-tests.log
