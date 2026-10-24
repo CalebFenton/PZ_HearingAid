@@ -9,6 +9,7 @@ require "ISUI/ISUI3DModel"
 require "Vehicles/ISUI/ISUI3DScene"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
 local Capture = require "PZHarness/Capture"
+local Stage = require "PZHarness/Stage"
 require "HearingAidDevArt"
 
 HearingAidDevPromo = {}
@@ -90,48 +91,18 @@ local frozen = false
 
 -- Icons ------------------------------------------------------------------------------------------
 
-local IconSheet = ISPanel:derive("HearingAidDevPromoIconSheet")
-
-function IconSheet:render()
-    for _, icon in ipairs(self.icons) do
-        self:drawTextureScaled(icon.texture, icon.x, icon.y, icon.w, icon.h, 1, 1, 1, 1)
-    end
-end
-
 local function addIcons()
-    local sheet
-    run:add(function()
-        local backdrop = run:newBackdrop()
-        sheet = IconSheet:new(100, 100, getCore():getScreenWidth() - 200, getCore():getScreenHeight() - 200)
-        sheet:noBackground()
-        sheet.icons = {}
-        local x, y, rowHeight = 0, 0, 0
-        local function place(name, texture)
-            local w, h = texture:getWidthOrig(), texture:getHeightOrig()
-            if x + w > sheet.width then
-                x, y, rowHeight = 0, y + rowHeight + 32, 0
-            end
-            table.insert(sheet.icons, { name = name, texture = texture, x = x, y = y, w = w, h = h })
-            x = x + w + 32
-            rowHeight = math.max(rowHeight, h)
-        end
+    run:addIconSheet("icons", function()
+        local icons = {}
         for _, icon in ipairs(ICONS) do
-            place("icon_" .. icon.name, instanceItem(icon.fullType):getTex())
+            table.insert(icons, { name = "icon_" .. icon.name, texture = instanceItem(icon.fullType):getTex() })
         end
         for _, trait in ipairs(TRAITS) do
-            place("trait_" .. trait.name, CharacterTraitDefinition.getCharacterTraitDefinition(trait.trait):getTexture())
+            local texture = CharacterTraitDefinition.getCharacterTraitDefinition(trait.trait):getTexture()
+            table.insert(icons, { name = "trait_" .. trait.name, texture = texture })
         end
-        backdrop:addChild(sheet)
-        return Capture.drawn(Capture.DRAW_FRAMES)
+        return icons
     end)
-    run:addMatted("icons", function()
-        local regions = {}
-        for _, icon in ipairs(sheet.icons) do
-            table.insert(regions, region(icon.name, sheet:getAbsoluteX() + icon.x, sheet:getAbsoluteY() + icon.y, icon.w, icon.h))
-        end
-        return regions
-    end)
-    run:removeBackdrop()
 end
 
 -- Heads ------------------------------------------------------------------------------------------
@@ -302,53 +273,22 @@ local function addTooltips()
     run:removeBackdrop()
 end
 
+-- The menu with its Wear submenu open beside it.
 local function addWearMenu()
-    local player = getPlayer()
-    local context
-    run:add(function()
-        run:newBackdrop()
-        local aid = Debug.addAid(player, HearingAid.BASIC, 0.8, false)
-        -- Away from the mouse, which would otherwise move the highlight.
-        local x = getMouseX() < getCore():getScreenWidth() / 2 and 1300 or 300
-        context = ISInventoryPaneContextMenu.createMenu(0, true, { aid }, x, 300)
-        context:removeOptionByName("Debug")
-        local wear = context:getOptionFromName(getText("ContextMenu_Wear"))
-        -- ISContextMenu:render shows the submenu of the option at mouseOver while forceVisible is set.
-        for i, option in ipairs(context.options) do
-            if option == wear then
-                context.mouseOver = i
-            end
+    Stage.addMenuShot(run, "menu_wear", function()
+        local aid = Debug.addAid(getPlayer(), HearingAid.BASIC, 0.8, false)
+        local context = ISInventoryPaneContextMenu.createMenu(0, true, { aid }, 300, 300)
+        local wear = Stage.openSubMenu(context, getText("ContextMenu_Wear"))
+        if not wear then
+            return nil, "the hearing aid's Wear submenu"
         end
-        context.forceVisible = true
-        return Capture.drawn(Capture.DRAW_FRAMES)
+        return { context, wear }
     end)
-    -- The menu with its Wear submenu open beside it.
-    run:addMatted("menu", function()
-        local sub = context.subMenu
-        local x, y = context:getAbsoluteX(), math.min(context:getAbsoluteY(), sub:getAbsoluteY())
-        local right = math.max(context:getAbsoluteX() + context:getWidth(), sub:getAbsoluteX() + sub:getWidth())
-        local bottom = math.max(context:getAbsoluteY() + context:getHeight(), sub:getAbsoluteY() + sub:getHeight())
-        return { region("menu_wear", x, y, right - x, bottom - y) }
-    end)
-    run:add(function()
-        context:closeAll()
-        return 1
-    end)
-    run:removeBackdrop()
 end
 
 -- World ------------------------------------------------------------------------------------------
 
-local function squareCentre(square)
-    local x, y, z = square:getX() + 0.5, square:getY() + 0.5, square:getZ()
-    return isoToScreenX(0, x, y, z), isoToScreenY(0, x, y, z)
-end
-
-local function clampedRegion(name, cx, cy, w, h)
-    local x = math.max(0, math.min(getCore():getScreenWidth() - w, cx - w / 2))
-    local y = math.max(0, math.min(getCore():getScreenHeight() - h, cy - h / 2))
-    return region(name, x, y, w, h)
-end
+local CORPSE_W, CORPSE_H = 1260, 709
 
 -- A corpse next to the character with an aid among its things, and the loot window open on it.
 local function addCorpse()
@@ -356,8 +296,7 @@ local function addCorpse()
     run:add(function()
         setLook(player, LOOKS[2])
         Debug.wear(player, Debug.addAid(player, HearingAid.BASIC, 0.6, true))
-        HearingAidDevArt.zoomToClosest()
-        return Capture.zoomSettled()
+        return Stage.zoomOut(0)
     end)
     run:add(function()
         local square = HearingAidDevArt.groundSquare(player)
@@ -366,7 +305,7 @@ local function addCorpse()
         local loot = getPlayerLoot(0)
         loot:setVisible(true)
         loot:setPinned()
-        local cx, cy = squareCentre(player:getCurrentSquare())
+        local cx, cy = Stage.onScreen(player:getCurrentSquare())
         loot:setX(cx + 110)
         loot:setY(cy - 330)
         loot:setWidth(400)
@@ -380,8 +319,9 @@ local function addCorpse()
         return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
     end)
     run:addOpaque("world_corpse", function()
-        local x, y = squareCentre(player:getCurrentSquare())
-        return { clampedRegion("world_corpse", x + 150, y - 60, 1260, 709) }
+        local x, y = Stage.onScreen(player:getCurrentSquare())
+        x, y = x + 150 - CORPSE_W / 2, y - 60 - CORPSE_H / 2
+        return { Stage.screenRegion("world_corpse", x, y, x + CORPSE_W, y + CORPSE_H) }
     end)
 end
 
@@ -399,29 +339,13 @@ local GROUPS = {
 -- run-client.sh gives every group of MODE_GROUPS_promo when PROMO names none, and calls onDone.
 function HearingAidDevPromo.capture(selection, onDone)
     run = Capture.new("HearingAidPromo")
-    local chosen = Capture.names(selection)
-    for _, name in ipairs(chosen) do
-        if not GROUPS[name] then
-            run:fail("MODE_GROUPS_promo names " .. name .. ", which GROUPS lacks")
-            return
-        end
-    end
-    -- Hides the HUD, the debug console and every other window; the shots add their own.
-    ISUIHandler.setVisibleAllUI(false)
-    -- Noon from the start: the world's light takes most of a second to follow the clock, and the
-    -- world shot comes last.
-    getGameTime():setTimeOfDay(12)
-    for _, name in ipairs(chosen) do
-        run:group(name)
-        GROUPS[name]()
-    end
     -- The layout's text, in the game's words, so a renamed item or option shows in the images. It
     -- comes with every run, since it costs no shot.
     local names = {}
     for _, icon in ipairs(ICONS) do
         names[icon.name] = getItemNameFromFullType(icon.fullType)
     end
-    run:run({
+    local data = {
         names = names,
         strings = {
             modName = getText("Sandbox_HearingAid"),
@@ -429,5 +353,10 @@ function HearingAidDevPromo.capture(selection, onDone)
             leftEar = getText("ContextMenu_HearingAid_EarLeft"),
             electrical = Perks.Electricity:getName(),
         },
-    }, onDone)
+    }
+    -- Noon from the start: the world's light takes most of a second to follow the clock, and the
+    -- world shot comes last.
+    Stage.runGroups(run, selection, GROUPS, function()
+        Stage.addWorldSettings(run, { hour = 12 })
+    end, data, onDone)
 end

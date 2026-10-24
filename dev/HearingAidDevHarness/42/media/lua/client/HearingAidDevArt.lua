@@ -5,6 +5,7 @@
 require "ISUI/ISUI3DModel"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
 local Capture = require "PZHarness/Capture"
+local Stage = require "PZHarness/Stage"
 
 HearingAidDevArt = {}
 
@@ -54,13 +55,6 @@ function HearingAidDevArt.groundSquare(player)
         end
     end
     return here
-end
-
--- Scrolls the world view to the closest zoom; Capture.zoomSettled() waits until it gets there.
-function HearingAidDevArt.zoomToClosest()
-    for _ = 1, 8 do
-        getCore():doZoomScroll(0, -1)
-    end
 end
 
 -- UI drawings for a preview to show a new look or model. Models load on another thread, which Lua
@@ -126,8 +120,7 @@ function HearingAidDevArt.capture(onDone)
         for i, fullType in ipairs(TIERS) do
             square:AddWorldInventoryItem(instanceItem(fullType), 0.4, 0.15 + 0.22 * (i - 1), 0)
         end
-        HearingAidDevArt.zoomToClosest()
-        return Capture.zoomSettled()
+        return Stage.zoomOut(0)
     end)
     -- The world draws every frame, the item models once they have loaded.
     run:add(function()
