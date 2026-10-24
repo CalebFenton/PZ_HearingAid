@@ -1,54 +1,43 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["pillow"]
+# dependencies = ["pillow==12.3.0"]
 # ///
 """Lays out the README and Workshop images from the captures that --promo saved, and the mod's
-poster, Workshop preview and mod-list icon. Rerun it after editing a layout; recapture only when
-the game's look changes:
+poster, Workshop preview and mod-list icon, with the harness's lib/promo.py
+(dev/harness/docs/workshop-page.md, "Laying out the images"). Rerun it after editing a layout;
+recapture only when the game's look changes:
 
     art/promo/compose.py
 
-Writes images/*.png, 42/poster.png, 42/hearing_aid_icon.png and the repository's preview.png. The
-icon starts from art/drawings/hearing_aid.xcf, the drawing Item_HearingAid.png came from, which
-ImageMagick's `magick` flattens. Every README image is 1260 pixels wide, which the Workshop page
-shows at 630, so it stays sharp on high-density screens. Interface captures and icons are scaled by
-whole numbers with nearest-neighbour sampling, so their pixels stay crisp. Item names and the other
-text the game shows come from captures/promo.json, which the game wrote in the last --promo run.
-gallery/NN-*.jpg are the Workshop gallery's 1920x1080 slides, one caption each, in upload order.
+Writes images/*.png, the Workshop gallery, gallery/NN-<name>.jpg in upload order, 42/poster.png,
+which is also the Workshop preview, preview.png, and 42/hearing_aid_icon.png. The icon starts from
+art/drawings/hearing_aid.xcf, the drawing Item_HearingAid.png came from, which ImageMagick's
+`magick` flattens. Item names and the other text the game shows come from captures/promo.json,
+which the game wrote in the last --promo run.
 """
-import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageFilter
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "dev" / "harness" / "lib"))
+import promo  # noqa: E402
+from promo import MUTED, PAGE, POSTER_SIZE, WIDTH  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-CAPTURES = HERE / "captures"
+CAPTURES = promo.Captures(HERE / "captures")
 OUT = HERE / "images"
 GALLERY = HERE / "gallery"
-FONT = HERE / "fonts" / "NotoSans.ttf"
-REPO = HERE.parent.parent
 MOD = REPO / "Contents" / "mods" / "HearingAid" / "42"
 DRAWING = HERE.parent / "drawings" / "hearing_aid.xcf"
-# The same picture serves as the mod list's poster and the Workshop preview, which takes a square of
-# 256 or 512 pixels, at most this many bytes (SteamWorkshopItem.validatePreviewImage).
 POSTER_FILES = [MOD / "poster.png", REPO / "preview.png"]
-POSTER_SIZE = 512
-PREVIEW_BYTES = 1_024_000
-# Steam shows the gallery at 16:9 and rejects a preview file of 1 MB or more (ISteamUGC::AddItemPreviewFile).
-GALLERY_SIZE = (1920, 1080)
-GALLERY_BYTES = 1_000_000
-PROMO = json.loads((CAPTURES / "promo.json").read_text())
-NAMES = PROMO["names"]
-STRINGS = PROMO["strings"]
+NAMES = CAPTURES.promo["names"]
+STRINGS = CAPTURES.strings
 
-WIDTH = 1260
-BACKGROUND = (24, 26, 31)
-PANEL = (36, 39, 46)
-TEXT = (232, 234, 238)
-MUTED = (160, 166, 176)
 TIERS = {
     "broken": (150, 150, 150),
     "basic": (190, 184, 110),
@@ -69,92 +58,21 @@ RECIPES = [
 EAR_BOX = (0.36, 0.18, 0.96, 0.78)
 # The part of world_corpse.png around the corpse, the character and the loot window.
 CORPSE_BOX = (120, 90, 1000, 585)
+# How far a head capture's panel outline reaches in from its edges.
+HEAD_BORDER = 2
 
 
-def font(size, weight="Regular"):
-    face = ImageFont.truetype(str(FONT), size)
-    face.set_variation_by_name(weight)
-    return face
-
-
-def capture(name, border=0):
-    """A capture, less `border` pixels at each edge, where a panel's outline can show."""
-    image = Image.open(CAPTURES / f"{name}.png").convert("RGBA")
-    return image.crop((border, border, image.width - border, image.height - border))
-
-
-def trim(image, pad=0):
-    left, top, right, bottom = image.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
-    return image.crop((left - pad, top - pad, right + pad, bottom + pad))
-
-
-def fit(image, width, height):
-    scale = min(width / image.width, height / image.height)
-    return image.resize((round(image.width * scale), round(image.height * scale)), Image.LANCZOS)
-
-
-def pixels(image, factor):
-    return image.resize((image.width * factor, image.height * factor), Image.NEAREST)
+def head(name):
+    """A head capture, less its panel's outline."""
+    image = CAPTURES(name)
+    return image.crop((HEAD_BORDER, HEAD_BORDER, image.width - HEAD_BORDER, image.height - HEAD_BORDER))
 
 
 def fraction(image, box):
     return image.crop(tuple(round(f * size) for f, size in zip(box, (image.width, image.height) * 2)))
 
 
-def canvas(height, width=WIDTH):
-    """A dark card with a faint vertical gradient."""
-    image = Image.new("RGBA", (width, height), BACKGROUND + (255,))
-    shade = Image.linear_gradient("L").resize((width, height)).point(lambda v: v * 0.35)
-    image.paste(Image.new("RGBA", (width, height), (12, 13, 16, 255)), (0, 0), shade)
-    return image
-
-
-def paste(base, image, centre, shadow=True):
-    """Pastes image centred on centre, over a soft shadow of itself."""
-    x, y = round(centre[0] - image.width / 2), round(centre[1] - image.height / 2)
-    if shadow:
-        alpha = image.getchannel("A").point(lambda a: a * 0.6)
-        blur = Image.new("RGBA", (image.width + 40, image.height + 40), (0, 0, 0, 0))
-        blur.paste(Image.new("RGBA", image.size, (0, 0, 0, 255)), (20, 20), alpha)
-        blur = blur.filter(ImageFilter.GaussianBlur(10))
-        base.alpha_composite(blur, (x - 20 + 4, y - 20 + 8))
-    base.alpha_composite(image, (x, y))
-
-
-def text(base, xy, string, size, weight="Regular", fill=TEXT, anchor="la"):
-    ImageDraw.Draw(base).multiline_text(xy, string, font=font(size, weight), fill=fill, anchor=anchor,
-                                        align="center" if anchor[0] == "m" else "left", spacing=4)
-
-
-def panel(base, box, accent=None):
-    draw = ImageDraw.Draw(base)
-    draw.rounded_rectangle(box, 18, fill=PANEL + (255,))
-    if accent:
-        draw.rectangle((box[0] + 28, box[1], box[2] - 28, box[1] + 5), fill=accent + (255,))
-
-
-def arrow(base, centre, colour=MUTED):
-    x, y = centre
-    draw = ImageDraw.Draw(base)
-    draw.rectangle((x - 22, y - 4, x + 6, y + 4), fill=colour)
-    draw.polygon([(x + 4, y - 14), (x + 22, y), (x + 4, y + 14)], fill=colour)
-
-
-def save(image, name):
-    path = OUT / f"{name}.png"
-    path.parent.mkdir(exist_ok=True)
-    image.convert("RGB").save(path, optimize=True)
-    print(f"compose: {path.relative_to(REPO)} {image.width}x{image.height}")
-
-
-def save_poster(image):
-    for path in POSTER_FILES:
-        image.convert("RGB").save(path, optimize=True)
-        assert path.stat().st_size <= PREVIEW_BYTES, f"{path.name} is over the Workshop's {PREVIEW_BYTES} bytes"
-        print(f"compose: {path.relative_to(REPO)} {image.width}x{image.height}")
-
-
-def wrap(name):
+def last_word_down(name):
     """Breaks a name of more than one word before its last word."""
     return "\n".join(name.rsplit(" ", 1))
 
@@ -165,32 +83,35 @@ def tier_label(tier):
     return NAMES[tier].replace(" " + basic, "\n" + basic)
 
 
+def model(tier):
+    return promo.trim(CAPTURES(f"model_{tier}"))
+
+
 # Images ------------------------------------------------------------------------------------------
 
 
 def banner():
-    image = canvas(420)
-    text(image, (70, 210), STRINGS["modName"], 88, "Bold", anchor="lm")
+    image = promo.canvas(420)
+    promo.text(image, (70, 210), STRINGS["modName"], 88, "Bold", anchor="lm")
     positions = [(770, 130), (910, 280), (1050, 130), (1160, 285)]
     for tier, centre in zip(TIERS, positions):
-        paste(image, fit(trim(capture(f"model_{tier}")), 210, 210), centre)
+        promo.paste(image, promo.fit(model(tier), 210, 210), centre)
     return image
 
 
 def poster():
     """The banner's title and four models, stacked for a square. The mod list and the Workshop show
     it at about 196 pixels, so the title is large."""
-    image = canvas(POSTER_SIZE, POSTER_SIZE)
-    text(image, (POSTER_SIZE / 2, 74), STRINGS["modName"], 76, "Bold", anchor="mm")
+    image = promo.canvas(POSTER_SIZE, POSTER_SIZE)
+    promo.text(image, (POSTER_SIZE / 2, 74), STRINGS["modName"], 76, "Bold", anchor="mm")
     positions = [(140, 215), (372, 215), (140, 390), (372, 390)]
     for tier, centre in zip(TIERS, positions):
-        paste(image, fit(trim(capture(f"model_{tier}")), 200, 160), centre)
+        promo.paste(image, promo.fit(model(tier), 200, 160), centre)
     return image
 
 
-# The mod list draws the icon at 22 to 28 pixels with smooth scaling, where the drawing's thin
-# outline and tube blur away. These are in pixels of the drawing, which is about 20 times the icon.
-ICON_SIZE = 32
+# The mod list draws the icon small with smooth scaling, where the drawing's thin outline and tube
+# blur away. These are in pixels of the drawing, which is about 20 times the icon.
 TUBE_GROWTH = 10
 OUTLINE = 12
 OUTLINE_COLOUR = (20, 18, 30, 255)
@@ -242,54 +163,48 @@ def icon():
     side = max(outlined.size)
     result = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     result.paste(outlined, ((side - outlined.width) // 2, (side - outlined.height) // 2))
-    return result.resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
+    return result.resize((promo.MOD_ICON, promo.MOD_ICON), Image.LANCZOS)
 
 
 def tiers():
     column = WIDTH // len(TIERS)
-    image = canvas(720)
+    image = promo.canvas(720)
     for i, (tier, colour) in enumerate(TIERS.items()):
         x = i * column + column / 2
-        panel(image, (i * column + 10, 14, (i + 1) * column - 10, 706), colour)
-        paste(image, fit(trim(capture(f"model_{tier}")), 240, 190), (x, 140))
-        ear = close_ear(tier, 270)
-        paste(image, ear, (x, 400), shadow=False)
-        paste(image, pixels(capture(f"icon_{tier}"), 3), (x, 600), shadow=False)
-        text(image, (x, 674), NAMES[tier], 22, "SemiBold", anchor="mm")
+        promo.panel(image, (i * column + 10, 14, (i + 1) * column - 10, 706), colour)
+        promo.paste(image, promo.fit(model(tier), 240, 190), (x, 140))
+        promo.paste(image, close_ear(tier, 270), (x, 400), shadow=False)
+        promo.paste(image, promo.pixels(CAPTURES(f"icon_{tier}"), 3), (x, 600), shadow=False)
+        promo.text(image, (x, 674), NAMES[tier], 22, "SemiBold", anchor="mm")
     return image
 
 
 def ears():
-    image = canvas(680)
+    image = promo.canvas(680)
     sides = [("male", "right", "basic", STRINGS["rightEar"], 330), ("female", "left", "efficient", STRINGS["leftEar"], 930)]
     for sex, ear, tier, label, x in sides:
-        head = fit(trim(capture(f"head_styled_{sex}_{ear}_{tier}_side", border=2)), 460, 400)
-        paste(image, head, (x, 225), shadow=False)
-        text(image, (x, 455), label, 26, "SemiBold", anchor="mm")
-    menu = pixels(wear_menu(), 2)
-    paste(image, menu, (WIDTH / 2, 560))
+        shot = promo.fit(promo.trim(head(f"head_styled_{sex}_{ear}_{tier}_side")), 460, 400)
+        promo.paste(image, shot, (x, 225), shadow=False)
+        promo.text(image, (x, 455), label, 26, "SemiBold", anchor="mm")
+    promo.paste(image, promo.pixels(wear_menu(), 2), (WIDTH / 2, 560))
     return image
 
 
 def close_ear(tier, size):
     """The aid on the plain head's right ear, seen close from behind, with rounded corners."""
-    ear = fraction(capture(f"head_plain_male_right_{tier}_back_close", border=2), EAR_BOX)
-    ear = fit(ear, size, size)
-    mask = Image.new("L", ear.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, ear.width - 1, ear.height - 1), 14, fill=255)
-    ear.putalpha(Image.composite(ear.getchannel("A"), mask, mask))
-    return ear
+    ear = fraction(head(f"head_plain_male_right_{tier}_back_close"), EAR_BOX)
+    return promo.rounded(promo.fit(ear, size, size), 14)
 
 
 def wear_menu():
     """The Wear row and its submenu: the top of the menu, as tall as the submenu at its right edge."""
-    menu = trim(capture("menu_wear"))
+    menu = promo.trim(CAPTURES("menu_wear"))
     submenu_height = menu.getchannel("A").crop((menu.width - 4, 0, menu.width - 3, menu.height)).getbbox()[3]
     return menu.crop((0, 0, menu.width, submenu_height))
 
 
 def tooltip_captures(factor):
-    return [pixels(trim(capture(f"tooltip_{name}")), factor) for name in ("basic", "boosted", "broken")]
+    return [promo.pixels(promo.trim(CAPTURES(f"tooltip_{name}")), factor) for name in ("basic", "boosted", "broken")]
 
 
 def tooltips(base, captures, top, gap):
@@ -304,166 +219,142 @@ def tooltips(base, captures, top, gap):
 def interface():
     captures = tooltip_captures(2)
     gap = 40
-    image = canvas(captures[0].height + captures[2].height + 3 * gap)
+    image = promo.canvas(captures[0].height + captures[2].height + 3 * gap)
     tooltips(image, captures, gap, gap)
     return image
 
 
 def item(base, name, label, centre, factor=2, size=19):
-    icon = pixels(capture(f"icon_{name}"), factor)
-    paste(base, icon, centre, shadow=False)
-    text(base, (centre[0], centre[1] + icon.height / 2 + 10), label, size, "Medium", MUTED, "ma")
+    shown = promo.pixels(CAPTURES(f"icon_{name}"), factor)
+    promo.paste(base, shown, centre, shadow=False)
+    promo.text(base, (centre[0], centre[1] + shown.height / 2 + 10), label, size, "Medium", MUTED, "ma")
+
+
+def recipe_inputs(source, parts):
+    return [(source, tier_label(source))] + [(part, last_word_down(NAMES[part]) + after) for part, after in parts]
 
 
 def recipes():
     row = 210
-    image = canvas(230 + row * len(RECIPES))
-    panel(image, (20, 20, WIDTH - 20, 210))
-    text(image, (50, 82), "Tools", 32, "Bold")
-    text(image, (50, 128), "for every recipe, at a\ntable with enough light", 20, "Medium", MUTED)
+    image = promo.canvas(230 + row * len(RECIPES))
+    promo.panel(image, (20, 20, WIDTH - 20, 210))
+    promo.text(image, (50, 82), "Tools", 32, "Bold")
+    promo.text(image, (50, 128), "for every recipe, at a\ntable with enough light", 20, "Medium", MUTED)
     for i, (name, before) in enumerate(TOOLS):
-        item(image, name, wrap(before + NAMES[name]), (420 + i * 150, 80))
+        item(image, name, last_word_down(before + NAMES[name]), (420 + i * 150, 80))
     for r, (name, level, source, parts, result) in enumerate(RECIPES):
         top = 230 + r * row
-        panel(image, (20, top, WIDTH - 20, top + row - 20), TIERS[result])
-        text(image, (50, top + 62), name, 32, "Bold")
-        text(image, (50, top + 108), f"{STRINGS['electrical']} {level}", 22, "Medium", MUTED)
-        inputs = [(source, tier_label(source))] + [(part, wrap(NAMES[part]) + after) for part, after in parts]
+        promo.panel(image, (20, top, WIDTH - 20, top + row - 20), TIERS[result])
+        promo.text(image, (50, top + 62), name, 32, "Bold")
+        promo.text(image, (50, top + 108), f"{STRINGS['electrical']} {level}", 22, "Medium", MUTED)
+        inputs = recipe_inputs(source, parts)
         for j, (part, label) in enumerate(inputs):
             item(image, part, label, (300 + j * 128, top + 70))
         x = 300 + len(inputs) * 128 - 30
-        arrow(image, (x, top + 70))
+        promo.arrow(image, (x, top + 70))
         item(image, result, tier_label(result), (x + 110, top + 70), factor=3)
     return image
 
 
 def corpse():
-    shot = Image.open(CAPTURES / "world_corpse.png").convert("RGBA").crop(CORPSE_BOX)
-    return shot.resize((WIDTH, round(shot.height * WIDTH / shot.width)), Image.LANCZOS)
+    return promo.full_width(CAPTURES("world_corpse").crop(CORPSE_BOX))
 
 
 # Gallery -----------------------------------------------------------------------------------------
-# Steam shows each slide at 636x358, so the caption is large and sits in the same top band on every
-# slide; the content fills the area below it, between CONTENT_TOP and CONTENT_BOTTOM.
-
-CONTENT_TOP = 150
-CONTENT_BOTTOM = 1050
+# Each page is drawn below promo.page's caption band, PAGE in size.
 
 
-def slide(caption):
-    image = canvas(GALLERY_SIZE[1], GALLERY_SIZE[0])
-    text(image, (GALLERY_SIZE[0] / 2, CONTENT_TOP / 2), caption, 60, "Bold", anchor="mm")
-    return image
-
-
-def hero_slide():
-    image = slide(STRINGS["modName"])
-    positions = [(330, 540), (750, 700), (1170, 540), (1590, 700)]
+def hero_page():
+    image = promo.canvas(PAGE[1], PAGE[0])
+    positions = [(330, 390), (750, 550), (1170, 390), (1590, 550)]
     for tier, centre in zip(TIERS, positions):
-        paste(image, fit(trim(capture(f"model_{tier}")), 500, 460), centre)
+        promo.paste(image, promo.fit(model(tier), 500, 460), centre)
     return image
 
 
-def tiers_slide():
-    image = slide("From broken to boosted.")
-    column = GALLERY_SIZE[0] // len(TIERS)
+def tiers_page():
+    image = promo.canvas(PAGE[1], PAGE[0])
+    column = PAGE[0] // len(TIERS)
     for i, (tier, colour) in enumerate(TIERS.items()):
         x = i * column + column / 2
-        panel(image, (i * column + 14, CONTENT_TOP, (i + 1) * column - 14, CONTENT_BOTTOM), colour)
-        paste(image, fit(trim(capture(f"model_{tier}")), 300, 210), (x, 275))
-        paste(image, close_ear(tier, 370), (x, 580), shadow=False)
-        paste(image, pixels(capture(f"icon_{tier}"), 4), (x, 855), shadow=False)
-        text(image, (x, 970), NAMES[tier], 30, "SemiBold", anchor="mm")
+        promo.panel(image, (i * column + 14, 0, (i + 1) * column - 14, 900), colour)
+        promo.paste(image, promo.fit(model(tier), 300, 210), (x, 125))
+        promo.paste(image, close_ear(tier, 370), (x, 430), shadow=False)
+        promo.paste(image, promo.pixels(CAPTURES(f"icon_{tier}"), 4), (x, 705), shadow=False)
+        promo.text(image, (x, 820), NAMES[tier], 30, "SemiBold", anchor="mm")
     return image
 
 
-def ears_slide():
-    image = slide("Wear it on either ear.")
+def ears_page():
+    image = promo.canvas(PAGE[1], PAGE[0])
     sides = [("male", "right", "basic", STRINGS["rightEar"], 470), ("female", "left", "efficient", STRINGS["leftEar"], 1450)]
     for sex, ear, tier, label, x in sides:
-        head = fit(trim(capture(f"head_styled_{sex}_{ear}_{tier}_side", border=2)), 560, 540)
-        paste(image, head, (x, 435), shadow=False)
-        text(image, (x, 760), label, 36, "SemiBold", anchor="mm")
-    paste(image, pixels(wear_menu(), 3), (GALLERY_SIZE[0] / 2, 930))
+        shot = promo.fit(promo.trim(head(f"head_styled_{sex}_{ear}_{tier}_side")), 560, 540)
+        promo.paste(image, shot, (x, 285), shadow=False)
+        promo.text(image, (x, 610), label, 36, "SemiBold", anchor="mm")
+    promo.paste(image, promo.pixels(wear_menu(), 3), (PAGE[0] / 2, 780))
     return image
 
 
-def tooltips_slide():
-    image = slide("Check the battery before you trust it.")
+def tooltips_page():
+    image = promo.canvas(PAGE[1], PAGE[0])
     captures = tooltip_captures(3)
     gap = 60
     height = captures[0].height + gap + captures[2].height
-    tooltips(image, captures, (CONTENT_TOP + CONTENT_BOTTOM - height) // 2, gap)
+    tooltips(image, captures, (900 - height) // 2, gap)
     return image
 
 
-def corpse_slide():
-    image = slide("Most are still on their late owners.")
+def corpse_page():
     # 1.5 times is as far as the world's pixel art scales before it turns soft. The crop is a little
     # taller than CORPSE_BOX, to keep the loot window's title bar.
-    shot = Image.open(CAPTURES / "world_corpse.png").convert("RGBA").crop((110, 70, 1010, 576))
-    shot = shot.resize((shot.width * 3 // 2, shot.height * 3 // 2), Image.LANCZOS)
-    mask = Image.new("L", shot.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, shot.width - 1, shot.height - 1), 18, fill=255)
-    shot.putalpha(mask)
-    paste(image, shot, (GALLERY_SIZE[0] / 2, (CONTENT_TOP + CONTENT_BOTTOM) / 2))
+    shot = promo.scaled(CAPTURES("world_corpse").crop((110, 70, 1010, 576)), 1.5)
+    image = promo.canvas(PAGE[1], PAGE[0])
+    promo.paste(image, promo.rounded(shot, 18), (PAGE[0] / 2, 450))
     return image
 
 
-def recipes_slide():
+def recipes_page():
     """The recipe sheet with the tools in a column at the left, so the icons fit at three times."""
-    image = slide("Repair it, then upgrade it twice.")
-    panel(image, (40, CONTENT_TOP, 500, CONTENT_BOTTOM))
-    text(image, (80, 220), "Tools", 44, "Bold")
-    text(image, (80, 280), "for every recipe, at a\ntable with enough light", 26, "Medium", MUTED)
+    image = promo.canvas(PAGE[1], PAGE[0])
+    promo.panel(image, (40, 0, 500, 900))
+    promo.text(image, (80, 70), "Tools", 44, "Bold")
+    promo.text(image, (80, 130), "for every recipe, at a\ntable with enough light", 26, "Medium", MUTED)
     for i, (name, before) in enumerate(TOOLS):
-        item(image, name, wrap(before + NAMES[name]), (160 + i % 2 * 220, 480 + i // 2 * 200), 3, 24)
-    row = (CONTENT_BOTTOM - CONTENT_TOP + 20) // len(RECIPES)
+        item(image, name, last_word_down(before + NAMES[name]), (160 + i % 2 * 220, 330 + i // 2 * 200), 3, 24)
+    row = (900 + 20) // len(RECIPES)
     for r, (name, level, source, parts, result) in enumerate(RECIPES):
-        top = CONTENT_TOP + r * row
-        panel(image, (530, top, GALLERY_SIZE[0] - 40, top + row - 20), TIERS[result])
-        text(image, (570, top + 95), name, 44, "Bold")
-        text(image, (570, top + 160), f"{STRINGS['electrical']} {level}", 28, "Medium", MUTED)
-        inputs = [(source, tier_label(source))] + [(part, wrap(NAMES[part]) + after) for part, after in parts]
+        top = r * row
+        promo.panel(image, (530, top, PAGE[0] - 40, top + row - 20), TIERS[result])
+        promo.text(image, (570, top + 95), name, 44, "Bold")
+        promo.text(image, (570, top + 160), f"{STRINGS['electrical']} {level}", 28, "Medium", MUTED)
+        inputs = recipe_inputs(source, parts)
         for j, (part, label) in enumerate(inputs):
             item(image, part, label, (850 + j * 140, top + 115), 3, 22)
         x = 850 + len(inputs) * 140 - 30
-        arrow(image, (x, top + 115))
+        promo.arrow(image, (x, top + 115))
         item(image, result, tier_label(result), (x + 120, top + 115), 4, 22)
     return image
 
 
-def save_gallery():
-    """Writes the slides in upload order and removes any other file, so the folder is the gallery."""
-    GALLERY.mkdir(exist_ok=True)
-    written = set()
-    slides = [("hero", hero_slide), ("tiers", tiers_slide), ("ears", ears_slide), ("tooltips", tooltips_slide),
-              ("corpse", corpse_slide), ("recipes", recipes_slide)]
-    for number, (name, make) in enumerate(slides, 1):
-        image = make()
-        assert image.size == GALLERY_SIZE
-        path = GALLERY / f"{number:02}-{name}.jpg"
-        # Full-resolution colour keeps the captions' and tooltips' edges clean.
-        image.convert("RGB").save(path, quality=90, subsampling=0, optimize=True)
-        assert path.stat().st_size < GALLERY_BYTES, f"{path.name} is over Steam's {GALLERY_BYTES} bytes"
-        written.add(path)
-        print(f"compose: {path.relative_to(REPO)} {image.width}x{image.height} {path.stat().st_size} bytes")
-    for path in GALLERY.iterdir():
-        if path not in written:
-            path.unlink()
-
-
+def gallery():
+    return [
+        ("hero", promo.page(STRINGS["modName"], hero_page())),
+        ("tiers", promo.page("From broken to boosted.", tiers_page())),
+        ("ears", promo.page("Wear it on either ear.", ears_page())),
+        ("tooltips", promo.page("Check the battery before you trust it.", tooltips_page())),
+        ("corpse", promo.page("Most are still on their late owners.", corpse_page())),
+        ("recipes", promo.page("Repair it, then upgrade it twice.", recipes_page())),
+    ]
 
 
 def main():
     for name, make in [("banner", banner), ("tiers", tiers), ("ears", ears), ("interface", interface),
                        ("recipes", recipes), ("corpse", corpse)]:
-        save(make(), name)
-    save_poster(poster())
-    save_gallery()
-    mod_icon = icon()
-    mod_icon.save(MOD / "hearing_aid_icon.png", optimize=True)
-    print(f"compose: {(MOD / 'hearing_aid_icon.png').relative_to(REPO)} {mod_icon.width}x{mod_icon.height}")
+        promo.save(make(), OUT / f"{name}.png")
+    promo.save_poster(poster(), POSTER_FILES)
+    promo.save_gallery(gallery(), GALLERY)
+    promo.save_mod_icon(icon(), MOD / "hearing_aid_icon.png")
 
 
 main()
