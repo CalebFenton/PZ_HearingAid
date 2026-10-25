@@ -1,17 +1,24 @@
-"""Exports every object in the Export collection of hearing_aid.blend to the mod's models_X folder.
+"""Exports every object in the Export collection of hearing_aid.blend to the mod's models_X folder,
+with the harness's lib/art/fbx.py, so the files come out the same, byte for byte, from the same
+.blend (it says why).
 
-    blender -b --factory-startup art/models/hearing_aid.blend -P art/models/export.py
+    PYTHONHASHSEED=0 blender -b --factory-startup --python-use-system-env hearing_aid.blend -P export.py
 
 Worn meshes go to Static/Clothes and HearingAid_Ground to WorldItems, each named after its object.
 Transforms are baked into the vertices, so every node transform in the files is the identity.
 """
 import os
+import sys
 
 import bpy
 from mathutils import Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODELS = os.path.join(os.path.dirname(os.path.dirname(HERE)), "Contents/mods/HearingAid/common/media/models_X")
+REPO = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, os.path.join(REPO, "dev", "harness", "lib"))
+from art import fbx  # noqa: E402
+
+MODELS = os.path.join(REPO, "Contents/mods/HearingAid/common/media/models_X")
 
 # The FBX exporter writes Blender's (x, y, z) as (x, z, -y). In the head bone's frame as the game
 # sees an FBX file, x is up, y is toward the character's left and z points backward; the game
@@ -28,11 +35,7 @@ def export(obj, path, matrix):
         mesh.flip_normals()
     baked = bpy.data.objects.new(obj.name + "_export", mesh)
     bpy.context.scene.collection.objects.link(baked)
-    bpy.ops.object.select_all(action="DESELECT")
-    baked.select_set(True)
-    bpy.context.view_layer.objects.active = baked
-    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"MESH"}, bake_space_transform=True,
-                             apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False, path_mode="STRIP")
+    fbx.export(path, baked, path_mode="STRIP")
     bpy.data.objects.remove(baked)
     bpy.data.meshes.remove(mesh)
 

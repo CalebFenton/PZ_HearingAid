@@ -42,7 +42,7 @@ The scripts in `dev/` are entry points into the shared test harness in `dev/harn
 
 - The **Hearing Aid** scenario under **Scenarios** on the main menu starts a zombie-free world stocked for trying the mod (`HearingAidDebugScenario.lua`).
 - To run one test, open the debug menu with the bug icon, then **Dev**, **Unit Tests**, **Timed Actions**.
-- To measure one loot list more precisely than `--loot` does, call `HearingAidLoot.measureZombies(key, samples)` or `HearingAidLoot.measureContainer(key, samples)` in the Lua console. `HearingAidLoot.report` measures every list and runs out of memory at far fewer samples per list.
+- To measure one loot list more precisely than `--loot` does, call `HearingAidLoot.measureZombies(key, samples)` or `HearingAidLoot.measureContainer(key, samples)` in the Lua console.
 - To see the loot of vanilla lists, right-click the world and choose **UI**, then **Generate Loot UI**. The **LootZed** admin power uses a simpler formula that ignores rounding, the zombie density bonus, and the rolls multiplier (`SpawnRateChecker.lua`).
 - Restart the client after changing Lua. `reloadLuaFile()`, which the debug Lua file browser uses, runs the file again but ignores its `Events.*.Add` calls (`LuaCompiler.rewriteEvents`), so the old handlers keep running.
 - A dedicated server has no `-debug` argument; it reads only the JVM property `-Ddebug`.

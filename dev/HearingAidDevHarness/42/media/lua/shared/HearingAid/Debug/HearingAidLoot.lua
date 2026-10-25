@@ -1,4 +1,5 @@
 require "HearingAid/HearingAid"
+require "PZHarness/Loot"
 
 -- Measures how often hearing aids and wristwatches turn up on corpses and in containers, with the
 -- game's own outfit dressing and loot rolls on scratch objects that never enter the world. For
@@ -50,14 +51,13 @@ local CONTAINERS = {
     { key = "medicine", label = "Medicine cabinet in other rooms", all = true },
 }
 
--- Sandbox options set while measuring, as in a game with zombies (wristwatches spawn twice as often
--- without them) and away from crowds (the zombie density bonus raises every chance except the
--- aids'). Annotated maps are off because each one uses up a stash of the world. DEFAULT stands for
--- the option's default value.
-local DEFAULT = {}
+-- Sandbox options set while measuring (PZHarness.Loot.withMeasureOptions), as in a game with
+-- zombies (wristwatches spawn twice as often without them) and away from crowds (the zombie density
+-- bonus raises every chance except the aids'). Annotated maps are off because each one uses up a
+-- stash of the world.
 local MEASURE_OPTIONS = {
-    Zombies = DEFAULT,
-    ["ZombieConfig.PopulationMultiplier"] = DEFAULT,
+    Zombies = PZHarness.Loot.DEFAULT,
+    ["ZombieConfig.PopulationMultiplier"] = PZHarness.Loot.DEFAULT,
     ZombiePopLootEffect = 0,
     AnnotatedMapChance = 1,
 }
@@ -73,52 +73,39 @@ local EFFICIENT_TYPES = {
     [HearingAid.leftEarType(HearingAid.EFFICIENT)] = true,
 }
 
-local function newEntry(spec)
-    local entry = { key = spec.key, label = spec.label, samples = 0 }
-    for _, kind in ipairs(KINDS) do
-        entry[kind] = 0
-    end
-    return entry
-end
-
--- Marks in `found` the kinds of item that the container holds, in bags and boxes inside it too.
-local function scan(container, found)
+-- Sets found[kind] to 1 for each kind of item the container holds, in bags and boxes inside it
+-- too, and returns `found`: a sample's counts for PZHarness.Loot.sample.
+local function kindsIn(container, found)
+    found = found or {}
     local items = container:getItems()
     for i = 0, items:size() - 1 do
         local item = items:get(i)
         local fullType = item:getFullType()
         if isWristWatch(fullType) then
-            found.watch = true
+            found.watch = 1
         elseif HearingAid.isHearingAid(item) then
-            found.any = true
+            found.any = 1
             if HearingAid.isWorking(item) then
-                found.working = true
-                found.efficient = found.efficient or EFFICIENT_TYPES[fullType] == true
+                found.working = 1
+                if EFFICIENT_TYPES[fullType] then
+                    found.efficient = 1
+                end
             else
-                found.broken = true
+                found.broken = 1
             end
         elseif item:IsInventoryContainer() then
-            scan(item:getInventory(), found)
+            kindsIn(item:getInventory(), found)
         end
     end
+    return found
 end
 
--- Counts one sample and empties the container.
-local function tally(entry, container, wearsWatch)
-    local found = { watch = wearsWatch }
-    scan(container, found)
-    entry.samples = entry.samples + 1
+-- The report's entry for `spec`: the share of the `samples` that held each kind, from
+-- PZHarness.Loot.sample's `shares`.
+local function entryOf(spec, samples, shares)
+    local entry = { key = spec.key, label = spec.label, samples = samples }
     for _, kind in ipairs(KINDS) do
-        if found[kind] then
-            entry[kind] = entry[kind] + 1
-        end
-    end
-    container:removeAllItems()
-end
-
-local function toShares(entry)
-    for _, kind in ipairs(KINDS) do
-        entry[kind] = entry[kind] / entry.samples
+        entry[kind] = shares[kind] and shares[kind].share or 0
     end
     return entry
 end
@@ -231,41 +218,26 @@ local function fillCorpse(corpse, outfitName, defaultList)
 end
 
 local function sampleZombies(spec, samples)
-    local entry = newEntry(spec)
     local bodies = { [false] = newBody(false), [true] = newBody(true) }
     local defaultLists = {
         [false] = ItemPickerJava.getItemContainer("all", "inventorymale", nil, false),
         [true] = ItemPickerJava.getItemContainer("all", "inventoryfemale", nil, false),
     }
-    local corpse = ItemContainer.new()
-    for _ = 1, samples do
+    -- Whether the sample's outfit wears a wristwatch, which goes on the body, not in the corpse.
+    local watch
+    local function fill(corpse)
         local outfitName, female = pickOutfit(spec, ZombRand(2) == 0)
         corpse:setType(female and "inventoryfemale" or "inventorymale")
-        local watch = wearsWatch(bodies[female], outfitName)
+        watch = wearsWatch(bodies[female], outfitName)
         fillCorpse(corpse, outfitName, defaultLists[female])
-        tally(entry, corpse, watch)
     end
-    return toShares(entry)
+    local function read(corpse)
+        return kindsIn(corpse, { watch = watch and 1 or nil })
+    end
+    return entryOf(spec, samples, PZHarness.Loot.sample(fill, samples, ItemContainer.new(), read))
 end
 
 -- Containers ------------------------------------------------------------------------------------
-
--- ItemPickerJava.getItemContainer finds a ProceduralDistributions list only through a room and
--- container type that roll it. Returns the list and that container type.
-local function findProceduralList(listName)
-    for roomName, room in pairs(SuburbsDistributions) do
-        for containerType, containerTable in pairs(room) do
-            if type(containerTable) == "table" and containerTable.procedural then
-                for _, choice in ipairs(containerTable.procList or {}) do
-                    if choice.name == listName then
-                        return ItemPickerJava.getItemContainer(roomName, containerType, listName, false), containerType
-                    end
-                end
-            end
-        end
-    end
-    error("no container rolls ProceduralDistributions list " .. listName)
-end
 
 -- A container rolls its list as rollItem does: the junk list, then the items.
 local function sampleContainer(spec, samples)
@@ -273,42 +245,19 @@ local function sampleContainer(spec, samples)
     if spec.all then
         list, containerType = ItemPickerJava.getItemContainer("all", spec.key, nil, false), spec.key
     else
-        list, containerType = findProceduralList(spec.key)
+        local user
+        list, user = PZHarness.Loot.proceduralList(spec.key)
+        if not list then
+            error("no container rolls ProceduralDistributions list " .. spec.key)
+        end
+        containerType = user.container
     end
-    local entry = newEntry(spec)
     local container = ItemContainer.new()
     container:setType(containerType)
-    for _ = 1, samples do
-        ItemPickerJava.rollItem(list, container, true, nil, nil)
-        tally(entry, container, false)
-    end
-    return toShares(entry)
+    return entryOf(spec, samples, PZHarness.Loot.sample(PZHarness.Loot.rollFill(list), samples, container, kindsIn))
 end
 
 -- Report ----------------------------------------------------------------------------------------
-
--- Runs fn with MEASURE_OPTIONS and the General debug log off: in debug mode ItemPickInfo logs a
--- line for every roll into a container that isn't on a square, which floods console.txt.
-local function withMeasureOptions(fn)
-    local options = getSandboxOptions()
-    local saved = {}
-    for name, value in pairs(MEASURE_OPTIONS) do
-        local option = options:getOptionByName(name)
-        saved[name] = option:getValue()
-        option:setValue(value == DEFAULT and option:getDefaultValue() or value)
-    end
-    local generalLog = DebugType.General:getLogSeverity()
-    DebugType.General:setLogSeverity(LogSeverity.Off)
-    local ok, result = pcall(fn)
-    DebugType.General:setLogSeverity(generalLog)
-    for name, value in pairs(saved) do
-        options:getOptionByName(name):setValue(value)
-    end
-    if not ok then
-        error(result)
-    end
-    return result
-end
 
 local function find(specs, key)
     for _, spec in ipairs(specs) do
@@ -321,19 +270,19 @@ end
 
 -- One entry of the report, for example HearingAidLoot.measureZombies("ordinary", 1000).
 function HearingAidLoot.measureZombies(key, samples)
-    return withMeasureOptions(function()
+    return PZHarness.Loot.withMeasureOptions(MEASURE_OPTIONS, function()
         return sampleZombies(find(ZOMBIES, key), samples)
     end)
 end
 
 function HearingAidLoot.measureContainer(key, samples)
-    return withMeasureOptions(function()
+    return PZHarness.Loot.withMeasureOptions(MEASURE_OPTIONS, function()
         return sampleContainer(find(CONTAINERS, key), samples)
     end)
 end
 
 function HearingAidLoot.report(samples)
-    return withMeasureOptions(function()
+    return PZHarness.Loot.withMeasureOptions(MEASURE_OPTIONS, function()
         local result = { zombies = {}, containers = {} }
         for _, spec in ipairs(ZOMBIES) do
             table.insert(result.zombies, sampleZombies(spec, samples))

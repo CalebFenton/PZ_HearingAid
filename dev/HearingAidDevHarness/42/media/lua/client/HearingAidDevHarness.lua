@@ -8,7 +8,7 @@ require "HearingAid/Debug/HearingAidLoot"
 require "HearingAidDevArt"
 require "HearingAidDevPromo"
 
--- About 50 seconds; report(10000) runs the client out of memory.
+-- About 50 seconds.
 local LOOT_SAMPLES = 4000
 
 local function share(fraction)

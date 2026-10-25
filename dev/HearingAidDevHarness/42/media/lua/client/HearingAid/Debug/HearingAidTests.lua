@@ -1,4 +1,5 @@
 require "PZHarness/TestLib"
+require "PZHarness/TestMenus"
 require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"
 require "TimedActions/ISWearClothing"
@@ -42,19 +43,11 @@ local LEVEL_NAMES = {
 -- action runs, and the server sends an aid's charge only when its percentage changes.
 local CHARGE_TOLERANCE = 0.01
 -- How long this client may take to show what the server changed: traits, item fields, clothing.
+-- Its waits end there without failing; validate checks what they waited for.
 local SYNC_MS = 5000
 
 local function levelName(level)
     return LEVEL_NAMES[level] or tostring(level)
-end
-
--- Queues a wait until `condition()` holds, for at most SYNC_MS; validate checks what it waited for.
-local function waitForSync(condition)
-    local sinceMs
-    T.waitUntil(function()
-        sinceMs = sinceMs or getTimestampMs()
-        return condition() or getTimestampMs() - sinceMs > SYNC_MS
-    end, math.huge)
 end
 
 -- The settings' setup (HearingAidTestSettings.lua). Traits and player modData carry over from the
@@ -63,7 +56,7 @@ end
 function HearingAidTests.setup(self, spec)
     local level = spec.hearing or Level.HARD_OF_HEARING
     T.server(self, "hearing", { level = level, periodicUpdate = spec.periodicUpdate })
-    waitForSync(function() return HearingAid.getHearingLevel(player()) == level end)
+    T.waitUntil(function() return HearingAid.getHearingLevel(player()) == level end, SYNC_MS, "this client's hearing level")
 end
 
 -- Gives the character hearing aids and batteries the way the server does: each item { type,
@@ -121,10 +114,10 @@ end
 local function readState(self, handler, args)
     handler = handler or "state"
     T.server(self, handler, args)
-    waitForSync(function()
+    T.waitUntil(function()
         self.state = self.server[handler]
         return #disagreements(self.state) == 0
-    end)
+    end, SYNC_MS, "this client agreeing with the server's state")
 end
 
 -- Queues a HearingAidAction on the aid and battery giveAids gave at these positions, as the
@@ -683,21 +676,21 @@ local MENU_OPTIONS = {
 -- Builds the real inventory context menu for the item and lists its hearing aid options, for
 -- example "TurnOn(disabled), RemoveBattery" or "AddBattery[Battery (75%), Battery (25%)]".
 local function describeMenu(item)
-    local context = ISInventoryPaneContextMenu.createMenu(0, true, { item }, 300, 300)
+    local context = T.inventoryMenu(item)
+    if not context then
+        return "no menu"
+    end
     local found = {}
     for _, entry in ipairs(MENU_OPTIONS) do
-        local option = context:getOptionFromName(getText(entry.textKey))
+        local option = T.optionNamed(context, getText(entry.textKey))
         if option then
             local text = entry.name
             if option.notAvailable then
                 text = text .. "(disabled)"
             end
-            if option.subOption then
-                local choices = {}
-                for _, choice in ipairs(context:getSubMenu(option.subOption).options) do
-                    table.insert(choices, choice.name)
-                end
-                text = text .. "[" .. table.concat(choices, ", ") .. "]"
+            local choices = T.subMenu(context, option)
+            if choices then
+                text = text .. "[" .. table.concat(T.optionNames(choices), ", ") .. "]"
             end
             table.insert(found, text)
         end
@@ -742,39 +735,35 @@ test("hearingaid_context_menu", {
 local ON_RIGHT_EAR = "ContextMenu_HearingAid_EarRight"
 local ON_LEFT_EAR = "ContextMenu_HearingAid_EarLeft"
 
--- Builds the real inventory context menu for the item. Returns it, to hide once done, and the
--- options of its Wear submenu.
+-- Builds the real inventory context menu for the item. Returns it, to hide once done (nil without
+-- one), and its Wear submenu, or nil.
 local function openWearMenu(item)
-    local context = ISInventoryPaneContextMenu.createMenu(0, true, { item }, 300, 300)
-    local wear = context:getOptionFromName(getText("ContextMenu_Wear"))
-    local options = wear and wear.subOption and context:getSubMenu(wear.subOption).options or {}
-    return context, options
+    local context = T.inventoryMenu(item)
+    return context, T.subMenu(context, T.optionNamed(context, getText("ContextMenu_Wear")))
 end
 
 -- The Wear submenu of the item, for example "on Right Ear, on Left Ear".
 local function describeWearMenu(item)
-    local context, options = openWearMenu(item)
-    local names = {}
-    for _, option in ipairs(options) do
-        table.insert(names, option.name)
+    local context, wear = openWearMenu(item)
+    local names = T.optionNames(wear)
+    if context then
+        context:hideAndChildren()
     end
-    context:hideAndChildren()
     return table.concat(names, ", ")
 end
 
 -- Picks the Wear submenu option with this text key, as a player would. Returns whether it was
 -- there.
 local function pickWearOption(item, textKey)
-    local context, options = openWearMenu(item)
-    local picked = false
-    for _, option in ipairs(options) do
-        if option.name == getText(textKey) then
-            option.onSelect(option.target, option.param1, option.param2, option.param3)
-            picked = true
-        end
+    local context, wear = openWearMenu(item)
+    local option = T.optionNamed(wear, getText(textKey))
+    if option then
+        T.choose(option)
     end
-    context:hideAndChildren()
-    return picked
+    if context then
+        context:hideAndChildren()
+    end
+    return option ~= nil
 end
 
 -- Expects the aid of type `swapped` to have become a worn, switched-on `fullType` with this charge.

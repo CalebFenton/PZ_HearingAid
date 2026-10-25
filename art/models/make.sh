@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Rebuilds the hearing aid models with Blender (made with 5.2).
+# Rebuilds the hearing aid models with Blender (made with 5.2), exporting them with the harness's
+# art library (dev/harness/docs/art.md).
 #
 #   art/models/make.sh            build.py writes hearing_aid.blend and the textures, export.py the
 #                                 FBX files, and preview.py renders them on the vanilla heads
@@ -9,11 +10,11 @@
 # Contents folder, where preview.py reads the vanilla heads.
 set -euo pipefail
 cd "$(dirname "$0")"
-BLENDER="${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}"
+. ../../dev/harness/lib/blender.sh
 case "${1:-}" in
-    "") "$BLENDER" -b --factory-startup -P build.py ;;
+    "") blender build.py ;;
     --export) ;;
     *) echo "usage: $0 [--export]" >&2; exit 2 ;;
 esac
-"$BLENDER" -b --factory-startup hearing_aid.blend -P export.py
-"$BLENDER" -b --factory-startup hearing_aid.blend -P preview.py
+blender hearing_aid.blend export.py
+blender hearing_aid.blend preview.py
