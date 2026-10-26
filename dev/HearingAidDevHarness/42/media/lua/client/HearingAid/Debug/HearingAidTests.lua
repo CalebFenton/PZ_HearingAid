@@ -495,42 +495,33 @@ local OPTIMIZE = "HearingAid.OptimizeHearingAid"
 local BOOST = "HearingAid.BoostHearingAid"
 local DISMANTLE = "HearingAid.DismantleHearingAid"
 
--- Registers a test that crafts `spec.recipe` the way the right-click menu does, from a new aid of
--- type `spec.aid` with `spec.charge` and `spec.on`. The character has Electrical `spec.electrical`
--- (Debug.ELECTRICAL_LEVEL unless set), every recipe material, wearing the one of type `spec.wear`
--- if set, and a table. validate() expects the counts in `spec.counts` in the server's inventory,
--- then runs `spec.validate(self)`. A failing test also reports why the game refused the craft
--- (T.startCraft).
+-- Adds hearing-aid fixtures and synchronized state assertions to the shared craft lifecycle.
+-- Preparation stays explicit: auto-filling required skills would erase refusal cases, and aids
+-- need authority-owned battery/switch state rather than ordinary recipe inputs.
 local function craftTest(name, spec)
-    local counted = {}
-    for fullType in pairs(spec.counts) do
-        table.insert(counted, fullType)
-    end
-    test(name, {
+    T.craftTest(name, {
         sandbox = spec.sandbox,
-        run = function(self)
+        recipe = spec.recipe,
+        from = spec.aid,
+        counts = spec.counts,
+        instant = true,
+        dropped = false,
+        prepare = function(self)
             T.setPerk(self, Perks.Electricity, spec.electrical or Debug.ELECTRICAL_LEVEL)
-            T.placeWorkTable(player())
             local materials = {}
             for _, material in ipairs(Debug.RECIPE_MATERIALS) do
                 table.insert(materials, { type = material.type, count = material.count, worn = material.type == spec.wear or nil })
             end
             T.give(self, "materials", materials)
             giveAids(self, { { type = spec.aid, charge = spec.charge, on = spec.on } })
-            T.step(function()
-                local recipe = T.need(self, getScriptManager():getCraftRecipe(spec.recipe), "the recipe " .. spec.recipe)
-                if not recipe then return end
-                T.startCraft(self, recipe, given(self, 1))
-                T.count(self, "craft", counted)
-                readState(self)
-            end)
         end,
+        after = readState,
         validate = function(self)
-            for fullType, count in pairs(spec.counts) do
-                expectEqual(fullType .. " in the inventory", self.counts.craft[fullType], count)
-            end
             if spec.validate then
                 spec.validate(self)
+            end
+            if self.state then
+                expectClientAgrees(self)
             end
         end,
     })
