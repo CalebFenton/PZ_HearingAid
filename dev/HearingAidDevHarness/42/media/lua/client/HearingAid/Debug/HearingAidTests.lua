@@ -23,7 +23,7 @@ local Debug = require "HearingAid/Debug/HearingAidDebug"
 HearingAidTests = HearingAidTests or {}
 
 local T = PZHarness.Test
-local player, expect, expectNear = T.player, T.expect, T.expectNear
+local player, expect, expectNear, expectEqual = T.player, T.expect, T.expectNear, T.expectEqual
 
 local Level = HearingAid.Level
 local Mode = HearingAid.DeafnessMode
@@ -154,8 +154,7 @@ local function stateOf(self)
 end
 
 local function expectHearing(self, expected)
-    local actual = stateOf(self).hearing
-    expect(actual == expected, "hearing is " .. levelName(actual) .. ", expected " .. levelName(expected))
+    expectEqual("hearing", levelName(stateOf(self).hearing), levelName(expected))
 end
 
 -- The server's state of the aid with this id; an empty table, and a failure, if it is gone.
@@ -191,15 +190,13 @@ end
 
 -- Expects the server's state to hold this many aids of the type.
 local function expectAids(self, fullType, expected)
-    local actual = #aidsOfType(self, fullType)
-    expect(actual == expected, actual .. " " .. fullType .. " in the inventory, expected " .. expected)
+    expectEqual(fullType .. " in the inventory", #aidsOfType(self, fullType), expected)
 end
 
 -- Expects the server's inventory to hold exactly one battery with this charge, or none if nil.
 local function expectBattery(self, charge)
     local batteries = stateOf(self).batteries
-    local expected = charge and 1 or 0
-    expect(#batteries == expected, #batteries .. " batteries in the inventory, expected " .. expected)
+    expectEqual("batteries in the inventory", #batteries, charge and 1 or 0)
     if charge and #batteries == 1 then
         expectNear("battery charge", batteries[1], charge, CHARGE_TOLERANCE)
     end
@@ -252,9 +249,8 @@ test("hearingaid_hearing_levels", {
                 local row = base == Level.DEAF and deafRow or HEARING_WITH_AID[base]
                 for i, rightEar in ipairs(WORKING) do
                     for _, fullType in ipairs({ rightEar, leftEar(rightEar) }) do
-                        local actual = HearingAid.getTargetLevel(base, fullType, mode)
-                        expect(actual == row[i], "HandleDeafness " .. mode .. ", " .. levelName(base) .. ", " .. fullType
-                            .. ": got " .. levelName(actual) .. ", expected " .. levelName(row[i]))
+                        expectEqual("HandleDeafness " .. mode .. ", " .. levelName(base) .. ", " .. fullType,
+                            levelName(HearingAid.getTargetLevel(base, fullType, mode)), levelName(row[i]))
                     end
                 end
             end
@@ -531,8 +527,7 @@ local function craftTest(name, spec)
         end,
         validate = function(self)
             for fullType, count in pairs(spec.counts) do
-                local actual = self.counts.craft[fullType]
-                expect(actual == count, tostring(actual) .. " " .. fullType .. " in the inventory, expected " .. count)
+                expectEqual(fullType .. " in the inventory", self.counts.craft[fullType], count)
             end
             if spec.validate then
                 spec.validate(self)
@@ -631,8 +626,7 @@ craftTest("hearingaid_craft_skill_level_from_sandbox", {
     aid = BROKEN,
     counts = { [BASIC] = 0, [BROKEN] = 1 },
     validate = function(self)
-        local expected = getScriptManager():getCraftRecipe(REPAIR):getName() .. ": skills too low"
-        expect(self.refusal == expected, "refusal was " .. tostring(self.refusal) .. ", expected " .. expected)
+        expectEqual("the refusal", self.refusal, getScriptManager():getCraftRecipe(REPAIR):getName() .. ": skills too low")
     end,
 })
 
@@ -724,8 +718,7 @@ test("hearingaid_context_menu", {
         }
         for _, case in ipairs(cases) do
             local label, aid, expected = case[1], case[2], case[3]
-            local actual = describeMenu(aid)
-            expect(actual == expected, label .. ": menu is \"" .. actual .. "\", expected \"" .. expected .. "\"")
+            expectEqual(label .. ": the menu", describeMenu(aid), expected)
         end
     end,
 })
@@ -790,8 +783,7 @@ test("hearingaid_wear_menu_ears", {
         }
         for _, case in ipairs(cases) do
             local label, aid, expected = case[1], case[2], case[3]
-            local actual = describeWearMenu(aid)
-            expect(actual == expected, label .. ": Wear menu is \"" .. actual .. "\", expected \"" .. expected .. "\"")
+            expectEqual(label .. ": the Wear menu", describeWearMenu(aid), expected)
         end
     end,
 })
