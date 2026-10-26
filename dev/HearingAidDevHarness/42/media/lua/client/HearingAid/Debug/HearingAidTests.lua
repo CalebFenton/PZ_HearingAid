@@ -1,4 +1,4 @@
-require "PZHarness/TestLib"
+require "PZHarness/TestCraft"
 require "PZHarness/TestMenus"
 require "TimedActions/HearingAidAction"
 require "TimedActions/ISUnequipAction"

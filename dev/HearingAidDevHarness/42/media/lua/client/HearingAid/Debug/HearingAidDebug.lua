@@ -1,4 +1,4 @@
-require "PZHarness/TestLib"
+require "PZHarness/TestCraft"
 require "HearingAid/HearingAid"
 
 -- Setup helpers for the debug scenario, the tests and the art. Development only, in the dev mod.
