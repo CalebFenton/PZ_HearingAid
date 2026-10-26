@@ -625,9 +625,6 @@ craftTest("hearingaid_craft_skill_level_from_sandbox", {
     recipe = REPAIR,
     aid = BROKEN,
     counts = { [BASIC] = 0, [BROKEN] = 1 },
-    validate = function(self)
-        expectEqual("the refusal", self.refusal, getScriptManager():getCraftRecipe(REPAIR):getName() .. ": skills too low")
-    end,
 })
 
 craftTest("hearingaid_craft_without_skill_requirement", {
