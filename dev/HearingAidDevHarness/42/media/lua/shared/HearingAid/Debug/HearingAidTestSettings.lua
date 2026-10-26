@@ -9,6 +9,7 @@ PZHarness.registerTests({
     -- only some frames after the game starts, and a game kept by --stay runs on into the night.
     hour = 10,
     sandbox = "HearingAid",
+    recipePrefix = "HearingAid.",
     -- The recipes' skill levels follow the *SkillLevel options, on each side.
     sandboxChanged = HearingAid.Recipes.applySkillLevels,
     -- The character's own hearing `spec.hearing` and `spec.periodicUpdate`. In the client's test
