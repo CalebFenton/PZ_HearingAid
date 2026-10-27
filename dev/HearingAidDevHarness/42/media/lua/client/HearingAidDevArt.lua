@@ -88,7 +88,7 @@ function HearingAidDevArt.capture(onDone)
         local sex = female and "female" or "male"
         run:add(function()
             -- Bald and beardless, so the aid shows; the clothes stay.
-            Stage.dress(player, { female = female, hair = "Bald", beard = "" })
+            Stage.dress(player, { female = female, hair = "Bald" })
             return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, fullType in ipairs(AIDS) do

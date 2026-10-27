@@ -26,12 +26,11 @@ local GREY = ImmutableColor.new(0.78, 0.77, 0.74, 1)
 -- best, and the grey-haired pair show it as it looks in play. Each wears nothing but its clothes
 -- (Stage.dress), so that the scenario's random clothes and glasses stay out of the shots.
 local LOOKS = {
-    { name = "plain", female = false, hair = "Bald", beard = "", clothes = {} },
+    { name = "plain", female = false, hair = "Bald", clothes = {} },
     {
         name = "styled",
         female = false,
         hair = "Picard",
-        beard = "",
         hairColour = GREY,
         clothes = { "Base.Jumper_VNeck", "Base.Trousers_Suit", "Base.Shoes_Brown" },
     },
@@ -39,7 +38,6 @@ local LOOKS = {
         name = "styled",
         female = true,
         hair = "Bun",
-        beard = "",
         hairColour = GREY,
         clothes = { "Base.Jumper_RoundNeck", "Base.Skirt_Normal", "Base.Shoes_Black" },
     },
