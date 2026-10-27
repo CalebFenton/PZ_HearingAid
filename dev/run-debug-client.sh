@@ -1,40 +1,6 @@
 #!/usr/bin/env bash
-# Starts the game client in debug mode (no Steam) with its own cache dir, this mod, its dev mod
-# dev/HearingAidDevHarness and the shared harness mod (dev/harness, see its README.md).
-#
-#   dev/run-debug-client.sh          play by hand: main menu > Scenarios > Hearing Aid starts a
-#                                    test world, and Debug menu > Dev > Unit Tests > Timed Actions
-#                                    runs the hearingaid_* tests
-#   dev/run-debug-client.sh --test   starts the scenario, runs every hearingaid_* test and quits
-#                                    the game. Runs unattended: ClickToStart presses "Click to
-#                                    start", and the display is kept awake. Prints the results and
-#                                    exits 1 if a test failed or any Lua error was logged.
-#   dev/run-debug-client.sh --test --stay
-#                                    the same, but the game stays open after the run, and the next
-#                                    --test --stay reruns the tests in it, after reloading
-#                                    HearingAidTests.lua, instead of starting the game again. Any
-#                                    other change to the mods restarts the game. While it waits it
-#                                    shows and logs "HearingAidTest IDLE"; it quits after 30
-#                                    minutes without a run, or when another run needs the game.
-#   dev/run-debug-client.sh --test --mp [--stay]
-#                                    the same tests in multiplayer: a dedicated server and a client
-#                                    that joins it as the admin (dev/harness/docs/multiplayer.md);
-#                                    with --stay both stay open for the next
-#                                    --test --mp --stay
-#   dev/run-debug-client.sh --art    the same, but instead of the tests the harness saves close-ups
-#                                    of the worn and dropped aids (art_*.png) to <cache>/Screenshots
-#   dev/run-debug-client.sh --promo  the same, but the harness captures the art for the README and
-#                                    the Workshop page and crops it into art/promo/captures (needs
-#                                    uv, https://docs.astral.sh/uv/). PROMO=<group>,... shoots only
-#                                    those groups and replaces only their captures (e.g.
-#                                    PROMO=heads); a bad name lists the groups
-#   dev/run-debug-client.sh --loot   the same, but the harness measures how often corpses and
-#                                    containers hold hearing aids and wristwatches, and the script
-#                                    prints the shares
-#
-# CACHE overrides the cache dir (default: $TMPDIR/pz-hearingaid-client, -mpclient with --mp),
-# JAVAC the compiler for ClickToStart.java (default: javac from PATH; any JDK from 8 on works),
-# TIMEOUT the seconds a harness run may take (default 300 for --test, 1200 for the other modes),
-# and TESTS, a comma-separated list of test name prefixes, limits --test to those tests (e.g.
-# TESTS=hearingaid_craft_).
+# Starts the game client with this mod, its dev mod and the harness mod; dev/harness/docs/running.md
+# lists the flags and environment variables. Its scenario, under the main menu's Scenarios: Hearing
+# Aid, a test world. Its modes, --art, --promo and --loot, are described at MODES in harness.conf.
+# Tests are named hearingaid_*.
 . "$(dirname "$0")/harness/bin/run-client.sh"

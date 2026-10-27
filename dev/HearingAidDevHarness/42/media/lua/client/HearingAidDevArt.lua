@@ -25,15 +25,6 @@ for _, fullType in ipairs(TIERS) do
     table.insert(AIDS, HearingAid.leftEarType(fullType))
 end
 
-local function setLook(player, female)
-    player:setFemale(female)
-    player:getDescriptor():setFemale(female)
-    local visual = player:getHumanVisual()
-    visual:setHairModel("Bald")
-    visual:setBeardModel("")
-    player:resetModel()
-end
-
 function HearingAidDevArt.takeOffAids(player)
     local worn = player:getWornItems()
     for i = worn:size() - 1, 0, -1 do
@@ -85,7 +76,7 @@ local function createPanels(player)
 end
 
 function HearingAidDevArt.capture(onDone)
-    local run = Capture.new("HearingAidArt")
+    local run = Capture.new()
     local player = getPlayer()
     local backdrop, panels
 
@@ -96,7 +87,8 @@ function HearingAidDevArt.capture(onDone)
     for _, female in ipairs({ false, true }) do
         local sex = female and "female" or "male"
         run:add(function()
-            setLook(player, female)
+            -- Bald and beardless, so the aid shows; the clothes stay.
+            Stage.dress(player, { female = female, hair = "Bald", beard = "" })
             return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, fullType in ipairs(AIDS) do

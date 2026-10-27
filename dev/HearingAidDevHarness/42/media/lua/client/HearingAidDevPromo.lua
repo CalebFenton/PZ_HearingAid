@@ -23,21 +23,24 @@ local TIER_NAMES = {
 }
 local GREY = ImmutableColor.new(0.78, 0.77, 0.74, 1)
 -- A man wears his aid on the right ear and a woman hers on the left. The bald man shows the aid
--- best, and the grey-haired pair show it as it looks in play.
+-- best, and the grey-haired pair show it as it looks in play. Each wears nothing but its clothes
+-- (Stage.dress), so that the scenario's random clothes and glasses stay out of the shots.
 local LOOKS = {
-    { name = "plain", female = false, hair = "Bald" },
+    { name = "plain", female = false, hair = "Bald", beard = "", clothes = {} },
     {
         name = "styled",
         female = false,
         hair = "Picard",
-        colour = GREY,
+        beard = "",
+        hairColour = GREY,
         clothes = { "Base.Jumper_VNeck", "Base.Trousers_Suit", "Base.Shoes_Brown" },
     },
     {
         name = "styled",
         female = true,
         hair = "Bun",
-        colour = GREY,
+        beard = "",
+        hairColour = GREY,
         clothes = { "Base.Jumper_RoundNeck", "Base.Skirt_Normal", "Base.Shoes_Black" },
     },
 }
@@ -125,25 +128,6 @@ local function newModelPanel(x, y, size, player, view)
     return panel
 end
 
--- Dresses the character in nothing but look.clothes, so that the scenario's random clothes and
--- glasses stay out of the shots.
-local function setLook(player, look)
-    player:setFemale(look.female)
-    player:getDescriptor():setFemale(look.female)
-    local visual = player:getHumanVisual()
-    visual:setHairModel(look.hair)
-    visual:setBeardModel("")
-    if look.colour then
-        visual:setHairColor(look.colour)
-    end
-    player:clearWornItems()
-    for _, fullType in ipairs(look.clothes or {}) do
-        local item = player:getInventory():AddItem(fullType)
-        player:setWornItem(item:getBodyLocation(), item)
-    end
-    player:resetModel()
-end
-
 local function addHeads()
     local player = getPlayer()
     local panels = {}
@@ -160,7 +144,7 @@ local function addHeads()
         local sex = look.female and "female" or "male"
         local ear = look.female and "left" or "right"
         run:add(function()
-            setLook(player, look)
+            Stage.dress(player, look)
             return Capture.drawn(HearingAidDevArt.MODEL_FRAMES)
         end)
         for _, tier in ipairs(TIERS) do
@@ -294,7 +278,7 @@ local CORPSE_W, CORPSE_H = 1260, 709
 local function addCorpse()
     local player = getPlayer()
     run:add(function()
-        setLook(player, LOOKS[2])
+        Stage.dress(player, LOOKS[2])
         Debug.wear(player, Debug.addAid(player, HearingAid.BASIC, 0.6, true))
         return Stage.zoomOut(0)
     end)
@@ -327,18 +311,18 @@ end
 
 -- The groups of dev/harness.conf's MODE_GROUPS_promo, and what adds their steps.
 local GROUPS = {
-    icons = addIcons,
-    heads = addHeads,
-    models = addModels,
-    tooltips = addTooltips,
-    menu = addWearMenu,
-    world = addCorpse,
+    icons = { add = addIcons },
+    heads = { add = addHeads },
+    models = { add = addModels },
+    tooltips = { add = addTooltips },
+    menu = { add = addWearMenu },
+    world = { add = addCorpse },
 }
 
 -- Shoots the groups named in `selection`, comma-separated in the order to shoot them, which
 -- run-client.sh gives every group of MODE_GROUPS_promo when PROMO names none, and calls onDone.
 function HearingAidDevPromo.capture(selection, onDone)
-    run = Capture.new("HearingAidPromo")
+    run = Capture.new()
     -- The layout's text, in the game's words, so a renamed item or option shows in the images. It
     -- comes with every run, since it costs no shot.
     local names = {}
@@ -356,7 +340,11 @@ function HearingAidDevPromo.capture(selection, onDone)
     }
     -- Noon from the start: the world's light takes most of a second to follow the clock, and the
     -- world shot comes last.
-    Stage.runGroups(run, selection, GROUPS, function()
-        Stage.addWorldSettings(run, { hour = 12 })
-    end, data, onDone)
+    Stage.runGroups(run, selection, {
+        groups = GROUPS,
+        data = data,
+        prepare = function()
+            Stage.addWorldSettings(run, { hour = 12 })
+        end,
+    }, onDone)
 end
