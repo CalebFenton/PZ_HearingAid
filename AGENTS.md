@@ -20,6 +20,7 @@
 ## Read when needed
 
 - Before running in-game tests, handing them to subagents, or debugging a failure or a `LEAK`, read `dev/harness/docs/debugging.md`: which run answers which question, and the traps that cost reruns.
+- Before writing Lua that runs on its own (an event handler, a sprite change) or chasing a hitch, read `dev/harness/docs/performance.md`: what each event's cadence allows, the calls that cost, and how to find the slow handler.
 - Before changing scripts, translations, multiplayer sync, loot, tests or art, read `DEVELOPMENT.md`: the Build 42 behaviour that fails silently, the command to decompile the game, and the art, promo and loot commands.
 - Before changing anything under `dev/harness`, read `dev/harness/AGENTS.md`: other mods use it.
 - Before changing `README.md`, the Workshop page, read `dev/harness/docs/workshop-page.md`.
