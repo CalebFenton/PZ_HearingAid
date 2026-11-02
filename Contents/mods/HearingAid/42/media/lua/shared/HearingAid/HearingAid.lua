@@ -286,9 +286,12 @@ end
 
 -- Battery drain --------------------------------------------------------------------------------
 
--- World age in hours at which each active aid was last drained, keyed by item id. Kept in memory
--- only: an aid drops out when it stops being active, and everything drops out on load or
--- reconnect, so time off the ear, switched off, offline or unloaded is never billed.
+-- What each active aid was last billed up to, keyed by item id: { aid, player, at }, `at` the world
+-- age in hours. Kept in memory only: everything drops out on load or reconnect, so time offline or
+-- unloaded is never billed. Each update bills the hours since. An aid that stops being active is
+-- billed up to that moment where the game tells it, a clothing change (settleClothingChange) or an
+-- action that ends its use (drainUntilNow); otherwise the next update drops it unbilled, so time
+-- off the ear or switched off is never billed.
 local lastDrain = {}
 
 local function drain(player, aid, hours)
@@ -310,15 +313,40 @@ local function drain(player, aid, hours)
     end
 end
 
--- Bills the aid for use since the last update. Call it before an action ends the aid's use, or
--- that time is lost.
+-- Bills the aid for its use up to now and stops billing it. Call it before an action ends the
+-- aid's use, or that time is lost.
 function HearingAid.drainUntilNow(player, aid)
     local id = aid:getID()
-    local last = lastDrain[id]
-    if last then
-        local now = getGameTime():getWorldAgeHours()
-        drain(player, aid, now - last)
-        lastDrain[id] = now
+    local entry = lastDrain[id]
+    if entry then
+        lastDrain[id] = nil
+        drain(player, aid, getGameTime():getWorldAgeHours() - entry.at)
+    end
+end
+
+-- Settles the billing of the character's aids after a clothing change, which the periodic update
+-- would see only up to a minute later: an aid that stopped being active, taken off or replaced, is
+-- billed up to now, and an active one not yet billed, just put on or swapped to the other ear, is
+-- billed from now.
+function HearingAid.settleClothingChange(player)
+    if isClient() or player:isDead() then
+        return
+    end
+    local now = getGameTime():getWorldAgeHours()
+    local aid = activeAid(player)
+    local activeId = aid and aid:getID()
+    local stopped = {}
+    for id, entry in pairs(lastDrain) do
+        if entry.player == player and id ~= activeId then
+            stopped[id] = entry
+        end
+    end
+    for id, entry in pairs(stopped) do
+        lastDrain[id] = nil
+        drain(player, entry.aid, now - entry.at)
+    end
+    if aid and not lastDrain[activeId] then
+        lastDrain[activeId] = { aid = aid, player = player, at = now }
     end
 end
 
@@ -354,11 +382,12 @@ function HearingAid.update(now)
             local aid = activeAid(player)
             if aid then
                 local id = aid:getID()
-                if lastDrain[id] then
-                    drain(player, aid, now - lastDrain[id])
+                local entry = lastDrain[id]
+                if entry then
+                    drain(player, aid, now - entry.at)
                 end
                 if HearingAid.isActive(aid) then
-                    tracked[id] = now
+                    tracked[id] = { aid = aid, player = player, at = now }
                 end
             end
             HearingAid.reconcile(player)

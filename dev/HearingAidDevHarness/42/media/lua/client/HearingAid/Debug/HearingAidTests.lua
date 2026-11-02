@@ -391,28 +391,38 @@ test("hearingaid_wear_switched_on_aid", {
     end,
 })
 
+-- Taking the aid off bills the use since the last periodic update.
 test("hearingaid_take_off_switched_on_aid", {
+    sandbox = { BatteryHoursBasic = LIFE },
+    periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true } })
-        readStateBefore(self)
+        backdateDrain(self, USED)
         pickAndRead(self, 1, option("ContextMenu_Unequip"))
     end,
     validate = function(self)
-        expect(not givenState(self, 1).worn, "aid is still worn")
+        local aid = givenState(self, 1)
+        expect(not aid.worn, "aid is still worn")
+        expectCharge(aid, 1 - USED / LIFE, CHARGE_TOLERANCE)
         expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
 
--- A broken aid put on the ear takes the place of the working one, which stops helping.
+-- A broken aid put on the ear takes the place of the working one, which stops helping and is
+-- billed for its use since the last periodic update.
 test("hearingaid_wear_broken_aid_over_working_one", {
+    sandbox = { BatteryHoursBasic = LIFE },
+    periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true }, { type = BROKEN } })
-        readStateBefore(self)
+        backdateDrain(self, USED)
         doubleClickAndRead(self, 2)
     end,
     validate = function(self)
+        local working = givenState(self, 1)
         expect(givenState(self, 2).worn, "broken aid is not worn")
-        expect(not givenState(self, 1).worn, "working aid is still worn")
+        expect(not working.worn, "working aid is still worn")
+        expectCharge(working, 1 - USED / LIFE, CHARGE_TOLERANCE)
         expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
@@ -808,6 +818,27 @@ local function expectSwappedTo(self, fullType, swapped, charge)
     end
 end
 
+-- Wear > on Right Ear on a right-ear aid also replaces it with a new item, of the same type. It
+-- keeps the aid's battery and switch, not what the new item's OnCreate rolled: at this chance that
+-- is always a battery, switched off.
+test("hearingaid_wear_switched_on_aid_on_right_ear", {
+    sandbox = { SpawnWithBatteryChance = 100 },
+    run = function(self)
+        giveAids(self, { { type = BASIC, charge = 0.5, on = true } })
+        pickAndRead(self, 1, option(ON_RIGHT_EAR, "ContextMenu_Wear"))
+    end,
+    validate = function(self)
+        expectAids(self, BASIC, 1)
+        local aid = aidsOfType(self, BASIC)[1]
+        if aid then
+            expect(aid.worn, "aid is not worn")
+            expectCharge(aid, 0.5, CHARGE_TOLERANCE)
+            expect(aid.on, "aid is off")
+        end
+        expectHearing(self, Level.NORMAL)
+    end,
+})
+
 -- Wear > on Left Ear swaps the aid for its left-ear twin, which keeps its battery and switch.
 test("hearingaid_wear_switched_on_aid_on_left_ear", {
     run = function(self)
@@ -820,7 +851,8 @@ test("hearingaid_wear_switched_on_aid_on_left_ear", {
     end,
 })
 
--- Swapping ears bills the old item's use first: the twin is billed only from the next update.
+-- Swapping ears bills the old item's use, and the twin's from the swap on, so the next update
+-- bills the hours since the swap.
 test("hearingaid_switch_ears_while_worn", {
     sandbox = { BatteryHoursBoosted = LIFE },
     periodicUpdate = false,
@@ -828,9 +860,17 @@ test("hearingaid_switch_ears_while_worn", {
         giveAids(self, { { type = leftEar(BOOSTED), charge = 1, on = true, worn = true } })
         backdateDrain(self, USED)
         pickAndRead(self, 1, option(ON_RIGHT_EAR, "ContextMenu_Wear"))
+        T.step(function()
+            self.swapped = self.state
+            readState(self, "steps", { steps = { { op = "update", at = USED } } })
+        end)
     end,
     validate = function(self)
+        local afterUpdate = self.state
+        self.state = self.swapped
         expectSwappedTo(self, BOOSTED, leftEar(BOOSTED), 1 - USED / LIFE)
+        self.state = afterUpdate
+        expectSwappedTo(self, BOOSTED, leftEar(BOOSTED), 1 - 2 * USED / LIFE)
         expectHearingChange(self, Level.KEEN, Level.KEEN)
     end,
 })
