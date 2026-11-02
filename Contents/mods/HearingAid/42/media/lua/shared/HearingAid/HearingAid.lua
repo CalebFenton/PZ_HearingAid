@@ -3,6 +3,8 @@
 -- Only the authority changes state: single player, or the dedicated server in multiplayer
 -- (`not isClient()`). Multiplayer clients read item state for the UI and never touch traits.
 
+local Chance = require "cf_commonlib/Chance"
+
 HearingAid = HearingAid or {}
 
 HearingAid.BROKEN = "HearingAid.BrokenHearingAid"
@@ -139,8 +141,8 @@ end
 -- OnCreate replace this state afterwards.
 function HearingAid.onCreate(aid)
     local charge = nil
-    if ZombRand(100) < SandboxVars.HearingAid.SpawnWithBatteryChance then
-        charge = ZombRandFloat(0.05, 1.0)
+    if Chance.hit(SandboxVars.HearingAid.SpawnWithBatteryChance / 100) then
+        charge = Chance.within(0.05, 1.0)
     end
     HearingAid.setCharge(aid, charge)
 end

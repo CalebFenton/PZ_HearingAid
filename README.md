@@ -2,7 +2,7 @@
 
 Take Deaf or Hard of Hearing for the trait points, then earn your hearing back. Most hearing aids you find are broken. Repair one and a Hard of Hearing survivor hears normally again; upgrade it twice and even a Deaf one does, while anyone else gets Keen Hearing. Every working hearing aid runs on batteries, so hearing well is something you keep paying for.
 
-**Build 42.21 or newer.** Single player and multiplayer. Fine to add to a save in progress.
+**Build 42.21 or newer.** Single player and multiplayer. Fine to add to a save in progress. Requires **cf_commonlib**.
 
 ## From broken to boosted
 

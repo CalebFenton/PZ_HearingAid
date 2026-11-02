@@ -10,7 +10,9 @@
 
 - Check Build 42 APIs against the installed game's Lua, scripts and decompiled Java, not web docs or memory: most published modding docs describe Build 41, whose APIs fail silently in Build 42.
 - Test in the game, in the dev mod's `HearingAidTests.lua` with the harness's test library (`PZHarness.Test`), never with standalone Lua and stubbed game APIs: the stubs encode guesses about the game, which is what the tests must check. Tests, the debug scenario and the art, promo and loot code stay in the dev mod, out of `Contents/`, which is published.
+- Test a chance by setting the roll on either side of it (`T.forceRoll`, `PZHarness.Rolls`), never by rolling many times; chances go through cf_commonlib's `Chance`.
 - Comments say why, without repeating values from the code: a copied value goes stale and nothing fails.
+- Code another of Caleb's mods could use goes in the library mod cf_commonlib (`../cf_commonlib`, which `mod.info` requires), never in a copy here: look there before writing a helper, and change it there when a change here touches what it does.
 - When a test or check contradicts what you were asked to do, or fails on uncommitted work that isn't yours, stop and report it rather than editing the test or the other person's work.
 
 ## STOP
@@ -22,5 +24,5 @@
 - Before running in-game tests, handing them to subagents, or debugging a failure or a `LEAK`, read `dev/harness/docs/debugging.md`: which run answers which question, and the traps that cost reruns.
 - Before writing Lua that runs on its own (an event handler, a sprite change) or chasing a hitch, read `dev/harness/docs/performance.md`: what each event's cadence allows, the calls that cost, and how to find the slow handler.
 - Before changing scripts, translations, multiplayer sync, loot, tests or art, read `DEVELOPMENT.md`: the Build 42 behaviour that fails silently, the command to decompile the game, and the art, promo and loot commands.
-- Before changing anything under `dev/harness`, read `dev/harness/AGENTS.md`: other mods use it.
+- Before changing anything under `dev/harness`, read `dev/harness/AGENTS.md`; before changing anything in `../cf_commonlib`, read its `AGENTS.md`. Other mods use both.
 - Before changing `README.md`, the Workshop page, read `dev/harness/docs/workshop-page.md`.

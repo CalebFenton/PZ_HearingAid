@@ -8,3 +8,4 @@ category=features
 modversion=2.1.0
 versionMin=42.21
 url=https://github.com/CalebFenton/PZ_HearingAid
+require=\cf_commonlib

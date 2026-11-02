@@ -464,22 +464,29 @@ test("hearingaid_remove_battery", {
     end,
 })
 
--- The found-battery chance follows its option at both ends.
+-- A found aid holds a battery on a roll just under the found-battery chance and none at it; the
+-- lowest charge roll still leaves the battery some charge. Not the option's default, so a chance
+-- read from anywhere else fails.
+local FOUND_BATTERY_PERCENT = 30
+
 test("hearingaid_found_battery_chance", {
-    sandbox = { SpawnWithBatteryChance = 100 },
+    sandbox = { SpawnWithBatteryChance = FOUND_BATTERY_PERCENT },
     run = function(self)
+        local chance = FOUND_BATTERY_PERCENT / 100
+        T.forceRoll(self, { chance - T.UNDER, 0 })
         T.server(self, "instantiate", { type = BASIC })
         T.step(function()
-            self.always = self.server.instantiate
-            T.setSandbox(self, "SpawnWithBatteryChance", 0)
+            self.under = self.server.instantiate
+            T.forceRoll(self, { chance })
             T.server(self, "instantiate", { type = BASIC })
         end)
     end,
     validate = function(self)
-        if expect(self.always.battery, "no battery at a 100% chance") then
-            expect(self.always.charge > 0, "the found battery is dead")
+        local under, at = self.under or {}, self.server.instantiate or {}
+        if expect(under.battery, "no battery on a roll just under the chance") then
+            expect(under.charge > 0, "the found battery is dead")
         end
-        expect(not self.server.instantiate.battery, "a battery at a 0% chance")
+        expect(not at.battery, "a battery on a roll at the chance")
     end,
 })
 
