@@ -115,7 +115,7 @@ handler("keenHearing", function(player)
     return {}
 end)
 
--- A new item of `args.type`, as loot makes them, never given to anyone.
+-- A new item of `args.type`, as loot makes it, never given to anyone.
 handler("instantiate", function(_, args)
     local item = instanceItem(args.type)
     return { battery = HearingAid.hasBattery(item), charge = HearingAid.getCharge(item) }

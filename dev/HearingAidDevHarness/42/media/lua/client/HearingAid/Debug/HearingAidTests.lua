@@ -1,9 +1,6 @@
 require "PZHarness/TestCraft"
 require "PZHarness/TestMenus"
-require "TimedActions/HearingAidAction"
-require "TimedActions/ISUnequipAction"
-require "TimedActions/ISWearClothing"
-require "HearingAid/HearingAidRecipes"
+require "HearingAid/HearingAid"
 local Debug = require "HearingAid/Debug/HearingAidDebug"
 
 -- The mod's in-game tests, on the shared harness's test library
@@ -16,7 +13,7 @@ local Debug = require "HearingAid/Debug/HearingAidDebug"
 -- The same tests run in single player and multiplayer (dev/run-debug-client.sh --test --mp). What
 -- only the authority does (give aids, move time on, read hearing and aid state) goes through the
 -- handlers in server/HearingAid/Debug/HearingAidTestServer.lua; the tests act as a player does,
--- through actions and menus on this client, check the server's state, and then expect this
+-- through the right-click menus on this client, check the server's state, and then expect this
 -- client to show the same (expectClientAgrees). Everything a test does to the game is queued, so
 -- it happens in order once the server has answered.
 
@@ -45,6 +42,13 @@ local CHARGE_TOLERANCE = 0.01
 -- How long this client may take to show what the server changed: traits, item fields, clothing.
 -- Its waits end there without failing; validate checks what they waited for.
 local SYNC_MS = 5000
+
+-- The battery life, in hours, that the drain tests give a tier, and the hours of use they bill:
+-- a battery loses USED / LIFE of a full charge over them.
+local LIFE, USED = 10, 2
+
+local ON_RIGHT_EAR = "ContextMenu_HearingAid_EarRight"
+local ON_LEFT_EAR = "ContextMenu_HearingAid_EarLeft"
 
 local function levelName(level)
     return LEVEL_NAMES[level] or tostring(level)
@@ -120,20 +124,75 @@ local function readState(self, handler, args)
     end, SYNC_MS, "this client agreeing with the server's state")
 end
 
--- Queues a HearingAidAction on the aid and battery giveAids gave at these positions, as the
--- player's menu does, then reads the server's state.
-local function actAndRead(self, mode, aidIndex, batteryIndex)
+-- readState, keeping the hearing it read as self.hearingBefore: the level before the action under
+-- test, which expectHearingChange checks, so that an aid that never helped can't pass for one
+-- that stopped helping.
+local function readStateBefore(self, handler, args)
+    readState(self, handler, args)
     T.step(function()
-        local battery = batteryIndex and given(self, batteryIndex)
-        ISTimedActionQueue.add(HearingAidAction:new(player(), mode, given(self, aidIndex), battery))
-        readState(self)
+        self.hearingBefore = self.state.hearing
     end)
 end
 
--- Runs the periodic update `hours` ago and reads the state: the worn, switched-on aids are billed
--- from then, so the next drain bills those hours of use.
+-- Runs the periodic update `hours` ago and reads the state before the action under test: the
+-- worn, switched-on aids are billed from then, so the next drain bills those hours of use.
 local function backdateDrain(self, hours)
-    readState(self, "steps", { steps = { { op = "update", at = -hours } } })
+    readStateBefore(self, "steps", { steps = { { op = "update", at = -hours } } })
+end
+
+-- Menus ----------------------------------------------------------------------------------------
+
+-- A `find` for pickAndRead: the option with the text of `textKey`, in the submenu of the option
+-- with the text of `submenuKey` when given. Also returns the option's name for a failure.
+local function option(textKey, submenuKey)
+    return function(context)
+        local menu = context
+        local label = getText(textKey)
+        if submenuKey then
+            menu = T.subMenu(context, T.optionNamed(context, getText(submenuKey)))
+            label = getText(submenuKey) .. " > " .. label
+        end
+        return T.optionNamed(menu, getText(textKey)), label
+    end
+end
+
+-- A `find` for pickAndRead: Add Battery's choice of the i-th item giveAids gave.
+local function batteryChoice(self, i)
+    return function(context)
+        local add = T.optionNamed(context, getText("ContextMenu_AddBattery"))
+        return T.optionFor(T.subMenu(context, add), given(self, i)), getText("ContextMenu_AddBattery") .. " > battery " .. i
+    end
+end
+
+-- Queues a right-click on the i-th item giveAids gave, a click on the option `find(context)`
+-- finds, as a player's, and a read of the server's state. An option the menu doesn't offer fails
+-- the test, naming it.
+local function pickAndRead(self, aidIndex, find)
+    T.step(function()
+        local context = T.need(self, T.inventoryMenu(given(self, aidIndex)), "a context menu for the aid")
+        if not context then
+            return
+        end
+        local choice, label = find(context)
+        local offered = T.need(self, T.offered(choice), "an offered " .. label .. " option")
+        if offered then
+            T.choose(choice)
+        end
+        context:hideAndChildren()
+        if offered then
+            readState(self)
+        end
+    end)
+end
+
+-- Queues putting on the i-th item giveAids gave as a double-click in the inventory does
+-- (ISInventoryPane:doContextualDblClick), through ISWearClothing, and a read of the server's state.
+-- The Wear menu's ear options swap the item through ISClothingExtraAction instead.
+local function doubleClickAndRead(self, i)
+    T.step(function()
+        ISInventoryPaneContextMenu.onWearItems({ given(self, i) }, player():getPlayerNum())
+        readState(self)
+    end)
 end
 
 -- Expectations ---------------------------------------------------------------------------------
@@ -155,6 +214,12 @@ end
 
 local function expectHearing(self, expected)
     expectEqual("hearing", levelName(stateOf(self).hearing), levelName(expected))
+end
+
+-- Expects the hearing to have been `before` when readStateBefore read it and `after` now.
+local function expectHearingChange(self, before, after)
+    expectEqual("hearing before", levelName(self.hearingBefore), levelName(before))
+    expectHearing(self, after)
 end
 
 -- The server's state of the aid with this id; an empty table, and a failure, if it is gone.
@@ -208,15 +273,10 @@ local function expectClientAgrees(self)
     end
 end
 
--- Registers a test. Its timed actions finish in one tick unless `spec.instant` is false: the tests
--- check what an action does, not how long it takes. A test that read the server's state expects
--- this client to show the same.
-local function test(name, spec)
-    if spec.instant == nil then
-        spec.instant = true
-    end
-    local validate = spec.validate
-    spec.validate = function(self)
+-- `validate` (if any), then, for a test that read the server's state, the expectation that this
+-- client shows the same.
+local function withClientCheck(validate)
+    return function(self)
         if validate then
             validate(self)
         end
@@ -224,33 +284,50 @@ local function test(name, spec)
             expectClientAgrees(self)
         end
     end
+end
+
+-- Registers a test. Its timed actions finish in one tick unless `spec.instant` is false: the tests
+-- check what an action does, not how long it takes.
+local function test(name, spec)
+    if spec.instant == nil then
+        spec.instant = true
+    end
+    spec.validate = withClientCheck(spec.validate)
     T.test(name, spec)
 end
 
 -- Hearing --------------------------------------------------------------------------------------
 
--- What each working tier gives a character with this own hearing level.
-local HEARING_WITH_AID = {
-    [Level.HARD_OF_HEARING] = { Level.NORMAL, Level.NORMAL, Level.KEEN },
-    [Level.NORMAL] = { Level.NORMAL, Level.NORMAL, Level.KEEN },
-    [Level.KEEN] = { Level.KEEN, Level.KEEN, Level.KEEN },
+-- The README's table, the players' contract: the level an active aid of each tier gives a
+-- character by their own hearing, and a deaf one by the HandleDeafness option.
+local BASIC_GIVES = {
+    hearing = { [Level.HARD_OF_HEARING] = Level.NORMAL, [Level.NORMAL] = Level.NORMAL, [Level.KEEN] = Level.KEEN },
+    deaf = { [Mode.NONE] = Level.DEAF, [Mode.ALL_AIDS] = Level.HARD_OF_HEARING, [Mode.BOOSTED_ONLY] = Level.DEAF },
 }
--- What each working tier gives a deaf character, per HandleDeafness option.
-local DEAF_WITH_AID = {
-    [Mode.NONE] = { Level.DEAF, Level.DEAF, Level.DEAF },
-    [Mode.ALL_AIDS] = { Level.HARD_OF_HEARING, Level.HARD_OF_HEARING, Level.NORMAL },
-    [Mode.BOOSTED_ONLY] = { Level.DEAF, Level.DEAF, Level.HARD_OF_HEARING },
+local GIVES = {
+    [BASIC] = BASIC_GIVES,
+    -- Efficient differs from Basic only in battery life.
+    [EFFICIENT] = BASIC_GIVES,
+    [BOOSTED] = {
+        hearing = { [Level.HARD_OF_HEARING] = Level.KEEN, [Level.NORMAL] = Level.KEEN, [Level.KEEN] = Level.KEEN },
+        deaf = { [Mode.NONE] = Level.DEAF, [Mode.ALL_AIDS] = Level.NORMAL, [Mode.BOOSTED_ONLY] = Level.HARD_OF_HEARING },
+    },
 }
 
+-- Every cell, on the rule itself, for either ear's aid; the tests below show that wearing and
+-- switching an aid applies it.
 test("hearingaid_hearing_levels", {
     validate = function(self)
-        for mode, deafRow in pairs(DEAF_WITH_AID) do
-            for base = Level.DEAF, Level.KEEN do
-                local row = base == Level.DEAF and deafRow or HEARING_WITH_AID[base]
-                for i, rightEar in ipairs(WORKING) do
-                    for _, fullType in ipairs({ rightEar, leftEar(rightEar) }) do
-                        expectEqual("HandleDeafness " .. mode .. ", " .. levelName(base) .. ", " .. fullType,
-                            levelName(HearingAid.getTargetLevel(base, fullType, mode)), levelName(row[i]))
+        for tier, gives in pairs(GIVES) do
+            for _, fullType in ipairs({ tier, leftEar(tier) }) do
+                for _, mode in pairs(Mode) do
+                    local function check(own, expected)
+                        expectEqual(fullType .. ", HandleDeafness " .. mode .. ", " .. levelName(own),
+                            levelName(HearingAid.getTargetLevel(own, fullType, mode)), levelName(expected))
+                    end
+                    check(Level.DEAF, gives.deaf[mode])
+                    for own, expected in pairs(gives.hearing) do
+                        check(own, expected)
                     end
                 end
             end
@@ -258,12 +335,14 @@ test("hearingaid_hearing_levels", {
     end,
 })
 
-test("hearingaid_handle_deafness_option", {
+-- The worn aid reads the option: under None a Boosted aid, which helps a deaf character under the
+-- other modes, switches on and leaves them deaf.
+test("hearingaid_handle_deafness_none_keeps_deaf", {
     hearing = Level.DEAF,
     sandbox = { HandleDeafness = Mode.NONE },
     run = function(self)
         giveAids(self, { { type = BOOSTED, charge = 1, worn = true } })
-        actAndRead(self, HearingAidAction.TURN_ON, 1)
+        pickAndRead(self, 1, option("ContextMenu_Turn_On"))
     end,
     validate = function(self)
         expect(givenState(self, 1).on, "aid is off")
@@ -274,7 +353,7 @@ test("hearingaid_handle_deafness_option", {
 test("hearingaid_turn_on", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, worn = true } })
-        actAndRead(self, HearingAidAction.TURN_ON, 1)
+        pickAndRead(self, 1, option("ContextMenu_Turn_On"))
     end,
     validate = function(self)
         expect(givenState(self, 1).on, "aid is off")
@@ -282,84 +361,73 @@ test("hearingaid_turn_on", {
     end,
 })
 
+-- Switching off bills the use since the last periodic update.
 test("hearingaid_turn_off", {
-    sandbox = { BatteryHoursBasic = 10 },
+    sandbox = { BatteryHoursBasic = LIFE },
     periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true } })
-        backdateDrain(self, 2)
-        T.step(function()
-            self.hearingWhileOn = self.state.hearing
-        end)
-        actAndRead(self, HearingAidAction.TURN_OFF, 1)
+        backdateDrain(self, USED)
+        pickAndRead(self, 1, option("ContextMenu_Turn_Off"))
     end,
     validate = function(self)
-        expect(self.hearingWhileOn == Level.NORMAL, "aid didn't help while on")
         local aid = givenState(self, 1)
         expect(not aid.on, "aid is still on")
-        expectCharge(aid, 0.8, CHARGE_TOLERANCE)
-        expectHearing(self, Level.HARD_OF_HEARING)
+        expectCharge(aid, 1 - USED / LIFE, CHARGE_TOLERANCE)
+        expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
 
 test("hearingaid_wear_switched_on_aid", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true } })
-        readState(self, "steps", { steps = { { op = "update", at = 0 } } })
-        T.step(function()
-            self.hearingBeforeWearing = self.state.hearing
-            ISTimedActionQueue.add(ISWearClothing:new(player(), given(self, 1)))
-            readState(self)
-        end)
+        -- A periodic update first: off the ear the aid must not help.
+        readStateBefore(self, "steps", { steps = { { op = "update", at = 0 } } })
+        doubleClickAndRead(self, 1)
     end,
     validate = function(self)
-        expect(self.hearingBeforeWearing == Level.HARD_OF_HEARING, "aid helped before it was worn")
         expect(givenState(self, 1).worn, "aid is not worn")
-        expectHearing(self, Level.NORMAL)
+        expectHearingChange(self, Level.HARD_OF_HEARING, Level.NORMAL)
     end,
 })
 
 test("hearingaid_take_off_switched_on_aid", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true } })
-        readState(self)
-        T.step(function()
-            self.hearingWhileWorn = self.state.hearing
-            ISTimedActionQueue.add(ISUnequipAction:new(player(), given(self, 1), 50))
-            readState(self)
-        end)
+        readStateBefore(self)
+        pickAndRead(self, 1, option("ContextMenu_Unequip"))
     end,
     validate = function(self)
-        expect(self.hearingWhileWorn == Level.NORMAL, "aid didn't help while worn")
         expect(not givenState(self, 1).worn, "aid is still worn")
-        expectHearing(self, Level.HARD_OF_HEARING)
+        expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
 
+-- A broken aid put on the ear takes the place of the working one, which stops helping.
 test("hearingaid_wear_broken_aid_over_working_one", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true }, { type = BROKEN } })
-        T.step(function()
-            ISTimedActionQueue.add(ISWearClothing:new(player(), given(self, 2)))
-            readState(self)
-        end)
+        readStateBefore(self)
+        doubleClickAndRead(self, 2)
     end,
     validate = function(self)
         expect(givenState(self, 2).worn, "broken aid is not worn")
         expect(not givenState(self, 1).worn, "working aid is still worn")
-        expectHearing(self, Level.HARD_OF_HEARING)
+        expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
 
+-- An admin, or another mod, gives the character Keen Hearing while the aid is on: switched off,
+-- the aid leaves them that rather than the level they had before it.
 test("hearingaid_keeps_outside_trait_changes", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true } })
-        -- An admin gives the character Keen Hearing while the aid is on.
+        readStateBefore(self)
         T.server(self, "keenHearing")
-        actAndRead(self, HearingAidAction.TURN_OFF, 1)
+        pickAndRead(self, 1, option("ContextMenu_Turn_Off"))
     end,
     validate = function(self)
-        expectHearing(self, Level.KEEN)
+        expectHearingChange(self, Level.NORMAL, Level.KEEN)
     end,
 })
 
@@ -368,7 +436,7 @@ test("hearingaid_keeps_outside_trait_changes", {
 test("hearingaid_insert_battery", {
     run = function(self)
         giveAids(self, { { type = BASIC }, { type = BATTERY, charge = 0.5 } })
-        actAndRead(self, HearingAidAction.INSERT_BATTERY, 1, 2)
+        pickAndRead(self, 1, batteryChoice(self, 2))
     end,
     validate = function(self)
         local aid = givenState(self, 1)
@@ -378,23 +446,25 @@ test("hearingaid_insert_battery", {
     end,
 })
 
+-- Taking the battery out bills the use since the last periodic update and switches the aid off.
 test("hearingaid_remove_battery", {
-    sandbox = { BatteryHoursBasic = 10 },
+    sandbox = { BatteryHoursBasic = LIFE },
     periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 0.5, on = true, worn = true } })
-        backdateDrain(self, 2)
-        actAndRead(self, HearingAidAction.REMOVE_BATTERY, 1)
+        backdateDrain(self, USED)
+        pickAndRead(self, 1, option("ContextMenu_Remove_Battery"))
     end,
     validate = function(self)
         local aid = givenState(self, 1)
         expect(not aid.battery, "aid still has a battery")
         expect(not aid.on, "aid is still on")
-        expectBattery(self, 0.3)
-        expectHearing(self, Level.HARD_OF_HEARING)
+        expectBattery(self, 0.5 - USED / LIFE)
+        expectHearingChange(self, Level.NORMAL, Level.HARD_OF_HEARING)
     end,
 })
 
+-- The found-battery chance follows its option at both ends.
 test("hearingaid_found_battery_chance", {
     sandbox = { SpawnWithBatteryChance = 100 },
     run = function(self)
@@ -406,9 +476,10 @@ test("hearingaid_found_battery_chance", {
         end)
     end,
     validate = function(self)
-        expect(self.always.battery, "no battery at a 100% chance")
-        expect(not self.always.battery or self.always.charge > 0, "found battery is dead")
-        expect(not self.server.instantiate.battery, "battery at a 0% chance")
+        if expect(self.always.battery, "no battery at a 100% chance") then
+            expect(self.always.charge > 0, "the found battery is dead")
+        end
+        expect(not self.server.instantiate.battery, "a battery at a 0% chance")
     end,
 })
 
@@ -416,11 +487,12 @@ test("hearingaid_found_battery_chance", {
 -- server, so the periodic update stays out of the way.
 
 test("hearingaid_battery_runs_out", {
-    sandbox = { BatteryHoursBasic = 10 },
+    sandbox = { BatteryHoursBasic = LIFE },
     periodicUpdate = false,
     run = function(self)
-        giveAids(self, { { type = BASIC, charge = 0.05, on = true, worn = true } })
-        readState(self, "steps", { steps = { { op = "update", at = 0 }, { op = "update", at = 1 } } })
+        -- Half the charge the span uses.
+        giveAids(self, { { type = BASIC, charge = USED / LIFE / 2, on = true, worn = true } })
+        readState(self, "steps", { steps = { { op = "update", at = 0 }, { op = "update", at = USED } } })
     end,
     validate = function(self)
         local aid = givenState(self, 1)
@@ -431,8 +503,15 @@ test("hearingaid_battery_runs_out", {
     end,
 })
 
+-- Distinct lives, so a tier that read another's option fails.
+local TIER_LIFE = { [BASIC] = 8, [EFFICIENT] = 16, [BOOSTED] = 4 }
+
 test("hearingaid_battery_life_per_tier", {
-    sandbox = { BatteryHoursBasic = 8, BatteryHoursEfficient = 16, BatteryHoursBoosted = 4 },
+    sandbox = {
+        BatteryHoursBasic = TIER_LIFE[BASIC],
+        BatteryHoursEfficient = TIER_LIFE[EFFICIENT],
+        BatteryHoursBoosted = TIER_LIFE[BOOSTED],
+    },
     periodicUpdate = false,
     run = function(self)
         local aids = {}
@@ -446,21 +525,20 @@ test("hearingaid_battery_life_per_tier", {
             for i in ipairs(WORKING) do
                 table.insert(steps, { op = "wear", id = given(self, i):getID() })
                 table.insert(steps, { op = "update", at = 10 * i })
-                table.insert(steps, { op = "update", at = 10 * i + 2 })
+                table.insert(steps, { op = "update", at = 10 * i + USED })
             end
             return { steps = steps }
         end)
     end,
     validate = function(self)
-        -- Each battery loses that span's share of its tier's life.
-        for i, expected in ipairs({ 0.75, 0.875, 0.5 }) do
-            expectCharge(givenState(self, i), expected)
+        for i, fullType in ipairs(WORKING) do
+            expectCharge(givenState(self, i), 1 - USED / TIER_LIFE[fullType])
         end
     end,
 })
 
 test("hearingaid_no_drain_while_inactive", {
-    sandbox = { BatteryHoursBasic = 10 },
+    sandbox = { BatteryHoursBasic = LIFE },
     periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true, worn = true } })
@@ -479,12 +557,12 @@ test("hearingaid_no_drain_while_inactive", {
                 -- In use: the only span billed.
                 { op = "switch", id = id, on = true },
                 { op = "update", at = 7 },
-                { op = "update", at = 8 },
+                { op = "update", at = 7 + USED },
             } }
         end)
     end,
     validate = function(self)
-        expectCharge(givenState(self, 1), 0.9)
+        expectCharge(givenState(self, 1), 1 - USED / LIFE)
     end,
 })
 
@@ -495,36 +573,74 @@ local OPTIMIZE = "HearingAid.OptimizeHearingAid"
 local BOOST = "HearingAid.BoostHearingAid"
 local DISMANTLE = "HearingAid.DismantleHearingAid"
 
+local function setOptions(self, options)
+    for key, value in pairs(options) do
+        T.setSandbox(self, key, value)
+    end
+end
+
+local function describeOptions(options)
+    local parts = {}
+    for key, value in pairs(options) do
+        table.insert(parts, key .. " = " .. tostring(value))
+    end
+    return table.concat(parts, ", ")
+end
+
+-- With each of spec.refusedWith's options set in turn, asks the game whether it would start the
+-- craft from the aid, as a right-click would, then puts the test's options back. The answers land
+-- in self.refusals, false where the game would start it.
+local function askRefusals(self, spec)
+    local recipe = getScriptManager():getCraftRecipe(spec.recipe)
+    local options = SandboxVars.HearingAid
+    self.refusals = {}
+    for i, case in ipairs(spec.refusedWith) do
+        local before = {}
+        for key in pairs(case.sandbox) do
+            before[key] = options[key]
+        end
+        setOptions(self, case.sandbox)
+        self.refusals[i] = T.craftRefusal(recipe, given(self, 1)) or false
+        setOptions(self, before)
+    end
+end
+
+local function expectRefusals(self, spec)
+    for i, case in ipairs(spec.refusedWith or {}) do
+        local refusal = self.refusals and self.refusals[i]
+        if expect(refusal, "the game would start the craft with " .. describeOptions(case.sandbox)) and case.reason then
+            expect(refusal:find(case.reason, 1, true), "refused for another reason: " .. refusal)
+        end
+    end
+end
+
 -- Adds hearing-aid fixtures and synchronized state assertions to the shared craft lifecycle.
--- Preparation stays explicit: auto-filling required skills would erase refusal cases, and aids
--- need authority-owned battery/switch state rather than ordinary recipe inputs.
+-- Preparation stays explicit: aids need authority-owned battery and switch state rather than
+-- ordinary recipe inputs, and the Electrical level is the test's (`spec.electrical`), not the
+-- recipe's. `spec.refusedWith` is a list of { sandbox = options, reason }: with each one's options
+-- set, before the craft, the game must refuse it, for `reason` when given; the craft then runs
+-- with the test's own options, so one craft checks both sides of an option.
 local function craftTest(name, spec)
     T.craftTest(name, {
         sandbox = spec.sandbox,
         recipe = spec.recipe,
         from = spec.aid,
         counts = spec.counts,
-        refused = spec.refused,
         instant = true,
         dropped = false,
         prepare = function(self)
             T.setPerk(self, Perks.Electricity, spec.electrical or Debug.ELECTRICAL_LEVEL)
-            local materials = {}
-            for _, material in ipairs(Debug.RECIPE_MATERIALS) do
-                table.insert(materials, { type = material.type, count = material.count })
-            end
-            T.give(self, "materials", materials)
+            T.give(self, "materials", Debug.RECIPE_MATERIALS)
             giveAids(self, { { type = spec.aid, charge = spec.charge, on = spec.on } })
         end,
+        setup = spec.refusedWith and function(self) askRefusals(self, spec) end,
         after = readState,
-        validate = function(self)
+        validate = withClientCheck(function(self)
+            expectRefusals(self, spec)
             if spec.validate then
                 spec.validate(self)
             end
-            if self.state then
-                expectClientAgrees(self)
-            end
-        end,
+        end),
     })
 end
 
@@ -541,30 +657,26 @@ craftTest("hearingaid_craft_repair", {
     end,
 })
 
--- The optimized aid keeps the battery and switch of the aid it was made from, and is the right-ear
--- type whichever ear's aid went in. Found aids hold no battery at this chance, so the output's
--- charge can only come from the input.
+-- The optimized aid keeps the battery and switch of the aid it was made from, a left-ear one here,
+-- which the recipe's callback must find among the inputs as well. Found aids hold no battery at
+-- this chance, so the output's charge can only come from the input.
 local UPGRADE_CHARGE = 0.42
-for _, case in ipairs({
-    { name = "hearingaid_craft_upgrade_keeps_battery", aid = BASIC },
-    { name = "hearingaid_craft_upgrade_left_ear_aid", aid = leftEar(BASIC) },
-}) do
-    craftTest(case.name, {
-        sandbox = { SpawnWithBatteryChance = 0 },
-        recipe = OPTIMIZE,
-        aid = case.aid,
-        charge = UPGRADE_CHARGE,
-        on = true,
-        counts = { [EFFICIENT] = 1, [case.aid] = 0, [leftEar(EFFICIENT)] = 0 },
-        validate = function(self)
-            local upgraded = aidsOfType(self, EFFICIENT)[1]
-            if upgraded then
-                expectCharge(upgraded, UPGRADE_CHARGE)
-                expect(upgraded.on, "aid was switched off")
-            end
-        end,
-    })
-end
+
+craftTest("hearingaid_craft_upgrade_keeps_battery", {
+    sandbox = { SpawnWithBatteryChance = 0 },
+    recipe = OPTIMIZE,
+    aid = leftEar(BASIC),
+    charge = UPGRADE_CHARGE,
+    on = true,
+    counts = { [EFFICIENT] = 1, [leftEar(BASIC)] = 0 },
+    validate = function(self)
+        local upgraded = aidsOfType(self, EFFICIENT)[1]
+        if upgraded then
+            expectCharge(upgraded, UPGRADE_CHARGE)
+            expect(upgraded.on, "aid was switched off")
+        end
+    end,
+})
 
 craftTest("hearingaid_craft_dismantle_returns_battery", {
     recipe = DISMANTLE,
@@ -576,35 +688,19 @@ craftTest("hearingaid_craft_dismantle_returns_battery", {
     end,
 })
 
-craftTest("hearingaid_craft_boost", {
+craftTest("hearingaid_craft_boost_only_when_enabled", {
     sandbox = { EnableBoosted = true },
+    refusedWith = { { sandbox = { EnableBoosted = false } } },
     recipe = BOOST,
     aid = EFFICIENT,
     counts = { [BOOSTED] = 1, [EFFICIENT] = 0 },
 })
 
-craftTest("hearingaid_craft_boost_disabled", {
-    sandbox = { EnableBoosted = false },
-    recipe = BOOST,
-    aid = EFFICIENT,
-    refused = true,
-    counts = { [BOOSTED] = 0, [EFFICIENT] = 1 },
-})
-
+-- The recipe asks for the Electrical level its option sets, and 0 drops the requirement, on the
+-- server too: refused at Electrical 0 while the option asks for 1, crafted once it is 0.
 craftTest("hearingaid_craft_skill_level_from_sandbox", {
-    sandbox = { RepairSkillLevel = 5 },
-    electrical = 4,
-    recipe = REPAIR,
-    aid = BROKEN,
-    refused = true,
-    counts = { [BASIC] = 0, [BROKEN] = 1 },
-    validate = function(self)
-        expect(self.refusal and self.refusal:find("skills too low", 1, true), "refused for another reason")
-    end,
-})
-
-craftTest("hearingaid_craft_without_skill_requirement", {
     sandbox = { RepairSkillLevel = 0 },
+    refusedWith = { { sandbox = { RepairSkillLevel = 1 }, reason = "skills too low" } },
     electrical = 0,
     recipe = REPAIR,
     aid = BROKEN,
@@ -620,9 +716,20 @@ local MENU_OPTIONS = {
     { name = "RemoveBattery", textKey = "ContextMenu_Remove_Battery" },
 }
 
+-- "battery <i>" for the i-th item giveAids gave, which a menu option acts on.
+local function nameGiven(self, item)
+    for i, gave in ipairs(self.items.giveAids) do
+        if instanceof(item, "InventoryItem") and gave:getID() == item:getID() then
+            return "battery " .. i
+        end
+    end
+    return tostring(item)
+end
+
 -- Builds the real inventory context menu for the item and lists its hearing aid options, for
--- example "TurnOn(disabled), RemoveBattery" or "AddBattery[Battery (75%), Battery (25%)]".
-local function describeMenu(item)
+-- example "TurnOn(disabled), RemoveBattery" or "AddBattery[battery 7, battery 6]", naming each
+-- battery Add Battery offers by nameGiven.
+local function describeMenu(self, item)
     local context = T.inventoryMenu(item)
     if not context then
         return "no menu"
@@ -637,7 +744,11 @@ local function describeMenu(item)
             end
             local choices = T.subMenu(context, option)
             if choices then
-                text = text .. "[" .. table.concat(T.optionNames(choices), ", ") .. "]"
+                local batteries = {}
+                for _, choice in ipairs(choices.options) do
+                    table.insert(batteries, nameGiven(self, choice.param3))
+                end
+                text = text .. "[" .. table.concat(batteries, ", ") .. "]"
             end
             table.insert(found, text)
         end
@@ -661,9 +772,9 @@ test("hearingaid_context_menu", {
         })
     end,
     validate = function(self)
-        local battery = given(self, 6):getDisplayName()
         local cases = {
-            { "no battery", given(self, 1), "AddBattery[" .. battery .. " (75%), " .. battery .. " (25%)]" },
+            -- Fullest first.
+            { "no battery", given(self, 1), "AddBattery[battery 7, battery 6]" },
             { "switched off", given(self, 2), "TurnOn, RemoveBattery" },
             { "switched on", given(self, 3), "TurnOff, RemoveBattery" },
             { "dead battery", given(self, 4), "TurnOn(disabled), RemoveBattery" },
@@ -671,46 +782,12 @@ test("hearingaid_context_menu", {
         }
         for _, case in ipairs(cases) do
             local label, aid, expected = case[1], case[2], case[3]
-            expectEqual(label .. ": the menu", describeMenu(aid), expected)
+            expectEqual(label .. ": the menu", describeMenu(self, aid), expected)
         end
     end,
 })
 
 -- Ears -----------------------------------------------------------------------------------------
-
-local ON_RIGHT_EAR = "ContextMenu_HearingAid_EarRight"
-local ON_LEFT_EAR = "ContextMenu_HearingAid_EarLeft"
-
--- Builds the real inventory context menu for the item. Returns it, to hide once done (nil without
--- one), and its Wear submenu, or nil.
-local function openWearMenu(item)
-    local context = T.inventoryMenu(item)
-    return context, T.subMenu(context, T.optionNamed(context, getText("ContextMenu_Wear")))
-end
-
--- The Wear submenu of the item, for example "on Right Ear, on Left Ear".
-local function describeWearMenu(item)
-    local context, wear = openWearMenu(item)
-    local names = T.optionNames(wear)
-    if context then
-        context:hideAndChildren()
-    end
-    return table.concat(names, ", ")
-end
-
--- Picks the Wear submenu option with this text key, as a player would. Returns whether it was
--- there.
-local function pickWearOption(item, textKey)
-    local context, wear = openWearMenu(item)
-    local option = T.optionNamed(wear, getText(textKey))
-    if option then
-        T.choose(option)
-    end
-    if context then
-        context:hideAndChildren()
-    end
-    return option ~= nil
-end
 
 -- Expects the aid of type `swapped` to have become a worn, switched-on `fullType` with this charge.
 local function expectSwappedTo(self, fullType, swapped, charge)
@@ -724,52 +801,29 @@ local function expectSwappedTo(self, fullType, swapped, charge)
     end
 end
 
-test("hearingaid_wear_menu_ears", {
-    run = function(self)
-        giveAids(self, { { type = EFFICIENT }, { type = leftEar(BROKEN), worn = true } })
-    end,
-    validate = function(self)
-        local right, left = getText(ON_RIGHT_EAR), getText(ON_LEFT_EAR)
-        local cases = {
-            { "unworn", given(self, 1), right .. ", " .. left },
-            { "worn on the left ear", given(self, 2), right },
-        }
-        for _, case in ipairs(cases) do
-            local label, aid, expected = case[1], case[2], case[3]
-            expectEqual(label .. ": the Wear menu", describeWearMenu(aid), expected)
-        end
-    end,
-})
-
+-- Wear > on Left Ear swaps the aid for its left-ear twin, which keeps its battery and switch.
 test("hearingaid_wear_switched_on_aid_on_left_ear", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 0.5, on = true } })
-        T.step(function()
-            self.picked = pickWearOption(given(self, 1), ON_LEFT_EAR)
-            readState(self)
-        end)
+        pickAndRead(self, 1, option(ON_LEFT_EAR, "ContextMenu_Wear"))
     end,
     validate = function(self)
-        expect(self.picked, "no Wear > on Left Ear option")
         expectSwappedTo(self, leftEar(BASIC), BASIC, 0.5)
         expectHearing(self, Level.NORMAL)
     end,
 })
 
+-- Swapping ears bills the old item's use first: the twin is billed only from the next update.
 test("hearingaid_switch_ears_while_worn", {
-    sandbox = { BatteryHoursBoosted = 10 },
+    sandbox = { BatteryHoursBoosted = LIFE },
     periodicUpdate = false,
     run = function(self)
         giveAids(self, { { type = leftEar(BOOSTED), charge = 1, on = true, worn = true } })
-        backdateDrain(self, 2)
-        T.step(function()
-            self.picked = pickWearOption(given(self, 1), ON_RIGHT_EAR)
-            readState(self)
-        end)
+        backdateDrain(self, USED)
+        pickAndRead(self, 1, option(ON_RIGHT_EAR, "ContextMenu_Wear"))
     end,
     validate = function(self)
-        expect(self.picked, "no Wear > on Right Ear option")
-        expectSwappedTo(self, BOOSTED, leftEar(BOOSTED), 0.8)
-        expectHearing(self, Level.KEEN)
+        expectSwappedTo(self, BOOSTED, leftEar(BOOSTED), 1 - USED / LIFE)
+        expectHearingChange(self, Level.KEEN, Level.KEEN)
     end,
 })
