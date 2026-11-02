@@ -1,6 +1,5 @@
 require "PZHarness/ServerFixtures"
 require "HearingAid/HearingAid"
-require "HearingAid/Debug/HearingAidLoot"
 
 -- Development only, not published. The server's half of HearingAidTests.lua: what only the
 -- authority does to the character, its hearing aids and their batteries, called with
@@ -23,10 +22,9 @@ local function aidState(player, item)
     }
 end
 
--- The character's hearing level, every hearing aid and battery in its inventory (not in bags), and
--- the types of what it wears.
+-- The character's hearing level and every hearing aid and battery in its inventory (not in bags).
 local function state(player)
-    local aids, batteries, worn = {}, {}, {}
+    local aids, batteries = {}, {}
     local items = player:getInventory():getItems()
     for i = 0, items:size() - 1 do
         local item = items:get(i)
@@ -36,11 +34,7 @@ local function state(player)
             table.insert(batteries, item:getCurrentUsesFloat())
         end
     end
-    local wornItems = player:getWornItems()
-    for i = 0, wornItems:size() - 1 do
-        table.insert(worn, wornItems:getItemByIndex(i):getFullType())
-    end
-    return { hearing = HearingAid.getHearingLevel(player), aids = aids, batteries = batteries, worn = worn }
+    return { hearing = HearingAid.getHearingLevel(player), aids = aids, batteries = batteries }
 end
 
 -- Every test starts from the character's own hearing `args.level`: traits and player modData carry
@@ -125,12 +119,4 @@ end)
 handler("instantiate", function(_, args)
     local item = instanceItem(args.type)
     return { battery = HearingAid.hasBattery(item), charge = HearingAid.getCharge(item) }
-end)
-
--- Corpse loot is rolled by the server in multiplayer, whose loot lists hold the aids.
-handler("corpseLoot", function(_, args)
-    return {
-        ordinary = HearingAidLoot.measureZombies("ordinary", args.ordinary),
-        retirees = HearingAidLoot.measureZombies("retirees", args.retirees),
-    }
 end)

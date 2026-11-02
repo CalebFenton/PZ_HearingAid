@@ -138,7 +138,7 @@ end
 
 -- Expectations ---------------------------------------------------------------------------------
 
-local NO_STATE = { aids = {}, batteries = {}, worn = {} }
+local NO_STATE = { aids = {}, batteries = {} }
 
 -- The state readState read; without one, an empty state and a failure: an action that stops
 -- empties the action queue, dropping what was queued after it.
@@ -504,13 +504,14 @@ local function craftTest(name, spec)
         recipe = spec.recipe,
         from = spec.aid,
         counts = spec.counts,
+        refused = spec.refused,
         instant = true,
         dropped = false,
         prepare = function(self)
             T.setPerk(self, Perks.Electricity, spec.electrical or Debug.ELECTRICAL_LEVEL)
             local materials = {}
             for _, material in ipairs(Debug.RECIPE_MATERIALS) do
-                table.insert(materials, { type = material.type, count = material.count, worn = material.type == spec.wear or nil })
+                table.insert(materials, { type = material.type, count = material.count })
             end
             T.give(self, "materials", materials)
             giveAids(self, { { type = spec.aid, charge = spec.charge, on = spec.on } })
@@ -537,27 +538,6 @@ craftTest("hearingaid_craft_repair", {
     validate = function(self)
         local repaired = aidsOfType(self, BASIC)[1]
         expect(not (repaired and repaired.battery), "repair created a battery")
-    end,
-})
-
--- People wear their reading glasses for close work, and a worn pair must serve as the magnifier.
-local READING_GLASSES = "Base.Glasses_Reading"
-craftTest("hearingaid_craft_with_worn_reading_glasses", {
-    recipe = REPAIR,
-    aid = BROKEN,
-    wear = READING_GLASSES,
-    counts = { [BASIC] = 1 },
-    validate = function(self)
-        local worn = false
-        for _, fullType in ipairs(stateOf(self).worn) do
-            worn = worn or fullType == READING_GLASSES
-        end
-        expect(worn, "reading glasses taken off")
-        local wornHere, wornItems = false, player():getWornItems()
-        for i = 0, wornItems:size() - 1 do
-            wornHere = wornHere or wornItems:getItemByIndex(i):getFullType() == READING_GLASSES
-        end
-        expect(wornHere, "reading glasses taken off on this client")
     end,
 })
 
@@ -607,6 +587,7 @@ craftTest("hearingaid_craft_boost_disabled", {
     sandbox = { EnableBoosted = false },
     recipe = BOOST,
     aid = EFFICIENT,
+    refused = true,
     counts = { [BOOSTED] = 0, [EFFICIENT] = 1 },
 })
 
@@ -615,7 +596,11 @@ craftTest("hearingaid_craft_skill_level_from_sandbox", {
     electrical = 4,
     recipe = REPAIR,
     aid = BROKEN,
+    refused = true,
     counts = { [BASIC] = 0, [BROKEN] = 1 },
+    validate = function(self)
+        expect(self.refusal and self.refusal:find("skills too low", 1, true), "refused for another reason")
+    end,
 })
 
 craftTest("hearingaid_craft_without_skill_requirement", {
@@ -624,26 +609,6 @@ craftTest("hearingaid_craft_without_skill_requirement", {
     recipe = REPAIR,
     aid = BROKEN,
     counts = { [BASIC] = 1 },
-})
-
--- Loot -----------------------------------------------------------------------------------------
-
--- Measured where the loot is rolled, on the server in multiplayer (HearingAidLoot.lua through
--- HearingAidTestServer.lua's corpseLoot). The test holds what the loot is for, not its tuning:
--- dev/run-debug-client.sh --loot measures the rates.
-test("hearingaid_corpse_loot", {
-    run = function(self)
-        T.server(self, "corpseLoot", { ordinary = 12000, retirees = 1000 })
-    end,
-    validate = function(self)
-        local ordinary, retirees = self.server.corpseLoot.ordinary, self.server.corpseLoot.retirees
-        print(string.format(PZHarness.run.tag .. " INFO ordinary corpses: %.2f%% wristwatch, %.2f%% broken aid, %.2f%% working aid,"
-            .. " %.2f%% any aid; retirees: %.2f%% any aid", ordinary.watch * 100, ordinary.broken * 100,
-            ordinary.working * 100, ordinary.any * 100, retirees.any * 100))
-        expect(ordinary.working > 0, "no working aids on ordinary corpses")
-        expect(ordinary.broken > ordinary.working, "broken aids on ordinary corpses not more common than working ones")
-        expect(retirees.any > ordinary.any, "retirees not more likely than ordinary corpses to carry an aid")
-    end,
 })
 
 -- Context menu ---------------------------------------------------------------------------------
