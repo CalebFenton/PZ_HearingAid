@@ -216,7 +216,7 @@ The game loads only JSON translations, from `media/lua/shared/Translate/<LANG>/<
 
 ## Release checklist
 
-1. `dev/static-check.sh`, `dev/validate-server.sh` and `dev/run-debug-client.sh --test` must pass. Then run what fits the change: `--art` for models, `--promo` and `compose.py` for art or the interface, `--loot` for loot.
+1. `dev/static-check.sh`, `dev/validate-server.sh` and `dev/run-debug-client.sh --test` must pass. Then run what fits the change: `--art` for models, `--promo` and `compose.py` for art, the interface, names, items or recipes (`dev/harness/docs/workshop-page.md`, "Laying out the images"), `--loot` for loot.
 2. Bump `modversion` in `42/mod.info`. Raise `versionMin` when the mod starts depending on a newer game version; lower it only after testing on the older version.
 3. Update `README.md`, then run `dev/workshop-txt.sh`.
 4. Upload from the in-game Workshop screen, then `dev/workshop-gallery.sh --upload` if the gallery changed.
