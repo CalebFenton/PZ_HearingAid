@@ -1,5 +1,5 @@
 {
-    "Sandbox_HearingAid": "Hörgerät",
+    "Sandbox_HearingAid": "Hearing Aid",
     "Sandbox_HearingAid_BatteryHoursBasic": "Batterielaufzeit: Hörgerät",
     "Sandbox_HearingAid_BatteryHoursBasic_tooltip": "Wie viele Spielstunden eine volle Batterie ein normales Hörgerät mit Strom versorgt, solange es eingeschaltet ist und getragen wird.",
     "Sandbox_HearingAid_BatteryHoursEfficient": "Batterielaufzeit: Sparsames Hörgerät",
@@ -15,7 +15,7 @@
     "Sandbox_HearingAid_HandleDeafness": "Umgang mit Taubheit",
     "Sandbox_HearingAid_HandleDeafness_tooltip": "Wie Hörgeräte Charakteren mit der Eigenschaft „Taub“ helfen.",
     "Sandbox_HearingAid_HandleDeafness_option1": "Hörgeräte helfen nicht",
-    "Sandbox_HearingAid_HandleDeafness_option2": "Hörgeräte verleihen „Schwerhörig“, verstärkte normales Gehör",
+    "Sandbox_HearingAid_HandleDeafness_option2": "Hörgeräte verleihen „Schwerhörig“, verstärkte normales Hörvermögen",
     "Sandbox_HearingAid_HandleDeafness_option3": "Nur verstärkte Hörgeräte helfen und verleihen „Schwerhörig“",
     "Sandbox_HearingAid_EnableBoosted": "Verstärkte Hörgeräte aktivieren",
     "Sandbox_HearingAid_EnableBoosted_tooltip": "Ob sparsame Hörgeräte zu verstärkten aufgerüstet werden können, die „Gutes Hörvermögen“ verleihen.",

@@ -1,6 +1,6 @@
 {
     "IGUI_HearingAid_Battery": "Pile :",
-    "IGUI_HearingAid_Charge": "%1%%",
+    "IGUI_HearingAid_Charge": "%1 %%",
     "IGUI_HearingAid_NoBattery": "Aucune",
     "IGUI_HearingAid_On": "Allumé",
     "IGUI_HearingAid_OnNotWorn": "Allumé (non porté)",

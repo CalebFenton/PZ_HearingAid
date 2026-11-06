@@ -1,5 +1,5 @@
 {
-    "IGUI_HearingAid_Battery": "电池: ",
+    "IGUI_HearingAid_Battery": "电池:",
     "IGUI_HearingAid_Charge": "%1%%",
     "IGUI_HearingAid_NoBattery": "无",
     "IGUI_HearingAid_On": "已开启",

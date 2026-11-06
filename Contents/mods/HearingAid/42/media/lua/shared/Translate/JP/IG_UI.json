@@ -1,6 +1,6 @@
 {
     "IGUI_HearingAid_Battery": "乾電池:",
-    "IGUI_HearingAid_Charge": "%1 %%",
+    "IGUI_HearingAid_Charge": "%1%%",
     "IGUI_HearingAid_NoBattery": "なし",
     "IGUI_HearingAid_On": "作動中",
     "IGUI_HearingAid_OnNotWorn": "作動中(未装着)",

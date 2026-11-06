@@ -1,5 +1,5 @@
 {
-    "Sandbox_HearingAid": "Aparato Auditivo",
+    "Sandbox_HearingAid": "Hearing Aid",
     "Sandbox_HearingAid_BatteryHoursBasic": "Duración de Pila: Aparato Auditivo",
     "Sandbox_HearingAid_BatteryHoursBasic_tooltip": "Horas de juego que una pila llena alimenta un aparato auditivo normal mientras está encendido y puesto.",
     "Sandbox_HearingAid_BatteryHoursEfficient": "Duración de Pila: Aparato Auditivo Eficiente",
@@ -19,7 +19,7 @@
     "Sandbox_HearingAid_HandleDeafness_option3": "Solo ayudan los aparatos auditivos potenciados, que dan el rasgo Mal Oído",
     "Sandbox_HearingAid_EnableBoosted": "Activar Aparatos Auditivos Potenciados",
     "Sandbox_HearingAid_EnableBoosted_tooltip": "Si los aparatos auditivos eficientes se pueden convertir en potenciados, que otorgan el rasgo Oído Fino.",
-    "Sandbox_HearingAid_RepairSkillLevel": "Nivel de Eléctrica: Reparar",
+    "Sandbox_HearingAid_RepairSkillLevel": "Nivel de Eléctrica: Arreglar",
     "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Nivel de Eléctrica necesario para reparar un aparato auditivo roto. 0 elimina el requisito.",
     "Sandbox_HearingAid_OptimizeSkillLevel": "Nivel de Eléctrica: Optimizar",
     "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Nivel de Eléctrica necesario para optimizar un aparato auditivo y hacerlo eficiente. 0 elimina el requisito.",

@@ -1,10 +1,10 @@
 {
-    "HearingAid.BrokenHearingAid": "Zepsuty aparat słuchowy",
-    "HearingAid.BrokenHearingAid_Left": "Zepsuty aparat słuchowy",
+    "HearingAid.BrokenHearingAid": "Aparat słuchowy – zepsuty",
+    "HearingAid.BrokenHearingAid_Left": "Aparat słuchowy – zepsuty",
     "HearingAid.HearingAid": "Aparat słuchowy",
     "HearingAid.HearingAid_Left": "Aparat słuchowy",
-    "HearingAid.EfficientHearingAid": "Oszczędny aparat słuchowy",
-    "HearingAid.EfficientHearingAid_Left": "Oszczędny aparat słuchowy",
-    "HearingAid.BoostedHearingAid": "Wzmocniony aparat słuchowy",
-    "HearingAid.BoostedHearingAid_Left": "Wzmocniony aparat słuchowy"
+    "HearingAid.EfficientHearingAid": "Aparat słuchowy – oszczędny",
+    "HearingAid.EfficientHearingAid_Left": "Aparat słuchowy – oszczędny",
+    "HearingAid.BoostedHearingAid": "Aparat słuchowy – wzmocniony",
+    "HearingAid.BoostedHearingAid_Left": "Aparat słuchowy – wzmocniony"
 }
