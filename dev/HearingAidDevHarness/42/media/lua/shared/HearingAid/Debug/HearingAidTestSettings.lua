@@ -3,7 +3,7 @@
 
 require "PZHarness/Fixtures"
 require "HearingAid/HearingAidRecipes"
-local Chance = require "cf_commonlib/Chance"
+require "HearingAid/HearingAid"
 
 PZHarness.registerTests({
     -- The scenario's hour. Crafting needs light, the world's light catches up with the clock
@@ -18,5 +18,5 @@ PZHarness.registerTests({
     setup = function(self, spec)
         HearingAidTests.setup(self, spec)
     end,
-    chance = function() return Chance end,
+    chance = function() return HearingAid end,
 })

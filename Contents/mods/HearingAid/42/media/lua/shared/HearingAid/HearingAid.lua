@@ -3,8 +3,6 @@
 -- Only the authority changes state: single player, or the dedicated server in multiplayer
 -- (`not isClient()`). Multiplayer clients read item state for the UI and never touch traits.
 
-local Chance = require "cf_commonlib/Chance"
-
 HearingAid = HearingAid or {}
 
 HearingAid.BROKEN = "HearingAid.BrokenHearingAid"
@@ -136,13 +134,19 @@ function HearingAid.getBatteryHours(aid)
     return SandboxVars.HearingAid[TIERS[tierOf(aid)].batteryHoursOption]
 end
 
+-- A roll, 0 up to but not including 1. Every chance draws through it, looked up on this table as
+-- it runs, so a test can set the roll on either side of a chance (PZHarness.Rolls).
+function HearingAid.roll()
+    return ZombRandFloat(0, 1)
+end
+
 -- OnCreate of the working tiers' item scripts: a found aid may still hold a used battery. It runs
 -- on every instantiation, including loading a save and crafting; item:load() and the recipe
 -- OnCreate replace this state afterwards.
 function HearingAid.onCreate(aid)
     local charge = nil
-    if Chance.hit(SandboxVars.HearingAid.SpawnWithBatteryChance / 100) then
-        charge = Chance.within(0.05, 1.0)
+    if HearingAid.roll() < SandboxVars.HearingAid.SpawnWithBatteryChance / 100 then
+        charge = 0.05 + 0.95 * HearingAid.roll()
     end
     HearingAid.setCharge(aid, charge)
 end
