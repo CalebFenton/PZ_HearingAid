@@ -4,6 +4,8 @@ Take Deaf or Hard of Hearing for the trait points, then earn your hearing back. 
 
 **Build 42.21 or newer.** Single player and multiplayer. Fine to add to a save in progress. Requires **cf_commonlib**.
 
+**Languages:** English, Català, Čeština, Dansk, Deutsch, Español (España, México, Chile, Argentina), Suomi, Français, Magyar, Bahasa Indonesia, Italiano, 日本語, 한국어, Nederlands, Norsk, Polski, Português (Portugal, Brasil), Română, Русский, ไทย, Türkçe, Українська, 简体中文, 繁體中文.
+
 ## From broken to boosted
 
 ![The four hearing aid models in 3D, worn behind an ear, and as inventory icons](art/promo/images/tiers.png)
@@ -50,7 +52,6 @@ Loot rates, the chance a found one still holds a battery, and **Enable Boosted H
 ## Questions
 
 - **Can I remove it from a save?** Take your hearing aid off first. While one works, your hearing trait is the one it gives you, and without the mod nothing would change it back. Hearing aids in the world disappear with the mod.
-- **Does it work in my language?** Every text the mod shows is translated into each language the game offers, in the game's own words for traits, items and skills.
 
 ## Install
 

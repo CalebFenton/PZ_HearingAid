@@ -19,10 +19,10 @@
     "Sandbox_HearingAid_HandleDeafness_option3": "Pomáhají jen zesílená naslouchátka, zmírní hluchotu na nedoslýchavost",
     "Sandbox_HearingAid_EnableBoosted": "Povolit zesílená naslouchátka",
     "Sandbox_HearingAid_EnableBoosted_tooltip": "Zda lze úsporná naslouchátka vylepšit na zesílená, která dávají bystrý sluch.",
-    "Sandbox_HearingAid_RepairSkillLevel": "Úroveň elektrotechniky: Oprava",
-    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Úroveň elektrotechniky potřebná k opravě rozbitého naslouchátka. 0 požadavek odstraní.",
-    "Sandbox_HearingAid_OptimizeSkillLevel": "Úroveň elektrotechniky: Optimalizace",
-    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Úroveň elektrotechniky potřebná k optimalizaci naslouchátka na úsporné. 0 požadavek odstraní.",
-    "Sandbox_HearingAid_BoostSkillLevel": "Úroveň elektrotechniky: Zesílení",
-    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Úroveň elektrotechniky potřebná k vylepšení úsporného naslouchátka na zesílené. 0 požadavek odstraní."
+    "Sandbox_HearingAid_RepairSkillLevel": "Úroveň Elektrotechniky: Oprava",
+    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Úroveň Elektrotechniky potřebná k opravě rozbitého naslouchátka. 0 požadavek odstraní.",
+    "Sandbox_HearingAid_OptimizeSkillLevel": "Úroveň Elektrotechniky: Optimalizace",
+    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Úroveň Elektrotechniky potřebná k optimalizaci naslouchátka na úsporné. 0 požadavek odstraní.",
+    "Sandbox_HearingAid_BoostSkillLevel": "Úroveň Elektrotechniky: Zesílení",
+    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Úroveň Elektrotechniky potřebná k vylepšení úsporného naslouchátka na zesílené. 0 požadavek odstraní."
 }

@@ -6,7 +6,7 @@
     "Sandbox_HearingAid_BatteryHoursEfficient_tooltip": "Kuinka monta pelin sisäistä tuntia täysi akku pitää tehokkaan kuulolaitteen käynnissä, kun se on päällä ja korvalla.",
     "Sandbox_HearingAid_BatteryHoursBoosted": "Akun kesto: Tehostettu kuulolaite",
     "Sandbox_HearingAid_BatteryHoursBoosted_tooltip": "Kuinka monta pelin sisäistä tuntia täysi akku pitää tehostetun kuulolaitteen käynnissä, kun se on päällä ja korvalla.",
-    "Sandbox_HearingAid_SpawnWithBatteryChance": "Akun todennäköisyys löydetyissä laitteissa",
+    "Sandbox_HearingAid_SpawnWithBatteryChance": "Löydetyn laitteen akun todennäköisyys",
     "Sandbox_HearingAid_SpawnWithBatteryChance_tooltip": "Prosentuaalinen todennäköisyys, että maailmasta löytyvässä toimivassa kuulolaitteessa on yhä osittain käytetty akku.",
     "Sandbox_HearingAid_BrokenLootMultiplier": "Tavara: Rikkinäiset kuulolaitteet",
     "Sandbox_HearingAid_BrokenLootMultiplier_tooltip": "Kerroin sille, kuinka usein rikkinäisiä kuulolaitteita ilmestyy. 0 poistaa ne pelistä. Tulee voimaan, kun maailma latautuu.",

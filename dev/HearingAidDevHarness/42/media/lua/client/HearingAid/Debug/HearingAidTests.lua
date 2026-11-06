@@ -335,18 +335,18 @@ test("hearingaid_hearing_levels", {
     end,
 })
 
--- The worn aid reads the option: under None a Boosted aid, which helps a deaf character under the
--- other modes, switches on and leaves them deaf.
-test("hearingaid_handle_deafness_none_keeps_deaf", {
+-- The worn aid reads the option: under Boosted Only a Boosted aid gives a deaf character a level
+-- that neither the other modes nor a misread option would give them.
+test("hearingaid_handle_deafness_boosted_only", {
     hearing = Level.DEAF,
-    sandbox = { HandleDeafness = Mode.NONE },
+    sandbox = { HandleDeafness = Mode.BOOSTED_ONLY },
     run = function(self)
         giveAids(self, { { type = BOOSTED, charge = 1, worn = true } })
         pickAndRead(self, 1, option("ContextMenu_Turn_On"))
     end,
     validate = function(self)
         expect(givenState(self, 1).on, "aid is off")
-        expectHearing(self, Level.DEAF)
+        expectHearing(self, Level.HARD_OF_HEARING)
     end,
 })
 
@@ -378,16 +378,28 @@ test("hearingaid_turn_off", {
     end,
 })
 
+-- Put on by an action and taken off by one, the aid gives the character back their own hearing. In
+-- multiplayer this client sends its whole player modData after each clothing change (ISHotbar),
+-- which drops what the server wrote about the character's own hearing unless it puts it back.
 test("hearingaid_wear_switched_on_aid", {
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 1, on = true } })
         -- A periodic update first: off the ear the aid must not help.
         readStateBefore(self, "steps", { steps = { { op = "update", at = 0 } } })
         doubleClickAndRead(self, 1)
+        T.step(function()
+            self.wornState = self.state
+            pickAndRead(self, 1, option("ContextMenu_Unequip"))
+        end)
     end,
     validate = function(self)
+        local takenOff = self.state
+        self.state = self.wornState
         expect(givenState(self, 1).worn, "aid is not worn")
         expectHearingChange(self, Level.HARD_OF_HEARING, Level.NORMAL)
+        self.state = takenOff
+        expect(not givenState(self, 1).worn, "aid is still worn after Unequip")
+        expectHearing(self, Level.HARD_OF_HEARING)
     end,
 })
 
@@ -474,16 +486,17 @@ test("hearingaid_remove_battery", {
     end,
 })
 
--- A found aid holds a battery on a roll just under the found-battery chance and none at it; the
--- lowest charge roll still leaves the battery some charge. Not the option's default, so a chance
--- read from anywhere else fails.
+-- A found aid holds a battery on a roll just under the found-battery chance and none at it. Not
+-- the option's default, so a chance read from anywhere else fails.
 local FOUND_BATTERY_PERCENT = 30
+-- The charge roll, halfway, spans the found charge's whole range: 0.05 + (1 - 0.05) × 0.5.
+local CHARGE_ROLL, FOUND_CHARGE = 0.5, 0.525
 
 test("hearingaid_found_battery_chance", {
     sandbox = { SpawnWithBatteryChance = FOUND_BATTERY_PERCENT },
     run = function(self)
         local chance = FOUND_BATTERY_PERCENT / 100
-        T.forceRoll(self, { chance - T.UNDER, 0 })
+        T.forceRoll(self, { chance - T.UNDER, CHARGE_ROLL })
         T.server(self, "instantiate", { type = BASIC })
         T.step(function()
             self.under = self.server.instantiate
@@ -494,7 +507,7 @@ test("hearingaid_found_battery_chance", {
     validate = function(self)
         local under, at = self.under or {}, self.server.instantiate or {}
         if expect(under.battery, "no battery on a roll just under the chance") then
-            expect(under.charge > 0, "the found battery is dead")
+            expectNear("found charge", under.charge, FOUND_CHARGE)
         end
         expect(not at.battery, "a battery on a roll at the chance")
     end,
@@ -503,20 +516,76 @@ test("hearingaid_found_battery_chance", {
 -- The tests below move time on through HearingAidTestServer.lua's steps, all in one go on the
 -- server, so the periodic update stays out of the way.
 
+-- Records the warnings shown over the character's head on this client, which in multiplayer come
+-- from the server's command (HearingAidClient.lua), in self.warnings until the test ends.
+local function recordWarnings(self)
+    self.warnings = {}
+    local vanilla = HaloTextHelper.addBadText
+    HaloTextHelper.addBadText = function(character, text)
+        table.insert(self.warnings, text)
+        return vanilla(character, text)
+    end
+    T.defer(self, function() HaloTextHelper.addBadText = vanilla end)
+end
+
+local function waitForWarnings(self, count)
+    T.waitUntil(function() return #self.warnings >= count end, SYNC_MS, count .. " battery warnings on this client")
+end
+
+-- The warnings shown, by name, for a failure message.
+local function warningNames(warnings)
+    local names = {}
+    for _, text in ipairs(warnings) do
+        if text == getText("IGUI_HearingAid_BatteryLow") then
+            table.insert(names, "low")
+        elseif text == getText("IGUI_HearingAid_BatteryDead") then
+            table.insert(names, "dead")
+        else
+            table.insert(names, tostring(text))
+        end
+    end
+    return table.concat(names, ", ")
+end
+
+-- The aid's charge at the start, and after an hour's update and another a quarter hour later, at a
+-- life of LIFE hours: 0.15 - 1/10 = 0.05, below the low-charge mark, then 0.05 - 0.25/10 = 0.025.
+-- The USED hours after that take the rest.
+local LOW_START, LOW_AFTER = 0.15, 0.025
+
+-- The battery warns once as it runs low and again as it dies, which switches the aid off and gives
+-- the character back their own hearing, but leaves the dead battery in.
 test("hearingaid_battery_runs_out", {
     sandbox = { BatteryHoursBasic = LIFE },
     periodicUpdate = false,
     run = function(self)
-        -- Half the charge the span uses.
-        giveAids(self, { { type = BASIC, charge = USED / LIFE / 2, on = true, worn = true } })
-        readState(self, "steps", { steps = { { op = "update", at = 0 }, { op = "update", at = USED } } })
+        recordWarnings(self)
+        giveAids(self, { { type = BASIC, charge = LOW_START, on = true, worn = true } })
+        readState(self, "steps", { steps = {
+            { op = "update", at = 0 }, { op = "update", at = 1 }, { op = "update", at = 1.25 },
+        } })
+        waitForWarnings(self, 1)
+        T.step(function()
+            self.lowState = self.state
+            self.lowWarnings = warningNames(self.warnings)
+            readState(self, "steps", { steps = { { op = "update", at = USED } } })
+            waitForWarnings(self, 2)
+        end)
     end,
     validate = function(self)
+        local dead = self.state
+        self.state = self.lowState
+        local low = givenState(self, 1)
+        expectCharge(low, LOW_AFTER)
+        expect(low.on, "aid switched off while it still had charge")
+        expectHearing(self, Level.NORMAL)
+        expectEqual("warnings once low", self.lowWarnings, "low")
+        self.state = dead
         local aid = givenState(self, 1)
         expectCharge(aid, 0)
         expect(aid.battery, "dead battery was removed")
         expect(not aid.on, "aid is still on")
         expectHearing(self, Level.HARD_OF_HEARING)
+        expectEqual("warnings once dead", warningNames(self.warnings or {}), "low, dead")
     end,
 })
 
@@ -818,29 +887,10 @@ local function expectSwappedTo(self, fullType, swapped, charge)
     end
 end
 
--- Wear > on Right Ear on a right-ear aid also replaces it with a new item, of the same type. It
--- keeps the aid's battery and switch, not what the new item's OnCreate rolled: at this chance that
--- is always a battery, switched off.
-test("hearingaid_wear_switched_on_aid_on_right_ear", {
-    sandbox = { SpawnWithBatteryChance = 100 },
-    run = function(self)
-        giveAids(self, { { type = BASIC, charge = 0.5, on = true } })
-        pickAndRead(self, 1, option(ON_RIGHT_EAR, "ContextMenu_Wear"))
-    end,
-    validate = function(self)
-        expectAids(self, BASIC, 1)
-        local aid = aidsOfType(self, BASIC)[1]
-        if aid then
-            expect(aid.worn, "aid is not worn")
-            expectCharge(aid, 0.5, CHARGE_TOLERANCE)
-            expect(aid.on, "aid is off")
-        end
-        expectHearing(self, Level.NORMAL)
-    end,
-})
-
--- Wear > on Left Ear swaps the aid for its left-ear twin, which keeps its battery and switch.
+-- Wear > on Left Ear swaps the aid for its left-ear twin, a new item, which keeps the aid's battery
+-- and switch, not what its OnCreate rolled: at this chance that is always a battery, switched off.
 test("hearingaid_wear_switched_on_aid_on_left_ear", {
+    sandbox = { SpawnWithBatteryChance = 100 },
     run = function(self)
         giveAids(self, { { type = BASIC, charge = 0.5, on = true } })
         pickAndRead(self, 1, option(ON_LEFT_EAR, "ContextMenu_Wear"))

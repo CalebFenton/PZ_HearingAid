@@ -19,10 +19,10 @@
     "Sandbox_HearingAid_HandleDeafness_option3": "Pomagają tylko wzmocnione aparaty, zmieniając głuchotę w niedosłuch",
     "Sandbox_HearingAid_EnableBoosted": "Włącz wzmocnione aparaty słuchowe",
     "Sandbox_HearingAid_EnableBoosted_tooltip": "Czy oszczędne aparaty słuchowe można ulepszyć do wzmocnionych, które dają wyostrzony słuch.",
-    "Sandbox_HearingAid_RepairSkillLevel": "Poziom elektryki: naprawa",
-    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Poziom elektryki potrzebny do naprawy zepsutego aparatu słuchowego. 0 usuwa wymaganie.",
-    "Sandbox_HearingAid_OptimizeSkillLevel": "Poziom elektryki: optymalizacja",
-    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Poziom elektryki potrzebny do zoptymalizowania aparatu słuchowego do oszczędnego. 0 usuwa wymaganie.",
-    "Sandbox_HearingAid_BoostSkillLevel": "Poziom elektryki: wzmocnienie",
-    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Poziom elektryki potrzebny do ulepszenia oszczędnego aparatu słuchowego do wzmocnionego. 0 usuwa wymaganie."
+    "Sandbox_HearingAid_RepairSkillLevel": "Poziom Elektryki: naprawa",
+    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Poziom Elektryki potrzebny do naprawy zepsutego aparatu słuchowego. 0 usuwa wymaganie.",
+    "Sandbox_HearingAid_OptimizeSkillLevel": "Poziom Elektryki: optymalizacja",
+    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Poziom Elektryki potrzebny do zoptymalizowania aparatu słuchowego do oszczędnego. 0 usuwa wymaganie.",
+    "Sandbox_HearingAid_BoostSkillLevel": "Poziom Elektryki: wzmocnienie",
+    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Poziom Elektryki potrzebny do ulepszenia oszczędnego aparatu słuchowego do wzmocnionego. 0 usuwa wymaganie."
 }

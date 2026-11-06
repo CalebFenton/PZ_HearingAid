@@ -12,7 +12,7 @@
     "Sandbox_HearingAid_BrokenLootMultiplier_tooltip": "Bozuk işitme cihazlarının ne sıklıkla çıkacağını çarpar. 0 tamamen kapatır. Dünya yüklendiğinde etkili olur.",
     "Sandbox_HearingAid_WorkingLootMultiplier": "Çalışan İşitme Cihazı Sıklığı",
     "Sandbox_HearingAid_WorkingLootMultiplier_tooltip": "Çalışan işitme cihazlarının ne sıklıkla çıkacağını çarpar. 0 tamamen kapatır. Dünya yüklendiğinde etkili olur.",
-    "Sandbox_HearingAid_HandleDeafness": "Sağırlara Etkisi",
+    "Sandbox_HearingAid_HandleDeafness": "Sağır Karakterlere Etkisi",
     "Sandbox_HearingAid_HandleDeafness_tooltip": "İşitme cihazlarının Sağır özelliğine sahip karakterlere nasıl etki ettiği.",
     "Sandbox_HearingAid_HandleDeafness_option1": "İşitme cihazları işe yaramaz",
     "Sandbox_HearingAid_HandleDeafness_option2": "İşitme cihazları Ağır İşiten seviyesine getirir, güçlendirilmiş olanlar normal işitme sağlar",

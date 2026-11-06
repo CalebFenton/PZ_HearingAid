@@ -15,14 +15,14 @@
     "Sandbox_HearingAid_HandleDeafness": "การจัดการภาวะหูหนวก",
     "Sandbox_HearingAid_HandleDeafness_tooltip": "เครื่องช่วยฟังช่วยตัวละครที่มีคุณลักษณะหูหนวกอย่างไร",
     "Sandbox_HearingAid_HandleDeafness_option1": "เครื่องช่วยฟังไม่ช่วย",
-    "Sandbox_HearingAid_HandleDeafness_option2": "เครื่องช่วยฟังทำให้ดีขึ้นเป็นหูตึง แบบขยายเสียงทำให้ได้ยินปกติ",
-    "Sandbox_HearingAid_HandleDeafness_option3": "เฉพาะเครื่องช่วยฟังขยายเสียงที่ช่วยได้ โดยทำให้ดีขึ้นเป็นหูตึง",
+    "Sandbox_HearingAid_HandleDeafness_option2": "เครื่องช่วยฟังทำให้ได้ยินระดับหูตึง แบบขยายเสียงทำให้ได้ยินปกติ",
+    "Sandbox_HearingAid_HandleDeafness_option3": "เฉพาะแบบขยายเสียงที่ช่วยได้ โดยทำให้ได้ยินระดับหูตึง",
     "Sandbox_HearingAid_EnableBoosted": "เปิดใช้เครื่องช่วยฟังขยายเสียง",
     "Sandbox_HearingAid_EnableBoosted_tooltip": "กำหนดว่าเครื่องช่วยฟังประหยัดพลังงานสามารถอัปเกรดเป็นแบบขยายเสียงซึ่งให้คุณลักษณะหูดีได้หรือไม่",
-    "Sandbox_HearingAid_RepairSkillLevel": "ระดับงานไฟฟ้า: ซ่อมแซม",
-    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "ระดับงานไฟฟ้าที่ต้องใช้ในการซ่อมแซมเครื่องช่วยฟังที่เสีย 0 คือไม่มีข้อกำหนด",
-    "Sandbox_HearingAid_OptimizeSkillLevel": "ระดับงานไฟฟ้า: ปรับแต่ง",
-    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "ระดับงานไฟฟ้าที่ต้องใช้ในการปรับแต่งเครื่องช่วยฟังให้เป็นแบบประหยัดพลังงาน 0 คือไม่มีข้อกำหนด",
-    "Sandbox_HearingAid_BoostSkillLevel": "ระดับงานไฟฟ้า: เพิ่มกำลังขยาย",
-    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "ระดับงานไฟฟ้าที่ต้องใช้ในการอัปเกรดเครื่องช่วยฟังประหยัดพลังงานเป็นแบบขยายเสียง 0 คือไม่มีข้อกำหนด"
+    "Sandbox_HearingAid_RepairSkillLevel": "เลเวลงานไฟฟ้า: ซ่อมแซม",
+    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "เลเวลงานไฟฟ้าที่ต้องใช้ในการซ่อมแซมเครื่องช่วยฟังที่เสีย 0 คือไม่มีข้อกำหนด",
+    "Sandbox_HearingAid_OptimizeSkillLevel": "เลเวลงานไฟฟ้า: ปรับแต่ง",
+    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "เลเวลงานไฟฟ้าที่ต้องใช้ในการปรับแต่งเครื่องช่วยฟังให้เป็นแบบประหยัดพลังงาน 0 คือไม่มีข้อกำหนด",
+    "Sandbox_HearingAid_BoostSkillLevel": "เลเวลงานไฟฟ้า: เพิ่มกำลังขยาย",
+    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "เลเวลงานไฟฟ้าที่ต้องใช้ในการอัปเกรดเครื่องช่วยฟังประหยัดพลังงานเป็นแบบขยายเสียง 0 คือไม่มีข้อกำหนด"
 }

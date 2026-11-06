@@ -15,14 +15,14 @@
     "Sandbox_HearingAid_HandleDeafness": "Gestion de la surdité",
     "Sandbox_HearingAid_HandleDeafness_tooltip": "Comment les appareils auditifs aident les personnages ayant le trait Sourd.",
     "Sandbox_HearingAid_HandleDeafness_option1": "Les appareils auditifs n'aident pas",
-    "Sandbox_HearingAid_HandleDeafness_option2": "Les appareils auditifs donnent Dur d'oreille, les amplifiés donnent une audition normale",
-    "Sandbox_HearingAid_HandleDeafness_option3": "Seuls les appareils amplifiés aident, en donnant Dur d'oreille",
+    "Sandbox_HearingAid_HandleDeafness_option2": "Les appareils auditifs donnent le trait Dur d'oreille, les amplifiés une audition normale",
+    "Sandbox_HearingAid_HandleDeafness_option3": "Seuls les appareils amplifiés aident, en donnant le trait Dur d'oreille",
     "Sandbox_HearingAid_EnableBoosted": "Activer les appareils auditifs amplifiés",
-    "Sandbox_HearingAid_EnableBoosted_tooltip": "Permet d'améliorer les appareils auditifs économes en appareils amplifiés, qui donnent Ouïe fine.",
-    "Sandbox_HearingAid_RepairSkillLevel": "Niveau d'Électricité : réparer",
-    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Niveau d'Électricité requis pour réparer un appareil auditif cassé. 0 supprime l'exigence.",
-    "Sandbox_HearingAid_OptimizeSkillLevel": "Niveau d'Électricité : optimiser",
-    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Niveau d'Électricité requis pour optimiser un appareil auditif en appareil économe. 0 supprime l'exigence.",
-    "Sandbox_HearingAid_BoostSkillLevel": "Niveau d'Électricité : amplifier",
-    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Niveau d'Électricité requis pour améliorer un appareil auditif économe en appareil amplifié. 0 supprime l'exigence."
+    "Sandbox_HearingAid_EnableBoosted_tooltip": "Permet d'améliorer les appareils auditifs économes en appareils amplifiés, qui donnent le trait Ouïe fine.",
+    "Sandbox_HearingAid_RepairSkillLevel": "Niveau d'Électricité : réparation",
+    "Sandbox_HearingAid_RepairSkillLevel_tooltip": "Niveau d'Électricité requis pour réparer un appareil auditif cassé. 0 supprime cette condition.",
+    "Sandbox_HearingAid_OptimizeSkillLevel": "Niveau d'Électricité : optimisation",
+    "Sandbox_HearingAid_OptimizeSkillLevel_tooltip": "Niveau d'Électricité requis pour optimiser un appareil auditif en appareil économe. 0 supprime cette condition.",
+    "Sandbox_HearingAid_BoostSkillLevel": "Niveau d'Électricité : amplification",
+    "Sandbox_HearingAid_BoostSkillLevel_tooltip": "Niveau d'Électricité requis pour améliorer un appareil auditif économe en appareil amplifié. 0 supprime cette condition."
 }

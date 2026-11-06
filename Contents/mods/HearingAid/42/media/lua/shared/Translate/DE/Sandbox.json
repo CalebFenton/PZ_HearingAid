@@ -7,7 +7,7 @@
     "Sandbox_HearingAid_BatteryHoursBoosted": "Batterielaufzeit: Verstärktes Hörgerät",
     "Sandbox_HearingAid_BatteryHoursBoosted_tooltip": "Wie viele Spielstunden eine volle Batterie ein verstärktes Hörgerät mit Strom versorgt, solange es eingeschaltet ist und getragen wird.",
     "Sandbox_HearingAid_SpawnWithBatteryChance": "Chance auf Batterie beim Fund",
-    "Sandbox_HearingAid_SpawnWithBatteryChance_tooltip": "Prozentuale Chance, dass ein funktionierendes Hörgerät in der Welt noch eine teilweise verbrauchte Batterie enthält.",
+    "Sandbox_HearingAid_SpawnWithBatteryChance_tooltip": "Prozentuale Chance, dass ein in der Welt gefundenes funktionierendes Hörgerät noch eine teilweise verbrauchte Batterie enthält.",
     "Sandbox_HearingAid_BrokenLootMultiplier": "Beute: Kaputte Hörgeräte",
     "Sandbox_HearingAid_BrokenLootMultiplier_tooltip": "Multipliziert, wie oft kaputte Hörgeräte erscheinen. 0 deaktiviert sie. Wird beim Laden der Welt wirksam.",
     "Sandbox_HearingAid_WorkingLootMultiplier": "Beute: Funktionierende Hörgeräte",

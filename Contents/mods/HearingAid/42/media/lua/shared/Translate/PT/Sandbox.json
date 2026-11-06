@@ -13,7 +13,7 @@
     "Sandbox_HearingAid_WorkingLootMultiplier": "Saque de Aparelhos Auditivos Funcionais",
     "Sandbox_HearingAid_WorkingLootMultiplier_tooltip": "Multiplica a frequência com que aparecem aparelhos auditivos funcionais. 0 desativa-os. Tem efeito quando o mundo carrega.",
     "Sandbox_HearingAid_HandleDeafness": "Tratamento da Surdez",
-    "Sandbox_HearingAid_HandleDeafness_tooltip": "Como os aparelhos auditivos ajudam as personagens totalmente surdas (traço Surdo: «Não ouves peva»). Dificuldade auditiva corresponde ao outro traço Surdo, o de alcance auditivo inferior.",
+    "Sandbox_HearingAid_HandleDeafness_tooltip": "Como os aparelhos auditivos ajudam as personagens com o traço Surdo («Não ouves peva»).",
     "Sandbox_HearingAid_HandleDeafness_option1": "Os aparelhos auditivos não ajudam",
     "Sandbox_HearingAid_HandleDeafness_option2": "Os aparelhos auditivos dão dificuldade auditiva; os amplificados dão audição normal",
     "Sandbox_HearingAid_HandleDeafness_option3": "Só os aparelhos amplificados ajudam, dando dificuldade auditiva",

@@ -5,6 +5,6 @@
     "IGUI_HearingAid_On": "Encendido",
     "IGUI_HearingAid_OnNotWorn": "Encendido (no puesto)",
     "IGUI_HearingAid_Off": "Apagado",
-    "IGUI_HearingAid_BatteryLow": "La pila del audífono está baja",
-    "IGUI_HearingAid_BatteryDead": "La pila del audífono está agotada"
+    "IGUI_HearingAid_BatteryLow": "La pila del audífono se está agotando",
+    "IGUI_HearingAid_BatteryDead": "La pila del audífono se ha agotado"
 }
